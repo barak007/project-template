@@ -1,0 +1,67 @@
+previews:
+  generation: automatic
+  expireAfterDays: 3
+
+envVarGroups:
+  - name: what-we-sure-about-shared
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: SECRETS_ENCRYPTION_KEY
+        generateValue: true
+      - key: LOG_LEVEL
+        value: info
+      - key: SHUTDOWN_TIMEOUT_MS
+        value: 25000
+
+databases:
+  - name: what-we-sure-about-db
+    plan: basic-256mb
+    databaseName: what_we_sure_about
+    user: app
+    previews:
+      plan: basic-256mb
+
+services:
+  - type: web
+    name: what-we-sure-about-api
+    runtime: docker
+    plan: starter
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 30
+    preDeployCommand: node dist/migrate.js
+    initialDeployHook: node dist/seed.js
+    previews:
+      numInstances: 1
+      plan: starter
+    envVars:
+      - fromGroup: what-we-sure-about-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: what-we-sure-about-db
+          property: connectionString
+      - key: SENTRY_DSN
+        sync: false
+  - type: worker
+    name: what-we-sure-about-worker
+    runtime: docker
+    plan: starter
+    autoDeployTrigger: checksPass
+    dockerCommand: node dist/worker.js
+    maxShutdownDelaySeconds: 30
+    previews:
+      numInstances: 1
+      plan: starter
+    envVars:
+      - fromGroup: what-we-sure-about-shared
+      - key: DATABASE_URL
+        fromDatabase:
+          name: what-we-sure-about-db
+          property: connectionString
+      - key: SENTRY_DSN
+        sync: false

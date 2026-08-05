@@ -1,0 +1,59 @@
+{
+  "name": "what-we-sure-about",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "packageManager": "pnpm@11.15.1",
+  "scripts": {
+    "dev": "vite-node --watch src/server.ts",
+    "build": "vite build",
+    "start": "node dist/server.js",
+    "worker": "node dist/worker.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm build",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:check": "tsx scripts/check-migrations.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:test:setup": "tsx scripts/test-db.ts",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "dependencies": {
+    "@sentry/node": "latest",
+    "@hono/node-server": "latest",
+    "@hono/zod-validator": "latest",
+    "better-auth": "latest",
+    "dotenv": "latest",
+    "drizzle-orm": "latest",
+    "hono": "latest",
+    "pg-boss": "latest",
+    "postgres": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@eslint/js": "latest",
+    "@types/node": "latest",
+    "@vitest/coverage-v8": "latest",
+    "drizzle-kit": "latest",
+    "eslint": "latest",
+    "eslint-import-resolver-typescript": "latest",
+    "eslint-plugin-import-x": "latest",
+    "prettier": "latest",
+    "tsx": "latest",
+    "typescript": "6.0.3",
+    "typescript-eslint": "latest",
+    "vite": "latest",
+    "vite-node": "latest",
+    "vitest": "latest"
+  }
+}
