@@ -1,0 +1,7 @@
+- Organization - a group of users that can own workspaces and worksessions
+- User - an individual that can create and manage workspaces and worksessions and can be part of multiple organizations
+- Source - git repository, database, or any other source of data that can be used to define a workspace and create a worksession (fetched or copied from a source)
+- Workspace - configuration of the definitions of multiple sources that compose how a worksession is created
+- WorkSession - a session that is created based on the configuration of a workspace, which includes multiple sources and their definitions it is similer to a folder that contains multiple folders
+- OrganizationData - a way to store organization-specific data that can be used in a worksession, such as credentials, preferences, or any other data that is specific to the organization
+- UserData - a way to store user-specific data that can be used in a worksession, such as credentials, preferences, or any other data that is specific to the user
