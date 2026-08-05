@@ -8,7 +8,7 @@ export default defineConfig({
       // text for the CI log, html for local browsing, lcov/json-summary for tooling.
       reporter: ["text", "html", "lcov", "json-summary"],
       reportsDirectory: "coverage",
-      include: ["src/**/*.ts"],
+      include: ["src/**/*.ts", "client/src/**/*.ts"],
       exclude: [
         // Process entrypoints and runtime wiring: construct real
         // connections only; exercised by the smoke test.
@@ -20,10 +20,10 @@ export default defineConfig({
       ],
       // Ratchet floors: raise these as tests land, never lower them.
       thresholds: {
-        statements: 90,
-        branches: 84,
-        functions: 85,
-        lines: 92,
+        statements: 93,
+        branches: 86,
+        functions: 88,
+        lines: 94,
       },
     },
   },
