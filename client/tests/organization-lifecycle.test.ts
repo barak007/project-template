@@ -9,21 +9,21 @@ describe("founder onboarding story", () => {
       const app = world.newClient();
       const email = world.uniqueEmail("ada");
 
-      await app.signUp({ email, password: "hunter2hunter2", name: "Ada" });
+      await app.auth.signUp({ email, password: "hunter2hunter2", name: "Ada" });
       expect(app.getState().auth).toMatchObject({
         status: "authenticated",
         user: { name: "Ada", email },
       });
 
-      await app.createOrganization({ name: "Analytical Engines" });
+      await app.organizations.create({ name: "Analytical Engines" });
       expect(app.getState().organizations).toHaveLength(1);
 
-      await app.signOut();
+      await app.auth.signOut();
       expect(app.getState().auth.status).toBe("anonymous");
       expect(app.getState().organizations).toHaveLength(0);
 
-      await app.signIn({ email, password: "hunter2hunter2" });
-      await app.loadOrganizations();
+      await app.auth.signIn({ email, password: "hunter2hunter2" });
+      await app.organizations.load();
       expect(app.getState().organizations.map(({ name }) => name)).toEqual([
         "Analytical Engines",
       ]);
@@ -35,9 +35,9 @@ describe("founder onboarding story", () => {
     async ({ world, expect }) => {
       const { core } = await world.signedUpUser("ada");
 
-      await expect(core.createOrganization({ name: "" })).rejects.toMatchObject(
-        { name: "ApiError" },
-      );
+      await expect(
+        core.organizations.create({ name: "" }),
+      ).rejects.toMatchObject({ name: "ApiError" });
       expect(core.getState().organizations).toHaveLength(0);
     },
   );
@@ -48,11 +48,11 @@ describe("founder onboarding story", () => {
       const ada = await world.signedUpUser("ada");
       const grace = await world.signedUpUser("grace");
 
-      await ada.core.createOrganization({ name: "Analytical Engines" });
-      await grace.core.createOrganization({ name: "Compilers Inc" });
+      await ada.core.organizations.create({ name: "Analytical Engines" });
+      await grace.core.organizations.create({ name: "Compilers Inc" });
 
-      await ada.core.loadOrganizations();
-      await grace.core.loadOrganizations();
+      await ada.core.organizations.load();
+      await grace.core.organizations.load();
       expect(ada.core.getState().organizations.map(({ name }) => name)).toEqual(
         ["Analytical Engines"],
       );

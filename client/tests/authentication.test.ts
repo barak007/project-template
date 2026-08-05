@@ -11,7 +11,10 @@ describe("authentication stories", () => {
       const { credentials } = await world.signedUpUser("ada");
       const intruder = world.newClient();
 
-      await intruder.signIn({ ...credentials, password: "not-the-password" });
+      await intruder.auth.signIn({
+        ...credentials,
+        password: "not-the-password",
+      });
 
       const auth = intruder.getState().auth;
       expect(auth.status).toBe("anonymous");
@@ -26,11 +29,11 @@ describe("authentication stories", () => {
     async ({ world, expect }) => {
       const laptop = await world.signedUpUser("ada");
       const phone = world.newClient();
-      await phone.signIn(laptop.credentials);
+      await phone.auth.signIn(laptop.credentials);
 
-      await laptop.core.signOut();
+      await laptop.core.auth.signOut();
 
-      await phone.loadOrganizations();
+      await phone.organizations.load();
       expect(phone.getState().auth.status).toBe("authenticated");
       expect(laptop.core.getState().auth.status).toBe("anonymous");
     },
@@ -41,10 +44,10 @@ describe("authentication stories", () => {
     async ({ world, expect }) => {
       const anonymous = world.newClient();
 
-      await expect(anonymous.loadOrganizations()).rejects.toThrowError(
+      await expect(anonymous.organizations.load()).rejects.toThrowError(
         ApiError,
       );
-      await expect(anonymous.loadOrganizations()).rejects.toMatchObject({
+      await expect(anonymous.organizations.load()).rejects.toMatchObject({
         code: "AUTHENTICATION_REQUIRED",
       });
     },
@@ -57,11 +60,11 @@ describe("authentication stories", () => {
       let notifications = 0;
       const unsubscribe = core.subscribe(() => (notifications += 1));
 
-      await core.createOrganization({ name: "Analytical Engines" });
+      await core.organizations.create({ name: "Analytical Engines" });
       expect(notifications).toBe(1);
 
       unsubscribe();
-      await core.signOut();
+      await core.auth.signOut();
       expect(notifications).toBe(1);
     },
   );

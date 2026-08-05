@@ -65,20 +65,43 @@ export default tseslint.config(
   {
     // The client core is headless and environment-agnostic: it must run in a
     // browser, in Node, or anywhere else — so no runtime globals of either.
+    // Every environmental capability enters through the Host (client/src/host.ts),
+    // which is why even global fetch is banned.
     files: ["client/src/**/*.ts"],
     rules: {
       "import-x/no-nodejs-modules": "error",
+      // The zone above limits server imports to src/app.ts; this closes the
+      // remaining gap by allowing only TYPE imports across that boundary.
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/src/**"],
+              allowTypeImports: true,
+              message:
+                "Only type imports may cross into the server; runtime code stays out of the client.",
+            },
+          ],
+        },
+      ],
       "no-restricted-globals": [
         "error",
         "process",
         "Buffer",
         "global",
+        "globalThis",
         "require",
         "__dirname",
         "window",
         "document",
         "navigator",
         "localStorage",
+        "fetch",
+        "XMLHttpRequest",
+        "WebSocket",
+        "setTimeout",
+        "setInterval",
       ],
     },
   },

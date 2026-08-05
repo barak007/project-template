@@ -4,6 +4,9 @@ export default defineConfig({
   test: {
     environment: "node",
     globalSetup: ["./client/tests/kit/global-setup.ts"],
+    // CLIENT_WORLD=in-process boots one PGlite world per client story, and
+    // many boot concurrently; the default 5s timeout is too tight for that.
+    testTimeout: 30_000,
     coverage: {
       provider: "v8",
       // text for the CI log, html for local browsing, lcov/json-summary for tooling.

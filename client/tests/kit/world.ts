@@ -48,27 +48,34 @@ export async function createWorld() {
   let personas = 0;
 
   const newClient = () =>
-    createClientCore({ baseUrl, fetch: browserFetch(request) });
+    createClientCore({ baseUrl, host: { fetch: browserFetch(request) } });
   const uniqueEmail = (name: string) =>
     `${name}-${crypto.randomUUID().slice(0, 8)}@example.test`;
 
-  return {
-    newClient,
-    uniqueEmail,
-    /** Persona shortcut: a client already signed up and signed in. */
-    signedUpUser: async (name = `user-${(personas += 1)}`) => {
-      const core = newClient();
-      const credentials = {
-        email: uniqueEmail(name),
-        password: `password-for-${name}`,
-      };
-      await core.signUp({ ...credentials, name });
-      if (core.getState().auth.status !== "authenticated")
-        throw new Error(`Sign-up failed for persona ${name}`);
-      return { core, credentials };
-    },
-    close,
+  /** Persona shortcut: a client already signed up and signed in. */
+  const signedUpUser = async (name = `user-${(personas += 1)}`) => {
+    const core = newClient();
+    const credentials = {
+      email: uniqueEmail(name),
+      password: `password-for-${name}`,
+    };
+    await core.auth.signUp({ ...credentials, name });
+    if (core.getState().auth.status !== "authenticated")
+      throw new Error(`Sign-up failed for persona ${name}`);
+    return { core, credentials };
   };
+
+  /** Persona shortcut: a signed-in user who owns a fresh organization. */
+  const founder = async (name = `founder-${(personas += 1)}`) => {
+    const persona = await signedUpUser(name);
+    await persona.core.organizations.create({ name: `${name}'s organization` });
+    const organization = persona.core.getState().organizations[0];
+    if (!organization)
+      throw new Error(`Organization creation failed for ${name}`);
+    return { ...persona, organization };
+  };
+
+  return { newClient, uniqueEmail, signedUpUser, founder, close };
 }
 
 export type World = Awaited<ReturnType<typeof createWorld>>;

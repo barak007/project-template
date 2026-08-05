@@ -1,7 +1,6 @@
-import type { ClientFetch } from "./api.js";
-import { initialState } from "./state.js";
-import type { AuthError, AuthUser, ClientState } from "./state.js";
-import type { Store } from "./store.js";
+import type { Host } from "./host.js";
+import type { ClientStore } from "./projection.js";
+import type { AuthError, AuthUser } from "./state.js";
 
 type Credentials = { email: string; password: string };
 
@@ -23,31 +22,27 @@ async function readAuthError(response: {
 
 export function createAuthActions(
   baseUrl: string,
-  fetch: ClientFetch,
-  store: Store<ClientState>,
+  host: Host,
+  store: ClientStore,
 ) {
   async function establishSession(path: string, body: Record<string, string>) {
-    const response = await fetch(`${baseUrl}/api/auth/${path}`, {
+    const response = await host.fetch(`${baseUrl}/api/auth/${path}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     });
     if (!response.ok) {
-      const error = await readAuthError(response);
-      store.setState((state) => ({
-        ...state,
-        auth: { status: "anonymous", error },
-      }));
+      store.dispatch({
+        type: "sign-in-failed",
+        error: await readAuthError(response),
+      });
       return;
     }
     const { user } = (await response.json()) as { user: AuthUser };
-    store.setState((state) => ({
-      ...state,
-      auth: {
-        status: "authenticated",
-        user: { id: user.id, name: user.name, email: user.email },
-      },
-    }));
+    store.dispatch({
+      type: "signed-in",
+      user: { id: user.id, name: user.name, email: user.email },
+    });
   }
 
   return {
@@ -55,9 +50,8 @@ export function createAuthActions(
       establishSession("sign-up/email", input),
     signIn: (input: Credentials) => establishSession("sign-in/email", input),
     signOut: async () => {
-      await fetch(`${baseUrl}/api/auth/sign-out`, { method: "POST" });
-      // Signing out ends the identity, so every identity-scoped slice goes too.
-      store.setState(() => initialState);
+      await host.fetch(`${baseUrl}/api/auth/sign-out`, { method: "POST" });
+      store.dispatch({ type: "signed-out" });
     },
   };
 }

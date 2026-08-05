@@ -1,24 +1,25 @@
-import type { Api } from "./api.js";
+import type { Api, OrganizationInput } from "./api.js";
 import { toApiError } from "./errors.js";
-import type { ClientState } from "./state.js";
-import type { Store } from "./store.js";
+import type { ClientStore } from "./projection.js";
 
-export function createOrganizationActions(api: Api, store: Store<ClientState>) {
+export function createOrganizationActions(api: Api, store: ClientStore) {
+  const routes = api.api.organizations;
   return {
-    loadOrganizations: async () => {
-      const response = await api.api.organizations.$get();
+    load: async () => {
+      const response = await routes.$get();
       if (!response.ok) throw await toApiError(response);
-      const organizations = await response.json();
-      store.setState((state) => ({ ...state, organizations }));
+      store.dispatch({
+        type: "organizations-loaded",
+        organizations: await response.json(),
+      });
     },
-    createOrganization: async (input: { name: string }) => {
-      const response = await api.api.organizations.$post({ json: input });
+    create: async (input: OrganizationInput) => {
+      const response = await routes.$post({ json: input });
       if (!response.ok) throw await toApiError(response);
-      const organization = await response.json();
-      store.setState((state) => ({
-        ...state,
-        organizations: [...state.organizations, organization],
-      }));
+      store.dispatch({
+        type: "organization-created",
+        organization: await response.json(),
+      });
     },
   };
 }
