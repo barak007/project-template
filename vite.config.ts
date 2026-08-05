@@ -12,7 +12,7 @@ export default defineConfig({
       formats: ["es"],
     },
     rollupOptions: { external: [/^node:/, /^[^./]/] },
-    target: "node22",
+    target: "node24",
     minify: false,
   },
   server: { port: 3000 },

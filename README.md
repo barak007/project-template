@@ -1,10 +1,10 @@
 # What We Sure About
 
-A production-ready Node.js domain service built with TypeScript, Hono, PostgreSQL, Drizzle, Better Auth, and pg-boss. The domain model it implements is described in [`domain.md`](./domain.md); conventions for changing the code are in [`AGENTS.md`](./AGENTS.md).
+A production-ready Node.js domain service built with TypeScript, Hono, PostgreSQL, Drizzle, Better Auth, and pg-boss. The domain model it implements is described in [`docs/domain.md`](./docs/domain.md); conventions for changing the code are in [`AGENTS.md`](./AGENTS.md).
 
 ## Local development
 
-Requirements: Node 22, pnpm 11, Docker, and Docker Compose.
+Requirements: Node 24, pnpm 11, Docker, and Docker Compose.
 
 ```sh
 cp .env.example .env

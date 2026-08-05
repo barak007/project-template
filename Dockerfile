@@ -1,4 +1,4 @@
-FROM node:22.22.0-alpine AS base
+FROM node:24.19.0-alpine AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
@@ -16,7 +16,7 @@ FROM base AS production-dependencies
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile
 
-FROM node:22.22.0-alpine AS runtime
+FROM node:24.19.0-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 RUN addgroup -S app -g 10001 && adduser -S app -u 10001 -G app

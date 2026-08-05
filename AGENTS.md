@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Conventions for changing this codebase. Setup and commands: [README.md](./README.md). Domain model: [domain.md](./domain.md). Deployment and operations: [docs/deployment.md](./docs/deployment.md).
+Conventions for changing this codebase. Setup and commands: [README.md](./README.md). Domain model: [docs/domain.md](./docs/domain.md). Deployment and operations: [docs/deployment.md](./docs/deployment.md).
 
 Apps are generated from this boilerplate and inherit whatever you leave here, so fix the general pattern rather than one call site.
 
