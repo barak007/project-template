@@ -1,22 +1,22 @@
-# Application Boilerplate
+# Application Boilerplate Template
 
 ## Purpose
 
-A reusable Node.js application template for creating apps whose domain is configured through entities. The template provides an HTTP API and development tooling, but no client rendering framework.
+A reusable starting point for Node.js applications whose domains are defined through entities. The template provides an HTTP API, persistence, authentication, background jobs, and development tooling, but no client rendering framework.
 
 ## Stack
 
 - Node.js runtime
 - TypeScript
 - Hono for the API server
-- Vite for development and build tooling
+- Vite for Hono development and production builds
 - No client rendering library; UI rendering is added by each generated app when needed
 
 ## Minimal structure
 
 ```text
 src/
-	server.ts       # Hono application and server entry point
+  server.ts       # Hono application and Node.js server entry point
 	routes/         # HTTP route handlers
 	entities/       # Entity definitions and configuration
 	services/       # Domain operations
@@ -27,30 +27,32 @@ tests/
 The boilerplate must include:
 
 - TypeScript configuration with strict type checking
-- Vite development configuration
+- Vite development and production build configuration for Hono on Node.js
 - Hono health endpoint: `GET /health`
 - Environment loading and validation
 - A consistent error response format
 - A test setup for API and entity configuration tests
-- A start command for production and a dev command with reload
+- A start command for the built production server and a dev command with reload
 
 ## Entity configuration
 
-Each entity is defined by a typed configuration containing:
+Each API-facing entity has a typed configuration containing its name, creation-input schema, and optional relations:
 
 ```ts
-type EntityConfig = {
+import { z } from "zod";
+
+export type EntityConfig<TCreateSchema extends z.ZodObject<z.ZodRawShape>> = {
   name: string;
-  fields: Record<string, unknown>;
+  createSchema: TCreateSchema;
   relations?: Record<string, string>;
 };
 ```
 
-The boilerplate must support registering, validating, and retrieving entity configurations without coupling them to HTTP routes or a database. Generated applications can replace the placeholder field definitions and add persistence or business rules.
+The boilerplate must support registering, validating, and retrieving entity configurations without coupling the registry to HTTP routes or database tables. The Zod schema validates API creation input; it does not define the persisted record. Drizzle tables define persistence separately.
 
 ## Type-safe database and API
 
-Use one explicit schema per entity and derive types from it instead of using `Record<string, unknown>` for persisted data.
+Use explicit schemas for each entity instead of `Record<string, unknown>` for persisted data.
 
 - **Database**: Use PostgreSQL in every environment, with Drizzle ORM and the `postgres` driver. Define tables in `src/db/schema.ts`, generate migrations from those definitions, and derive database select and insert types with Drizzle.
 - **Runtime validation**: Use Zod schemas for request bodies, route parameters, environment variables, and API responses. TypeScript types alone do not validate incoming data.
@@ -62,18 +64,24 @@ Example:
 ```ts
 // src/entities/organization.ts
 import { z } from "zod";
+import type { EntityConfig } from "./config";
 
 export const organizationCreateSchema = z.object({
   name: z.string().min(1),
 });
 
+export const organizationConfig = {
+  name: "organization",
+  createSchema: organizationCreateSchema,
+} satisfies EntityConfig<typeof organizationCreateSchema>;
+
 export type OrganizationCreate = z.infer<typeof organizationCreateSchema>;
 
 // src/db/schema.ts
-import { integer, pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, serial, text } from "drizzle-orm/pg-core";
 
 export const organizations = pgTable("organizations", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
 });
 
@@ -86,6 +94,7 @@ export type NewOrganization = typeof organizations.$inferInsert;
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { organizationCreateSchema } from "../entities/organization";
+import { createOrganization } from "../services/organizations";
 
 export const organizationRoutes = new Hono().post(
   "/",
@@ -100,7 +109,17 @@ export const organizationRoutes = new Hono().post(
 export type OrganizationRoutes = typeof organizationRoutes;
 ```
 
-The generated app should expose its route type from the server package. A TypeScript client can then use `hc<OrganizationRoutes>(baseUrl)` so endpoint paths, inputs, and response types are checked at compile time.
+```ts
+// src/server.ts
+import { Hono } from "hono";
+import { organizationRoutes } from "./routes/organizations";
+
+const app = new Hono().route("/organizations", organizationRoutes);
+
+export type AppType = typeof app;
+```
+
+The generated app should export the type of its composed Hono application from the server package. A TypeScript client can then use `hc<AppType>(baseUrl)` so endpoint paths, inputs, and response types are checked at compile time.
 
 The database schema remains the source of truth for persistence, Zod remains the source of truth for untrusted input, and Hono route types remain the source of truth for API consumers. Changes should be made explicitly in each boundary and covered by type checks, migrations, and API tests.
 
@@ -151,12 +170,12 @@ Use `pg-boss` for durable background jobs backed by the existing PostgreSQL data
 ## Initial entities
 
 - **Organization**: A group of users that can own workspaces and work sessions.
-- **User**: An individual who can manage workspaces and work sessions and belong to multiple organizations.
-- **Source**: A Git repository, database, or other data source used to define a workspace and create a work session.
-- **Workspace**: A configuration containing the source definitions used to create a work session.
-- **WorkSession**: A session created from a workspace configuration and its sources.
-- **OrganizationData**: Organization-specific data, such as credentials or preferences, available to work sessions.
-- **UserData**: User-specific data, such as credentials or preferences, available to work sessions.
+- **User**: An individual who can belong to multiple organizations and manage their workspaces and work sessions according to membership permissions.
+- **Source**: A Git repository, database, or other data source definition used by a workspace.
+- **Workspace**: A configuration that combines source definitions for creating a work session.
+- **WorkSession**: A session created by materializing the sources configured by a workspace.
+- **OrganizationData**: Organization-specific configuration or preferences available to work sessions.
+- **UserData**: User-specific configuration or preferences available to work sessions.
 
 ## Out of scope
 
