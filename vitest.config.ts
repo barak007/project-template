@@ -3,6 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    globalSetup: ["./client/tests/kit/global-setup.ts"],
     coverage: {
       provider: "v8",
       // text for the CI log, html for local browsing, lcov/json-summary for tooling.

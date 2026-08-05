@@ -7,15 +7,12 @@ describe("founder onboarding story", () => {
     "signs up, creates an organization, and finds it again after sign-out and sign-in",
     async ({ world, expect }) => {
       const app = world.newClient();
+      const email = world.uniqueEmail("ada");
 
-      await app.signUp({
-        email: "ada@example.test",
-        password: "hunter2hunter2",
-        name: "Ada",
-      });
+      await app.signUp({ email, password: "hunter2hunter2", name: "Ada" });
       expect(app.getState().auth).toMatchObject({
         status: "authenticated",
-        user: { name: "Ada", email: "ada@example.test" },
+        user: { name: "Ada", email },
       });
 
       await app.createOrganization({ name: "Analytical Engines" });
@@ -25,10 +22,7 @@ describe("founder onboarding story", () => {
       expect(app.getState().auth.status).toBe("anonymous");
       expect(app.getState().organizations).toHaveLength(0);
 
-      await app.signIn({
-        email: "ada@example.test",
-        password: "hunter2hunter2",
-      });
+      await app.signIn({ email, password: "hunter2hunter2" });
       await app.loadOrganizations();
       expect(app.getState().organizations.map(({ name }) => name)).toEqual([
         "Analytical Engines",
