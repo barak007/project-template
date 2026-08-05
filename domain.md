@@ -34,6 +34,61 @@ The boilerplate must include:
 - A test setup for API and entity schema tests
 - A start command for the built production server and a dev command with reload
 
+## Project quality and delivery
+
+Quality checks and deployment are part of the initial boilerplate, not follow-up work.
+
+### Local developer experience
+
+- Use one package manager and commit its lockfile. CI and container builds must use frozen-lockfile installs.
+- Commit an `.editorconfig` and repository ignore files so editors, builds, tests, and containers share consistent whitespace and exclusions.
+- Configure ESLint with the TypeScript ESLint recommended type-checked rules and import hygiene rules.
+- Configure Prettier and keep formatting separate from linting.
+- Provide `dev`, `build`, `start`, `typecheck`, `lint`, `lint:fix`, `format`, `format:check`, `test`, `test:watch`, and `test:coverage` package scripts.
+- Add a `check` script that runs formatting, linting, type checking, tests, and the production build in the same order as CI.
+- Use a supported Node.js version declared in both the package manifest and a version file. Keep local, CI, and production versions aligned.
+- Commit `.env.example` with names and safe example values only. Validate all environment variables at process startup.
+- Provide Docker Compose for the local PostgreSQL dependency and scripts for migrations, test database setup, and deterministic seed data.
+- Configure dependency update automation and keep updates grouped so the full CI suite evaluates them together.
+
+### Continuous integration
+
+Use GitHub Actions for pull requests and the default branch. CI must:
+
+1. Install dependencies from the lockfile with caching.
+2. Check formatting and linting.
+3. Run the TypeScript type checker.
+4. Start an isolated PostgreSQL service, apply committed migrations, and run unit and integration tests.
+5. Build the production artifacts and container image.
+6. Fail when generated Drizzle migrations or other generated artifacts are stale.
+
+Require the CI workflow as a branch protection check. Cancel superseded runs on the same pull request, grant workflows the minimum permissions they need, and never expose deployment secrets to workflows for untrusted forks.
+
+### Deployment from day one
+
+- Include a production, multi-stage Dockerfile with a non-root runtime user and only runtime dependencies in the final image.
+- Define the API and worker as separate processes built from the same revision and image.
+- Provision services, PostgreSQL, environment variables, health checks, and scaling settings through version-controlled infrastructure configuration rather than dashboard-only setup.
+- Deploy the default branch automatically to a production environment after CI succeeds. Protect production with the hosting provider's environment controls.
+- Run committed Drizzle migrations as a one-off release step before starting the new API and worker revision. A migration failure must stop the deployment.
+- Use `GET /health` for liveness and add a readiness check that verifies startup dependencies without exposing sensitive details.
+- Handle `SIGTERM`, stop accepting requests, drain in-flight work, close database and queue connections, and exit within the platform's shutdown window.
+- Store secrets in the deployment platform's secret manager. Never bake them into images, build arguments, logs, or repository configuration.
+- Enable centralized logs, error reporting, uptime monitoring, and alerts for failed deployments and unhealthy production services.
+- Document the initial deployment and rollback procedure in the repository.
+
+### Pull request preview environments
+
+Every pull request from a trusted branch gets an automatically created preview environment:
+
+- Deploy the API and worker from the pull request revision and publish the preview URL on the pull request.
+- Provision an isolated PostgreSQL database, apply migrations, and optionally load non-sensitive deterministic seed data. Never share the production database.
+- Generate preview-specific authentication URLs, trusted origins, cookie names, and external service configuration so previews cannot collide with production.
+- Disable or sandbox email, billing, webhooks, and other side effects unless a preview-safe provider is explicitly configured.
+- Run a smoke test against the deployed `/health` endpoint before marking the preview successful.
+- Update the same environment on later commits and destroy all preview resources when the pull request closes.
+- Use least-privilege preview secrets and prevent preview workflows from receiving secrets on untrusted fork pull requests.
+
 ## Type-safe database and API
 
 Use explicit schemas for each entity instead of `Record<string, unknown>` for persisted data.
