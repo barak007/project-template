@@ -10,18 +10,20 @@ export default defineConfig({
       reportsDirectory: "coverage",
       include: ["src/**/*.ts"],
       exclude: [
-        // Process entrypoints: wiring only, exercised by the smoke test.
+        // Process entrypoints and runtime wiring: construct real
+        // connections only; exercised by the smoke test.
         "src/server.ts",
         "src/worker.ts",
+        "src/runtime.ts",
         // Generated migration artifacts / type-only modules.
         "src/**/*.d.ts",
       ],
       // Ratchet floors: raise these as tests land, never lower them.
       thresholds: {
-        statements: 25,
-        branches: 17,
-        functions: 22,
-        lines: 27,
+        statements: 90,
+        branches: 84,
+        functions: 85,
+        lines: 92,
       },
     },
   },

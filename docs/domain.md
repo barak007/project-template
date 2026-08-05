@@ -46,7 +46,7 @@ Creation is synchronous and durable; materialization is asynchronous.
 
 Statuses: `pending` → `materializing` → `ready`, or `failed` with a `failureCode`.
 
-**Snapshot resolution.** Organization values and the creating user's values are merged by key, and **user values win on conflict**. The snapshot is taken at creation, so later edits to a source, secret, or data value affect only future sessions — never an existing one. Source-specific materialization behavior is an extension point for apps built on this service; the base implementation only advances status.
+**Snapshot resolution.** Organization values and the creating user's values are merged by key, and **user values win on conflict**. Secret values are copied into the snapshot still encrypted; consumers decrypt them at use time, so secrets stay encrypted at rest everywhere. The snapshot is taken at creation, so later edits to a source, secret, or data value affect only future sessions — never an existing one. Source-specific materialization behavior is an extension point for apps built on this service; the base implementation only advances status.
 
 ## Extension points
 

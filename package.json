@@ -29,9 +29,9 @@
     "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
-    "@sentry/node": "latest",
     "@hono/node-server": "latest",
     "@hono/zod-validator": "latest",
+    "@sentry/node": "latest",
     "better-auth": "latest",
     "dotenv": "latest",
     "drizzle-orm": "latest",
@@ -41,6 +41,7 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
     "@eslint/js": "latest",
     "@types/node": "latest",
     "@vitest/coverage-v8": "latest",

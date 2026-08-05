@@ -34,9 +34,9 @@ Owners manage memberships and all resources. Admins manage resources and secrets
 
 ## Commands
 
-`pnpm check` mirrors CI: formatting, linting, strict type checking, tests with coverage, then production build. Integration tests run when `DATABASE_URL` is present. For a test database, use a database name containing `test` and run `pnpm db:test:setup` before `pnpm test`.
+`pnpm check` mirrors CI: formatting, linting, strict type checking, tests with coverage, then production build. Tests run the full stack against an in-process Postgres (PGlite) with the real migrations applied, so no services are needed. The real-Postgres integration test additionally runs when `DATABASE_URL` is present; for that, use a database name containing `test` and run `pnpm db:test:setup` before `pnpm test`.
 
-`pnpm test:coverage` writes a report to `coverage/` (open `coverage/index.html`) and fails if coverage drops below the thresholds in [`vitest.config.ts`](./vitest.config.ts). Those thresholds are ratchet floors: raise them as tests land, never lower them. Coverage is lower locally than in CI, where `DATABASE_URL` lets the integration tests run.
+`pnpm test:coverage` writes a report to `coverage/` (open `coverage/index.html`) and fails if coverage drops below the thresholds in [`vitest.config.ts`](./vitest.config.ts). Those thresholds are ratchet floors: raise them as tests land, never lower them.
 
 Database definitions live in [`src/db/schema.ts`](./src/db/schema.ts). Change those definitions, run `pnpm db:generate`, review the SQL, and commit the migration. Production only runs committed migrations; it never performs a schema push.
 

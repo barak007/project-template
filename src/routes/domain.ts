@@ -345,7 +345,6 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       async (context) => {
         const result = await createWorkSession(
           dependencies.db,
-          dependencies.cipher,
           dependencies.jobs,
           context.get("user").id,
           context.req.valid("param").organizationId,

@@ -12,6 +12,20 @@ describe("SecretCipher", () => {
     expect(cipher.decrypt(first)).toBe("secret");
   });
 
+  it("rejects keys that are not exactly 32 bytes", () => {
+    expect(() => new SecretCipher(Buffer.alloc(16).toString("base64"))).toThrow(
+      /32 bytes/,
+    );
+  });
+
+  it("rejects payloads from unknown versions", () => {
+    const encrypted = cipher.encrypt("secret");
+    expect(() => cipher.decrypt(`v9${encrypted.slice(2)}`)).toThrow(
+      /Unsupported/,
+    );
+    expect(() => cipher.decrypt("v1.only-two")).toThrow(/Unsupported/);
+  });
+
   it("detects tampering", () => {
     const encrypted = cipher.encrypt("secret");
     const parts = encrypted.split(".");

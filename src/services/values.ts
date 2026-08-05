@@ -49,19 +49,13 @@ export async function putOrganizationSecret(
     organizationId,
     "secret:manage",
   );
+  const encryptedValue = cipher.encrypt(input.value);
   const [row] = await db
     .insert(organizationSecrets)
-    .values({
-      organizationId,
-      key: input.key,
-      encryptedValue: cipher.encrypt(input.value),
-    })
+    .values({ organizationId, key: input.key, encryptedValue })
     .onConflictDoUpdate({
       target: [organizationSecrets.organizationId, organizationSecrets.key],
-      set: {
-        encryptedValue: cipher.encrypt(input.value),
-        updatedAt: new Date(),
-      },
+      set: { encryptedValue, updatedAt: new Date() },
     })
     .returning({
       id: organizationSecrets.id,
@@ -92,19 +86,13 @@ export async function putUserSecret(
   userId: string,
   input: SecretInput,
 ) {
+  const encryptedValue = cipher.encrypt(input.value);
   const [row] = await db
     .insert(userSecrets)
-    .values({
-      userId,
-      key: input.key,
-      encryptedValue: cipher.encrypt(input.value),
-    })
+    .values({ userId, key: input.key, encryptedValue })
     .onConflictDoUpdate({
       target: [userSecrets.userId, userSecrets.key],
-      set: {
-        encryptedValue: cipher.encrypt(input.value),
-        updatedAt: new Date(),
-      },
+      set: { encryptedValue, updatedAt: new Date() },
     })
     .returning({
       id: userSecrets.id,

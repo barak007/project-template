@@ -26,11 +26,13 @@ Prettier and ESLint own formatting; don't hand-format or add disable comments to
 - `type`, not `interface`. Files kebab-case; entity modules singular (`work-session.ts`).
 - No comments restating the code. Comment only non-obvious _why_.
 - Explicit return shapes over `Record<string, unknown>` or `any`. `as unknown as` belongs in test stubs, not `src/`.
+- **Single-responsibility files.** One module owns one concern — a service per aggregate, an entity module per entity, a test file per subject. When a file starts serving two concerns, split it instead of growing it.
+- **YAGNI.** Build only what the current feature needs: no speculative options, abstraction layers, or "for later" parameters. Generality gets added when the second caller arrives, not before.
 
 ## Testing
 
-Unit-test schemas, policy, and crypto without a database; integration-test routes through `createApp(dependencies)`. A new endpoint needs the authorized path, the `403`, and the cross-organization `404` covered.
+Unit-test schemas, policy, and crypto without a database; test routes through `createApp(dependencies)` against the in-process Postgres from [tests/helpers/harness.ts](tests/helpers/harness.ts) (PGlite with the real migrations applied — no external services needed). A new endpoint needs the authorized path, the `403`, and the cross-organization `404` covered.
 
-Integration tests silently skip without `DATABASE_URL` — a skipped suite is not a passing one. Coverage thresholds in [vitest.config.ts](vitest.config.ts) are floors: add tests, never lower them.
+The `DATABASE_URL`-gated integration test additionally runs against real Postgres and silently skips without it — a skipped suite is not a passing one. Coverage thresholds in [vitest.config.ts](vitest.config.ts) are floors: add tests, never lower them.
 
 Run `pnpm check` before calling work done.

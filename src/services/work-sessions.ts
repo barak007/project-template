@@ -1,6 +1,5 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import type { SecretCipher } from "../crypto/secrets.js";
 import type { Database } from "../db/client.js";
 import {
   organizationData,
@@ -70,7 +69,6 @@ export async function getWorkSession(
 
 export async function createWorkSession(
   db: Database,
-  cipher: SecretCipher,
   jobs: JobProducer,
   userId: string,
   organizationId: string,
@@ -135,9 +133,10 @@ export async function createWorkSession(
       transaction.select().from(userData).where(eq(userData.userId, userId)),
     ]);
 
+    // Secrets stay encrypted in the snapshot; consumers decrypt at use time.
     const secretsSnapshot: Record<string, string> = {};
     for (const secret of [...organizationSecretRows, ...userSecretRows])
-      secretsSnapshot[secret.key] = cipher.decrypt(secret.encryptedValue);
+      secretsSnapshot[secret.key] = secret.encryptedValue;
     const dataSnapshot: Record<string, JsonValue> = {};
     for (const item of [...organizationDataRows, ...userDataRows])
       dataSnapshot[item.key] = item.value;

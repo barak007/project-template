@@ -28,6 +28,20 @@ export class AppError extends Error {
   }
 }
 
+// Drivers report SQLSTATE on the error itself; drizzle wraps that error in a
+// DrizzleQueryError, so walk the cause chain to find it.
+function sqlState(error: unknown): string | undefined {
+  for (
+    let current = error, depth = 0;
+    current instanceof Error && depth < 5;
+    current = current.cause, depth += 1
+  ) {
+    if ("code" in current && typeof current.code === "string")
+      return current.code;
+  }
+  return undefined;
+}
+
 export function handleError(error: Error, context: Context) {
   if (error instanceof AppError) {
     const body = errorResponseSchema.parse({
@@ -39,7 +53,8 @@ export function handleError(error: Error, context: Context) {
     });
     return context.json(body, error.status);
   }
-  if ("code" in error && error.code === "23505") {
+  const code = sqlState(error);
+  if (code === "23505") {
     return context.json(
       errorResponseSchema.parse({
         error: {
@@ -50,7 +65,8 @@ export function handleError(error: Error, context: Context) {
       409,
     );
   }
-  if ("code" in error && error.code === "23503") {
+  // 23503 = foreign-key violation, 23001 = ON DELETE RESTRICT violation.
+  if (code === "23503" || code === "23001") {
     return context.json(
       errorResponseSchema.parse({
         error: { code: "CONFLICT", message: "The record is still in use" },

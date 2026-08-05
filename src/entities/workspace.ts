@@ -4,7 +4,13 @@ import { timestampsSchema } from "./common.js";
 
 export const workspaceInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  sourceIds: z.array(z.uuid()).max(100).default([]),
+  sourceIds: z
+    .array(z.uuid())
+    .max(100)
+    .default([])
+    .refine((ids) => new Set(ids).size === ids.length, {
+      message: "sourceIds must be unique",
+    }),
 });
 export const workspaceResponseSchema = z
   .object({

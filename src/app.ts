@@ -35,9 +35,10 @@ export function createApp(dependencies: RuntimeDependencies) {
     ),
   );
   app.onError((error, context) => {
-    if (!("status" in error) || error.status === 500)
-      dependencies.reportError(error);
-    return handleError(error, context);
+    const response = handleError(error, context);
+    // Expected client failures (4xx, mapped conflicts) are not incidents.
+    if (response.status === 500) dependencies.reportError(error);
+    return response;
   });
   return app;
 }

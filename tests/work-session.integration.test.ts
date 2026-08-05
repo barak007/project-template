@@ -100,7 +100,6 @@ integration("work-session snapshots", () => {
   it("copies sources and applies user-over-organization precedence", async () => {
     const created = await createWorkSession(
       db,
-      cipher,
       jobs,
       userId,
       organizationId,
@@ -123,7 +122,7 @@ integration("work-session snapshots", () => {
       .select()
       .from(workSessions)
       .where(eq(workSessions.id, created.id));
-    expect(persisted?.secretsSnapshot).toEqual({ TOKEN: "user" });
+    expect(cipher.decrypt(persisted?.secretsSnapshot.TOKEN ?? "")).toBe("user");
     expect(persisted?.dataSnapshot).toEqual({ theme: "dark" });
   });
 });
