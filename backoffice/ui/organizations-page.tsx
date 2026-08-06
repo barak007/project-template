@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { BackofficeCore } from "../core/index.js";
+import type { BackofficeCore } from "../client/index.js";
 
 import { useBackofficeState } from "./use-backoffice-state.js";
 

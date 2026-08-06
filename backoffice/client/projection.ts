@@ -24,6 +24,7 @@ export function reduce(
     case "signed-in":
       return {
         ...initialAdminState,
+        route: state.route,
         auth: { status: "authenticated", email: event.email },
       };
     case "auth-failed":
@@ -37,12 +38,29 @@ export function reduce(
       };
     // Signing out wipes the admin data with it.
     case "signed-out":
-      return { ...initialAdminState, auth: { status: "anonymous" } };
+      return {
+        ...initialAdminState,
+        route: state.route,
+        auth: { status: "anonymous" },
+      };
+    case "navigated":
+      return { ...state, route: event.route };
     case "users-loaded":
       return { ...state, users: event.users };
     case "organizations-loaded":
       return { ...state, organizations: event.organizations };
     case "organization-detail-loaded":
       return { ...state, organizationDetail: event.detail };
+    case "tables-loaded":
+      return { ...state, tables: event.tables };
+    case "table-rows-loaded":
+      return {
+        ...state,
+        tableData: {
+          table: event.table,
+          query: event.query,
+          page: event.page,
+        },
+      };
   }
 }

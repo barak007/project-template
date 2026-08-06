@@ -16,5 +16,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["ui", "core", "vite.config.ts"]
+  "include": ["ui", "client", "vite.config.ts"]
 }

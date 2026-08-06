@@ -8,7 +8,7 @@ import {
   createTestUser,
   jsonBody,
 } from "../../domain-server/tests/helpers/harness.js";
-import { createBackofficeCore } from "../core/index.js";
+import { createBackofficeCore, createMemoryHistory } from "../client/index.js";
 
 import {
   backofficeAdminCredentials,
@@ -52,6 +52,7 @@ function newBackofficeClient() {
         ),
       ),
     },
+    history: createMemoryHistory(),
   });
 }
 

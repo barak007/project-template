@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import type { BackofficeDependencies } from "./dependencies.js";
 import { createBackofficeAdminRoutes } from "./routes/admin.js";
 import { createBackofficeAuthRoutes } from "./routes/auth.js";
+import { createBackofficeDataRoutes } from "./routes/data.js";
 
 export type { BackofficeDependencies } from "./dependencies.js";
 export type { BackofficeEnvironment } from "./env.js";
@@ -19,7 +20,8 @@ export { createBackofficeDependencies } from "./runtime.js";
 export function createBackofficeRoutes(dependencies: BackofficeDependencies) {
   return new Hono()
     .route("/auth", createBackofficeAuthRoutes(dependencies))
-    .route("/admin", createBackofficeAdminRoutes(dependencies));
+    .route("/admin", createBackofficeAdminRoutes(dependencies))
+    .route("/data", createBackofficeDataRoutes(dependencies));
 }
 
 export type BackofficeRoutes = ReturnType<typeof createBackofficeRoutes>;

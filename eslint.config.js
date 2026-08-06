@@ -81,10 +81,10 @@ export default tseslint.config(
               // Scoped to the browser-facing code: backoffice/server and
               // backoffice/vite.config.ts are Node-side and may import the
               // server freely.
-              target: ["./backoffice/core", "./backoffice/ui"],
+              target: ["./backoffice/client", "./backoffice/ui"],
               from: "./domain-server",
               message:
-                "The backoffice core and UI must not import server code; API types come from backoffice/server.",
+                "The backoffice client and UI must not import server code; API types come from backoffice/server.",
             },
             {
               // Backoffice tests exercise the real app + database.
@@ -115,7 +115,7 @@ export default tseslint.config(
                 "The backoffice composes the client core through its public entry (plus the generic store/errors/host modules).",
             },
             {
-              target: "./backoffice/core",
+              target: "./backoffice/client",
               from: [
                 "./domain-server/tests",
                 "./client/tests",
@@ -123,7 +123,7 @@ export default tseslint.config(
                 "./backoffice/ui",
               ],
               message:
-                "The backoffice core must not depend on test code or the UI.",
+                "The backoffice client must not depend on test code or the UI.",
             },
           ],
         },
@@ -135,7 +135,7 @@ export default tseslint.config(
     // browser, in Node, or anywhere else — so no runtime globals of either.
     // Every environmental capability enters through the Host (client/host.ts),
     // which is why even global fetch is banned.
-    files: ["client/*.ts", "backoffice/core/**/*.ts"],
+    files: ["client/*.ts", "backoffice/client/**/*.ts"],
     rules: {
       "import-x/no-nodejs-modules": "error",
       // The zone above limits server imports to domain-server/app.ts; this closes the
@@ -174,9 +174,9 @@ export default tseslint.config(
     },
   },
   {
-    // The backoffice core shares the headless rules above, but additionally
+    // The backoffice client shares the headless rules above, but additionally
     // its own server (backoffice/server) may only contribute types.
-    files: ["backoffice/core/**/*.ts"],
+    files: ["backoffice/client/**/*.ts"],
     rules: {
       "@typescript-eslint/no-restricted-imports": [
         "error",
@@ -186,13 +186,13 @@ export default tseslint.config(
               group: ["**/domain-server/**"],
               allowTypeImports: true,
               message:
-                "Only type imports may cross into the server; runtime code stays out of the backoffice core.",
+                "Only type imports may cross into the server; runtime code stays out of the backoffice client.",
             },
             {
               group: ["../server/**", "**/backoffice/server/**"],
               allowTypeImports: true,
               message:
-                "The backoffice core is headless; only types may come from the backoffice server.",
+                "The backoffice client is headless; only types may come from the backoffice server.",
             },
           ],
         },

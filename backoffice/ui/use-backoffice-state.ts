@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import type { BackofficeCore, BackofficeState } from "../core/index.js";
+import type { BackofficeCore, BackofficeState } from "../client/index.js";
 
 export function useBackofficeState<T>(
   core: BackofficeCore,

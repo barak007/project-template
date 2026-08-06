@@ -28,3 +28,13 @@ export type AdminOrganization = InferResponseType<
 export type OrganizationDetail = InferResponseType<
   AdminRoutes["organizations"][":organizationId"]["$get"]
 >;
+
+// Data responses carry recursive JSON values, which InferResponseType cannot
+// walk without blowing the instantiation depth — so their types come from the
+// server's zod schemas directly (type-only, same as BackofficeRoutes above).
+export type {
+  ColumnMeta,
+  RowsPage,
+  TableMeta,
+  TableRow,
+} from "../server/entities/data.js";

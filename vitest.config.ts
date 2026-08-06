@@ -15,7 +15,7 @@ export default defineConfig({
       include: [
         "domain-server/**/*.ts",
         "client/*.ts",
-        "backoffice/core/**/*.ts",
+        "backoffice/client/**/*.ts",
         "backoffice/server/**/*.ts",
       ],
       exclude: [
