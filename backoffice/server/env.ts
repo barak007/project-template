@@ -3,7 +3,7 @@ import "dotenv/config";
 import { z } from "zod";
 
 /**
- * Backoffice-owned environment schema — the app's schema (src/config/env.ts)
+ * Backoffice-owned environment schema — the app's schema (domain-server/config/env.ts)
  * knows nothing about the backoffice. Defaults live here, once.
  */
 const backofficeEnvironmentSchema = z

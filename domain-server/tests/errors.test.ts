@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
-import { AppError, handleError } from "../src/errors.js";
+import { AppError, handleError } from "../errors.js";
 
 function appThrowing(error: Error) {
   const app = new Hono();

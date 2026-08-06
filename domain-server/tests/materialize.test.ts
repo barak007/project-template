@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "../src/db/client.js";
-import * as schema from "../src/db/schema.js";
-import { AppError } from "../src/errors.js";
-import { materializeWorkSession } from "../src/jobs/materialize.js";
+import type { Database } from "../db/client.js";
+import * as schema from "../db/schema.js";
+import { AppError } from "../errors.js";
+import { materializeWorkSession } from "../jobs/materialize.js";
 
 import { createTestDatabase, createTestUser } from "./helpers/harness.js";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SecretCipher } from "../src/crypto/secrets.js";
+import { SecretCipher } from "../crypto/secrets.js";
 
 describe("SecretCipher", () => {
   const cipher = new SecretCipher(Buffer.alloc(32, 7).toString("base64"));

@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { SecretCipher } from "../src/crypto/secrets.js";
+import { SecretCipher } from "../crypto/secrets.js";
 import {
   organizationData,
   organizationMembers,
@@ -18,10 +18,10 @@ import {
   workspaceSources,
   workspaces,
   workSessions,
-} from "../src/db/schema.js";
-import * as schema from "../src/db/schema.js";
-import type { JobProducer } from "../src/jobs/queue.js";
-import { createWorkSession } from "../src/services/work-sessions.js";
+} from "../db/schema.js";
+import * as schema from "../db/schema.js";
+import type { JobProducer } from "../jobs/queue.js";
+import { createWorkSession } from "../services/work-sessions.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;

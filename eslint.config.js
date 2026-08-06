@@ -47,26 +47,26 @@ export default tseslint.config(
         {
           zones: [
             {
-              target: "./client/src",
-              from: "./src",
+              target: "./client/*.ts",
+              from: "./domain-server",
               except: ["./app.ts"],
               message:
-                "The headless client may only import the AppType from src/app.ts.",
+                "The headless client may only import the AppType from domain-server/app.ts.",
             },
             {
-              target: "./client/src",
-              from: ["./tests", "./client/tests"],
+              target: "./client/*.ts",
+              from: ["./domain-server/tests", "./client/tests"],
               message: "Client logic must not depend on test code.",
             },
             {
-              target: "./src",
+              target: "./domain-server",
               from: "./client",
               message: "The server must not depend on the client.",
             },
             {
-              // Composition roots (src/server.ts, src/dev-app.ts) mount the
-              // backoffice server; nothing else in src may reach into it.
-              target: "./src",
+              // Composition roots (domain-server/server.ts, domain-server/dev-app.ts)
+              // mount the backoffice server; nothing else may reach into it.
+              target: "./domain-server",
               from: "./backoffice",
               except: ["./server"],
               message:
@@ -82,29 +82,42 @@ export default tseslint.config(
               // backoffice/vite.config.ts are Node-side and may import the
               // server freely.
               target: ["./backoffice/core", "./backoffice/ui"],
-              from: "./src",
+              from: "./domain-server",
               message:
                 "The backoffice core and UI must not import server code; API types come from backoffice/server.",
             },
             {
               // Backoffice tests exercise the real app + database.
               target: "./backoffice/tests",
-              from: "./src",
-              except: ["./app.ts", "./db/client.ts", "./db/schema.ts"],
+              from: "./domain-server",
+              except: [
+                "./app.ts",
+                "./db/client.ts",
+                "./db/schema.ts",
+                // The shared test harness lives with the domain server's tests.
+                "./tests/helpers",
+              ],
               message:
-                "Backoffice tests may only use the app's database handles; everything else comes through the API.",
+                "Backoffice tests may only use the app's database handles and the shared test harness; everything else comes through the API.",
             },
             {
               target: "./backoffice",
-              from: "./client/src",
-              except: ["./index.ts", "./store.ts", "./errors.ts", "./host.ts"],
+              from: "./client",
+              except: [
+                "./index.ts",
+                "./store.ts",
+                "./errors.ts",
+                "./host.ts",
+                // The backoffice tests reuse the client test kit.
+                "./tests",
+              ],
               message:
                 "The backoffice composes the client core through its public entry (plus the generic store/errors/host modules).",
             },
             {
               target: "./backoffice/core",
               from: [
-                "./tests",
+                "./domain-server/tests",
                 "./client/tests",
                 "./backoffice/tests",
                 "./backoffice/ui",
@@ -120,19 +133,19 @@ export default tseslint.config(
   {
     // The client core is headless and environment-agnostic: it must run in a
     // browser, in Node, or anywhere else — so no runtime globals of either.
-    // Every environmental capability enters through the Host (client/src/host.ts),
+    // Every environmental capability enters through the Host (client/host.ts),
     // which is why even global fetch is banned.
-    files: ["client/src/**/*.ts", "backoffice/core/**/*.ts"],
+    files: ["client/*.ts", "backoffice/core/**/*.ts"],
     rules: {
       "import-x/no-nodejs-modules": "error",
-      // The zone above limits server imports to src/app.ts; this closes the
+      // The zone above limits server imports to domain-server/app.ts; this closes the
       // remaining gap by allowing only TYPE imports across that boundary.
       "@typescript-eslint/no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["**/src/**"],
+              group: ["**/domain-server/**"],
               allowTypeImports: true,
               message:
                 "Only type imports may cross into the server; runtime code stays out of the client.",
@@ -161,9 +174,8 @@ export default tseslint.config(
     },
   },
   {
-    // The backoffice core shares the headless rules above, but its allowed
-    // runtime imports (client/src/store.ts, errors.ts) live under a src/
-    // segment, so the type-only restriction narrows to the server's src.
+    // The backoffice core shares the headless rules above, but additionally
+    // its own server (backoffice/server) may only contribute types.
     files: ["backoffice/core/**/*.ts"],
     rules: {
       "@typescript-eslint/no-restricted-imports": [
@@ -171,7 +183,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ["**/src/**", "!**/client/src/**"],
+              group: ["**/domain-server/**"],
               allowTypeImports: true,
               message:
                 "Only type imports may cross into the server; runtime code stays out of the backoffice core.",

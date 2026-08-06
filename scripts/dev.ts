@@ -4,17 +4,17 @@ import { fileURLToPath } from "node:url";
 import { getRequestListener } from "@hono/node-server";
 import { createServer as createViteServer } from "vite";
 
-type DevApp = typeof import("../src/dev-app.js");
+type DevApp = typeof import("../domain-server/dev-app.js");
 
 // The dev entry composes the app with the backoffice server, so edits to
 // either must swap the module graph.
 const watchedDirs = [
-  fileURLToPath(new URL("../src/", import.meta.url)),
+  fileURLToPath(new URL("../domain-server/", import.meta.url)),
   fileURLToPath(new URL("../backoffice/server/", import.meta.url)),
 ];
 
 // Middleware-mode Vite server used purely as a hot module loader for the API:
-// src/ edits invalidate the module graph in-process instead of restarting.
+// domain-server/ edits invalidate the module graph in-process instead of restarting.
 const loader = await createViteServer({
   root: fileURLToPath(new URL("..", import.meta.url)),
   configFile: false,
@@ -27,7 +27,9 @@ let current: Promise<DevApp> | undefined;
 
 function loadApp(): Promise<DevApp> {
   if (!current) {
-    const next = loader.ssrLoadModule("/src/dev-app.ts") as Promise<DevApp>;
+    const next = loader.ssrLoadModule(
+      "/domain-server/dev-app.ts",
+    ) as Promise<DevApp>;
     current = next;
     // A failed load (syntax/config error) must not stick; retry on next request.
     next.catch(() => {

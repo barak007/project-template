@@ -10,7 +10,7 @@ import { createRuntime } from "./runtime.js";
 
 export type { AppType };
 
-// Composition root: the one place (with src/dev-app.ts) allowed to know both
+// Composition root: the one place (with domain-server/dev-app.ts) allowed to know both
 // the app and the backoffice server, mounting the latter.
 const runtime = await createRuntime();
 const app = createApp(runtime.dependencies).route(

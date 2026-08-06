@@ -1,4 +1,4 @@
-import type { Database } from "../../src/db/client.js";
+import type { Database } from "../../domain-server/db/client.js";
 
 import type { BackofficeEnvironment } from "./env.js";
 

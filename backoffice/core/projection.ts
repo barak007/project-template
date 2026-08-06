@@ -1,4 +1,4 @@
-import type { Store } from "../../client/src/store.js";
+import type { Store } from "../../client/store.js";
 
 import type { BackofficeEvent } from "./events.js";
 import { initialAdminState } from "./state.js";

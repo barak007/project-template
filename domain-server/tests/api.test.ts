@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createApp } from "../src/app.js";
-import type { RuntimeDependencies } from "../src/http/context.js";
+import { createApp } from "../app.js";
+import type { RuntimeDependencies } from "../http/context.js";
 
 function dependencies(
   overrides: Partial<RuntimeDependencies> = {},

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { createAuth } from "../src/auth.js";
-import { loadEnvironment } from "../src/config/env.js";
-import { createDatabase } from "../src/db/client.js";
+import { createAuth } from "../auth.js";
+import { loadEnvironment } from "../config/env.js";
+import { createDatabase } from "../db/client.js";
 
 import { createTestDatabase } from "./helpers/harness.js";
 

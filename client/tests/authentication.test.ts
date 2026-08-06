@@ -1,6 +1,6 @@
 import { describe } from "vitest";
 
-import { ApiError } from "../src/index.js";
+import { ApiError } from "../index.js";
 
 import { it } from "./kit/fixtures.js";
 

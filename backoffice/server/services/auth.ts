@@ -1,4 +1,4 @@
-import { AppError } from "../../../src/errors.js";
+import { AppError } from "../../../domain-server/errors.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import type { BackofficeEnvironment } from "../env.js";
 import { hashPassword, verifyPassword } from "../password.js";

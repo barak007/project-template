@@ -2,7 +2,7 @@
 type: Action Namespace
 title: workspaces
 description: CRUD an organization's workspaces — named selections of sources that work sessions run against.
-resource: ../../../client/src/workspace-actions.ts
+resource: ../../../client/workspace-actions.ts
 tags: [client, actions, workspaces]
 timestamp: 2026-08-06T00:00:00Z
 ---

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import type { Database } from "../../../src/db/client.js";
+import type { Database } from "../../../domain-server/db/client.js";
 import {
   organizationMembers,
   organizations,
@@ -8,8 +8,8 @@ import {
   user,
   workSessions,
   workspaces,
-} from "../../../src/db/schema.js";
-import { AppError } from "../../../src/errors.js";
+} from "../../../domain-server/db/schema.js";
+import { AppError } from "../../../domain-server/errors.js";
 
 // Authorization happens at the route boundary: the admin routes require the
 // backoffice-admin session (../session.ts), so these functions receive

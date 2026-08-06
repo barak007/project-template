@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 
-import { AppError } from "../../src/errors.js";
+import { AppError } from "../../domain-server/errors.js";
 
 import type { BackofficeDependencies } from "./dependencies.js";
 import type { BackofficeEnvironment } from "./env.js";

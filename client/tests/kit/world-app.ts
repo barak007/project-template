@@ -1,11 +1,11 @@
-import { createApp } from "../../../src/app.js";
-import { createAuth } from "../../../src/auth.js";
-import { loadEnvironment } from "../../../src/config/env.js";
+import { createApp } from "../../../domain-server/app.js";
+import { createAuth } from "../../../domain-server/auth.js";
+import { loadEnvironment } from "../../../domain-server/config/env.js";
 import {
   createTestDatabase,
   recordingJobs,
   testCipher,
-} from "../../../tests/helpers/harness.js";
+} from "../../../domain-server/tests/helpers/harness.js";
 
 // The kit only serves and dispatches requests, so this deliberately narrow
 // shape keeps the app's full route-tree type (which makes tsc blow up with

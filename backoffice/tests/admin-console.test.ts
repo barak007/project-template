@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { browserFetch } from "../../client/tests/kit/browser-fetch.js";
-import type { Database } from "../../src/db/client.js";
+import type { Database } from "../../domain-server/db/client.js";
 import {
   asUser,
   createTestDatabase,
   createTestUser,
   jsonBody,
-} from "../../tests/helpers/harness.js";
+} from "../../domain-server/tests/helpers/harness.js";
 import { createBackofficeCore } from "../core/index.js";
 
 import {

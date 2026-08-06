@@ -7,11 +7,11 @@ import { createApp } from "./app.js";
 import { createRuntime } from "./runtime.js";
 
 // Dev-only entry: scripts/dev.ts loads this module through Vite's SSR module
-// runner and re-executes it whenever a file under src/ changes. Each execution
+// runner and re-executes it whenever a file under domain-server/ changes. Each execution
 // owns its runtime; the loader calls dispose() on the previous instance before
 // serving requests from the new one.
 //
-// This is a composition root: the one place (with src/server.ts) allowed to
+// This is a composition root: the one place (with domain-server/server.ts) allowed to
 // know both the app and the backoffice server, mounting the latter.
 const runtime = await createRuntime();
 

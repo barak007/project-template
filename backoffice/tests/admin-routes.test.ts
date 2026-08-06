@@ -1,13 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "../../src/db/client.js";
-import { sources, workSessions } from "../../src/db/schema.js";
+import type { Database } from "../../domain-server/db/client.js";
+import { sources, workSessions } from "../../domain-server/db/schema.js";
 import {
   asUser,
   createTestDatabase,
   createTestUser,
   jsonBody,
-} from "../../tests/helpers/harness.js";
+} from "../../domain-server/tests/helpers/harness.js";
 
 import {
   backofficeSessionCookie,

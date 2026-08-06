@@ -14,7 +14,7 @@ complete. Two capabilities:
 1. Show `.env` configuration status, and let a local developer fix it from
    the browser (writes to the local `.env` file).
 2. Manage login providers, starting with Google OAuth as the one concrete
-   example (wired into `src/auth.ts`'s `betterAuth()` call, which currently
+   example (wired into `domain-server/auth.ts`'s `betterAuth()` call, which currently
    only has `emailAndPassword: { enabled: true }`).
 
 ## Why this shape (context from exploration)
@@ -24,16 +24,16 @@ complete. Two capabilities:
   `render.yaml` as a Blueprint.
 - `backoffice/` already exists (uncommitted, in-progress work — do not
   discard it) as a separate Vite React app mirroring the headless
-  `client/src` action/state pattern: `backoffice/core/` (actions + store,
-  reusing `client/src/host.ts` / `store.ts` / `errors.ts` directly) and
+  `client` action/state pattern: `backoffice/core/` (actions + store,
+  reusing `client/host.ts` / `store.ts` / `errors.ts` directly) and
   `backoffice/ui/` (React components). It currently has Sign-in →
   Users/Organizations admin console, gated by a `platformAdmins` DB table via
-  `requirePlatformAdmin` (`src/services/policy.ts`).
-- `src/config/env.ts`'s `loadEnvironment()` is a Zod schema that **throws**
+  `requirePlatformAdmin` (`domain-server/services/policy.ts`).
+- `domain-server/config/env.ts`'s `loadEnvironment()` is a Zod schema that **throws**
   on invalid/missing env vars (`DATABASE_URL`, `BETTER_AUTH_SECRET` min 32
   chars, `SECRETS_ENCRYPTION_KEY` must decode to exactly 32 bytes,
-  `BETTER_AUTH_URL`/`RENDER_EXTERNAL_URL`). `src/runtime.ts`'s
-  `createRuntime()` calls this first — if it throws, `src/server.ts` never
+  `BETTER_AUTH_URL`/`RENDER_EXTERNAL_URL`). `domain-server/runtime.ts`'s
+  `createRuntime()` calls this first — if it throws, `domain-server/server.ts` never
   starts an HTTP server at all. This is the chicken-and-egg problem: the
   installer needs _some_ running server to report/fix env issues, so
   degraded-boot support is required.
@@ -46,12 +46,12 @@ complete. Two capabilities:
   self-serve admin-grant path exists today; `scripts/grant-platform-admin.ts`
   is a manual CLI script. The installer's "create first admin" step is a
   narrow, intentional exception to this — see decisions below.
-- `betterAuth()` in `src/auth.ts` builds its config **once** at process
+- `betterAuth()` in `domain-server/auth.ts` builds its config **once** at process
   startup (inside `createRuntime()`). Any provider credentials configured
   later via the backoffice (DB-backed) only take effect after a process
   restart — there's no live-reload of the auth instance in this plan.
-- `src/db/schema.ts` has `organizationSecrets`/`userSecrets` tables using
-  `src/crypto/secrets.ts`'s `SecretCipher` for encryption-at-rest. OAuth
+- `domain-server/db/schema.ts` has `organizationSecrets`/`userSecrets` tables using
+  `domain-server/crypto/secrets.ts`'s `SecretCipher` for encryption-at-rest. OAuth
   client secrets should reuse that pattern, not sit in plaintext.
 - Codebase convention (see repo memory / `AGENTS.md`): single-responsibility
   files, YAGNI — no generic "OAuth provider plugin system," just one
@@ -99,10 +99,10 @@ proceed with them as stated.
 
 ## Concrete implementation plan
 
-### 1. `src/config/env.ts` (modify)
+### 1. `domain-server/config/env.ts` (modify)
 
 Add a non-throwing variant; keep `loadEnvironment()` behavior identical so no
-existing caller (`src/runtime.ts`, all of `scripts/*.ts`) needs to change:
+existing caller (`domain-server/runtime.ts`, all of `scripts/*.ts`) needs to change:
 
 ```ts
 export type EnvFieldStatus = {
@@ -159,7 +159,7 @@ GOOGLE_CLIENT_ID: z.string().optional(),
 GOOGLE_CLIENT_SECRET: z.string().optional(),
 ```
 
-### 2. `src/db/schema.ts` (modify)
+### 2. `domain-server/db/schema.ts` (modify)
 
 Add a table, reusing the encrypted-value pattern from `organizationSecrets`:
 
@@ -175,7 +175,7 @@ export const platformSettings = pgTable("platform_settings", {
 Add `platformSettings` to the `schema` export object. Run `pnpm db:generate`
 afterward to produce the migration (don't hand-author the SQL).
 
-### 3. `src/services/platform-settings.ts` (new)
+### 3. `domain-server/services/platform-settings.ts` (new)
 
 ```ts
 export async function getPlatformSetting(db, cipher, key: string) {
@@ -213,7 +213,7 @@ export async function putPlatformSetting(
 }
 ```
 
-### 4. `src/entities/setup.ts` (new)
+### 4. `domain-server/entities/setup.ts` (new)
 
 Zod schemas, following `entities/admin.ts` conventions:
 
@@ -254,7 +254,7 @@ export const googleProviderInputSchema = z.object({
 });
 ```
 
-### 5. `src/config/env-file.ts` (new)
+### 5. `domain-server/config/env-file.ts` (new)
 
 Tiny `.env` reader/writer (no library needed — `dotenv` only parses, doesn't
 serialize):
@@ -287,7 +287,7 @@ export function writeEnvFile(updates: Record<string, string>): void {
 }
 ```
 
-### 6. `src/auth.ts` (modify)
+### 6. `domain-server/auth.ts` (modify)
 
 `createAuth` gains a third param, already-resolved by the caller (keeps
 `createAuth` itself sync/simple):
@@ -307,7 +307,7 @@ export function createAuth(
 }
 ```
 
-### 7. `src/runtime.ts` (modify) — degraded boot + provider resolution
+### 7. `domain-server/runtime.ts` (modify) — degraded boot + provider resolution
 
 ```ts
 async function resolveGoogleProvider(db, cipher, environment) {
@@ -369,12 +369,12 @@ export async function createRuntime(): Promise<RuntimeResult> {
 }
 ```
 
-### 8. `src/http/context.ts` (modify)
+### 8. `domain-server/http/context.ts` (modify)
 
 Add `environment: Environment` to `RuntimeDependencies`. Mechanical, additive
 — update the two fake-dependencies factories used in tests (see step 14).
 
-### 9. `src/server.ts` (modify) — branch on `runtime.kind`
+### 9. `domain-server/server.ts` (modify) — branch on `runtime.kind`
 
 ```ts
 const runtime = await createRuntime();
@@ -392,7 +392,7 @@ if (runtime.kind === "degraded") {
 }
 ```
 
-### 10. `src/worker.ts` (modify minimally)
+### 10. `domain-server/worker.ts` (modify minimally)
 
 No UI story for the worker — degraded mode there behaves like the old
 throwing behavior:
@@ -406,7 +406,7 @@ if (runtime.kind === "degraded") {
 await runtime.queue.registerWorkers(runtime.dependencies.db);
 ```
 
-### 11. `src/setup-app.ts` (new) — degraded-mode Hono app
+### 11. `domain-server/setup-app.ts` (new) — degraded-mode Hono app
 
 ```ts
 export function createDegradedApp(envFields: EnvFieldStatus[]) {
@@ -434,7 +434,7 @@ export function createDegradedApp(envFields: EnvFieldStatus[]) {
 }
 ```
 
-### 12. `src/routes/setup.ts` (new)
+### 12. `domain-server/routes/setup.ts` (new)
 
 Two exports, mirroring `routes/admin.ts`'s composition style:
 
@@ -516,7 +516,7 @@ export function createSetupAdminRoutes(dependencies: RuntimeDependencies) {
 }
 ```
 
-### 13. `src/services/setup.ts` (new)
+### 13. `domain-server/services/setup.ts` (new)
 
 ```ts
 export async function getSetupStatus(runtime: RuntimeResult) {
@@ -593,7 +593,7 @@ export async function createFirstAdmin(
 }
 ```
 
-### 14. `src/app.ts` (modify)
+### 14. `domain-server/app.ts` (modify)
 
 Mount the setup routes. `createApp` currently only receives
 `RuntimeDependencies` (not the full `RuntimeResult`), so build a `{ kind:
@@ -619,8 +619,8 @@ to just `{ dependencies } | { envFields }` rather than forcing the full
 `RuntimeDependencies` gained `environment`. Add a minimal fake `Environment`
 object to:
 
-- `tests/helpers/harness.ts` (`createTestApp`'s dependencies object)
-- `tests/api.test.ts` (`dependencies()` factory)
+- `domain-server/tests/helpers/harness.ts` (`createTestApp`'s dependencies object)
+- `domain-server/tests/api.test.ts` (`dependencies()` factory)
 - Any `backoffice/tests/*.ts` fake dependencies, if present
 
 ### 16. Backoffice core: setup action namespace
@@ -788,28 +788,28 @@ sections:
 
 New:
 
-- `src/config/env-file.ts`
-- `src/entities/setup.ts`
-- `src/services/setup.ts`
-- `src/services/platform-settings.ts`
-- `src/routes/setup.ts`
-- `src/setup-app.ts`
+- `domain-server/config/env-file.ts`
+- `domain-server/entities/setup.ts`
+- `domain-server/services/setup.ts`
+- `domain-server/services/platform-settings.ts`
+- `domain-server/routes/setup.ts`
+- `domain-server/setup-app.ts`
 - `backoffice/core/setup-actions.ts`
 - `backoffice/ui/setup-wizard.tsx`
 - new Drizzle migration for `platform_settings` (via `pnpm db:generate`)
 
 Modified:
 
-- `src/config/env.ts` (add `safeLoadEnvironment`, `GOOGLE_CLIENT_ID`/`SECRET`)
-- `src/db/schema.ts` (add `platformSettings`)
-- `src/auth.ts` (accept `socialProviders` param)
-- `src/runtime.ts` (return `RuntimeResult` union, resolve Google provider)
-- `src/server.ts` / `src/worker.ts` (branch on `runtime.kind`)
-- `src/http/context.ts` (`RuntimeDependencies` gains `environment`)
-- `src/app.ts` (mount `/api/setup`, `/api/setup/providers`)
+- `domain-server/config/env.ts` (add `safeLoadEnvironment`, `GOOGLE_CLIENT_ID`/`SECRET`)
+- `domain-server/db/schema.ts` (add `platformSettings`)
+- `domain-server/auth.ts` (accept `socialProviders` param)
+- `domain-server/runtime.ts` (return `RuntimeResult` union, resolve Google provider)
+- `domain-server/server.ts` / `domain-server/worker.ts` (branch on `runtime.kind`)
+- `domain-server/http/context.ts` (`RuntimeDependencies` gains `environment`)
+- `domain-server/app.ts` (mount `/api/setup`, `/api/setup/providers`)
 - `backoffice/core/{api,state,events,projection,index}.ts`
 - `backoffice/ui/app.tsx`
-- `tests/helpers/harness.ts`, `tests/api.test.ts` (add `environment` field to fake dependencies)
+- `domain-server/tests/helpers/harness.ts`, `domain-server/tests/api.test.ts` (add `environment` field to fake dependencies)
 
 ## Verification
 
@@ -817,7 +817,7 @@ Modified:
    generated SQL looks sane before committing.
 2. `pnpm typecheck` (runs `tsc --noEmit && tsc -p backoffice --noEmit`).
 3. `pnpm lint`.
-4. `pnpm test` — pay special attention to `tests/admin-routes.test.ts` and
+4. `pnpm test` — pay special attention to `domain-server/tests/admin-routes.test.ts` and
    `backoffice/tests/admin-console.test.ts` (existing suites whose fake
    dependencies need the new `environment` field) plus new tests for
    `getSetupStatus`/`createFirstAdmin`/env-file read-write.
@@ -840,7 +840,7 @@ Modified:
 
 ## Known open risk / don't silently "fix"
 
-- `src/app.ts`'s inline `RuntimeResult`-shaped literal (step 14) is
+- `domain-server/app.ts`'s inline `RuntimeResult`-shaped literal (step 14) is
   slightly awkward because `createApp` only receives `RuntimeDependencies`,
   not the full `RuntimeResult`. Prefer narrowing whatever type
   `getSetupStatus` actually consumes down to just what it needs (`{

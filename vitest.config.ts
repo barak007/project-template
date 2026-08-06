@@ -13,21 +13,22 @@ export default defineConfig({
       reporter: ["text", "html", "lcov", "json-summary"],
       reportsDirectory: "coverage",
       include: [
-        "src/**/*.ts",
-        "client/src/**/*.ts",
+        "domain-server/**/*.ts",
+        "client/*.ts",
         "backoffice/core/**/*.ts",
         "backoffice/server/**/*.ts",
       ],
       exclude: [
+        "domain-server/tests/**",
         // Process entrypoints and runtime wiring: construct real
         // connections only; exercised by the smoke test.
-        "src/server.ts",
-        "src/worker.ts",
-        "src/runtime.ts",
-        "src/dev-app.ts",
+        "domain-server/server.ts",
+        "domain-server/worker.ts",
+        "domain-server/runtime.ts",
+        "domain-server/dev-app.ts",
         "backoffice/server/runtime.ts",
         // Generated migration artifacts / type-only modules.
-        "src/**/*.d.ts",
+        "domain-server/**/*.d.ts",
       ],
       // Ratchet floors: raise these as tests land, never lower them.
       thresholds: {

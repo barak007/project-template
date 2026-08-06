@@ -1,8 +1,8 @@
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "../src/db/client.js";
-import { workSessions } from "../src/db/schema.js";
+import type { Database } from "../db/client.js";
+import { workSessions } from "../db/schema.js";
 
 import {
   asUser,

@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "../../src/db/client.js";
-import { createTestDatabase, jsonBody } from "../../tests/helpers/harness.js";
+import type { Database } from "../../domain-server/db/client.js";
+import {
+  createTestDatabase,
+  jsonBody,
+} from "../../domain-server/tests/helpers/harness.js";
 import { verifyPassword } from "../server/password.js";
 
 import {

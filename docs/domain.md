@@ -2,7 +2,7 @@
 
 The entities this service implements, and the rules that govern them. Engineering conventions live in [AGENTS.md](../AGENTS.md); setup and operations live in [README.md](../README.md) and [deployment.md](./deployment.md).
 
-Persistence is defined in [src/db/schema.ts](../src/db/schema.ts) and request/response shapes in [src/entities/](../src/entities/). This document describes the meaning those definitions encode; the code is the source of truth for field-level detail.
+Persistence is defined in [domain-server/db/schema.ts](../src/db/schema.ts) and request/response shapes in [domain-server/entities/](../src/entities/). This document describes the meaning those definitions encode; the code is the source of truth for field-level detail.
 
 ## Entities
 
@@ -17,7 +17,7 @@ Persistence is defined in [src/db/schema.ts](../src/db/schema.ts) and request/re
 
 ## Authorization
 
-Membership grants permissions; permissions gate operations. The matrix is defined in [src/services/policy.ts](../src/services/policy.ts).
+Membership grants permissions; permissions gate operations. The matrix is defined in [domain-server/services/policy.ts](../src/services/policy.ts).
 
 | Permission            | owner | admin | member |
 | --------------------- | ----- | ----- | ------ |

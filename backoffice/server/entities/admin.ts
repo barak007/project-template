@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { timestampsSchema } from "../../../src/entities/common.js";
+import { timestampsSchema } from "../../../domain-server/entities/common.js";
 import {
   memberRoleSchema,
   organizationResponseSchema,
-} from "../../../src/entities/organization.js";
+} from "../../../domain-server/entities/organization.js";
 
 // Admin responses stay flat on purpose: no source config, no work-session
 // snapshots, no secret material — an operator console needs inventory and

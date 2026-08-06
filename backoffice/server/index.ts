@@ -10,10 +10,10 @@ export { loadBackofficeEnvironment } from "./env.js";
 export { createBackofficeDependencies } from "./runtime.js";
 
 /**
- * The backoffice API, mounted by the composition entries (src/server.ts,
- * src/dev-app.ts) under /backoffice — its own top-level prefix, outside the
+ * The backoffice API, mounted by the composition entries (domain-server/server.ts,
+ * domain-server/dev-app.ts) under /backoffice — its own top-level prefix, outside the
  * app's /api subtree and the middleware registered there. All backoffice
- * server code lives here; the app in src/ knows nothing about it beyond
+ * server code lives here; the app in domain-server/ knows nothing about it beyond
  * that mount.
  */
 export function createBackofficeRoutes(dependencies: BackofficeDependencies) {

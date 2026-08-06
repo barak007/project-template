@@ -1,5 +1,5 @@
-import type { Database } from "../../src/db/client.js";
-import { createTestApp } from "../../tests/helpers/harness.js";
+import type { Database } from "../../domain-server/db/client.js";
+import { createTestApp } from "../../domain-server/tests/helpers/harness.js";
 import {
   createBackofficeRoutes,
   loadBackofficeEnvironment,

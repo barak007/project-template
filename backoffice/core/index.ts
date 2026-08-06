@@ -1,5 +1,5 @@
-import type { Host } from "../../client/src/index.js";
-import { createStore } from "../../client/src/store.js";
+import type { Host } from "../../client/index.js";
+import { createStore } from "../../client/store.js";
 
 import { createAdminActions } from "./admin-actions.js";
 import { createApi } from "./api.js";
@@ -7,8 +7,8 @@ import { createBackofficeAuthActions } from "./auth-actions.js";
 import { reduce } from "./projection.js";
 import { initialBackofficeState } from "./state.js";
 
-export { ApiError } from "../../client/src/errors.js";
-export type { ClientFetch, Host } from "../../client/src/index.js";
+export { ApiError } from "../../client/errors.js";
+export type { ClientFetch, Host } from "../../client/index.js";
 export type {
   AdminOrganization,
   AdminUser,

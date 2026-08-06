@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toApiError } from "../src/errors.js";
+import { toApiError } from "../errors.js";
 
 describe("toApiError", () => {
   it("maps the server's error envelope", async () => {

@@ -4,18 +4,15 @@ import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 
-import { createApp } from "../../src/app.js";
-import { SecretCipher } from "../../src/crypto/secrets.js";
-import type { Database } from "../../src/db/client.js";
-import * as schema from "../../src/db/schema.js";
-import type {
-  AppBindings,
-  RuntimeDependencies,
-} from "../../src/http/context.js";
-import type { JobProducer } from "../../src/jobs/queue.js";
+import { createApp } from "../../app.js";
+import { SecretCipher } from "../../crypto/secrets.js";
+import type { Database } from "../../db/client.js";
+import * as schema from "../../db/schema.js";
+import type { AppBindings, RuntimeDependencies } from "../../http/context.js";
+import type { JobProducer } from "../../jobs/queue.js";
 
 const migrationsFolder = fileURLToPath(
-  new URL("../../drizzle", import.meta.url),
+  new URL("../../../drizzle", import.meta.url),
 );
 
 export const testCipher = new SecretCipher(

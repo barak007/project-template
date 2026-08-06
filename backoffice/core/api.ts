@@ -1,7 +1,7 @@
 import { hc } from "hono/client";
 import type { InferResponseType } from "hono/client";
 
-import type { Host } from "../../client/src/host.js";
+import type { Host } from "../../client/host.js";
 import type { BackofficeRoutes } from "../server/index.js";
 
 // Hono's documented pattern for compile performance: infer the client type
@@ -18,7 +18,7 @@ export function createApi(baseUrl: string, host: Host): Api {
 }
 
 // Admin responses are deliberately flat (no jsonb payloads), so plain
-// InferResponseType works — none of client/src/api.ts's re-typing is needed.
+// InferResponseType works — none of client/api.ts's re-typing is needed.
 type AdminRoutes = Api["admin"];
 
 export type AdminUser = InferResponseType<AdminRoutes["users"]["$get"]>[number];

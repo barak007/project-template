@@ -4,8 +4,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: {
-        server: "src/server.ts",
-        worker: "src/worker.ts",
+        server: "domain-server/server.ts",
+        worker: "domain-server/worker.ts",
         migrate: "scripts/migrate.ts",
         seed: "scripts/seed.ts",
       },

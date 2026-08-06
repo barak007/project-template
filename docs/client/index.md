@@ -16,7 +16,7 @@ is a thin adapter that subscribes to [state](./state.md) and calls
 ## Creating a core
 
 ```ts
-import { createClientCore } from "../../client/src/index.js";
+import { createClientCore } from "../../client/index.js";
 
 const app = createClientCore({
   baseUrl: "https://api.example.com",

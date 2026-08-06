@@ -41,7 +41,7 @@ pnpm dev             # API on :3000 (hot-reloaded) + backoffice on :5173
 ```
 
 One command runs both: the API is served through Vite's SSR module runner,
-so edits under `src/` swap the app in-process without a restart, and the
+so edits under `domain-server/` swap the app in-process without a restart, and the
 backoffice Vite dev server on :5173 proxies `/api` to :3000
 (`pnpm backoffice:dev` still runs the UI alone against an already-running API).
 
@@ -73,10 +73,10 @@ All backoffice server code lives in
 [backoffice/server/](../backoffice/server/) — routes, services, entities, the
 session cookie, password hashing, the `.env` writer, and its own environment
 schema ([backoffice/server/env.ts](../backoffice/server/env.ts), which owns
-`BACKOFFICE_PORT` and the admin credential; `src/config/env.ts` knows nothing
+`BACKOFFICE_PORT` and the admin credential; `domain-server/config/env.ts` knows nothing
 about the backoffice). The import direction is strictly backoffice → src: the
 only place the app touches the backoffice is the composition entries
-(`src/server.ts`, `src/dev-app.ts`), which mount `createBackofficeRoutes()`
+(`domain-server/server.ts`, `domain-server/dev-app.ts`), which mount `createBackofficeRoutes()`
 under `/backoffice`. Its tests live in
 [backoffice/tests/](../backoffice/tests/) with their own harness.
 

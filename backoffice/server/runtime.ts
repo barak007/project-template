@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import type { Database } from "../../src/db/client.js";
+import type { Database } from "../../domain-server/db/client.js";
 
 import type { BackofficeDependencies } from "./dependencies.js";
 import { upsertEnvFileValues } from "./env-file.js";

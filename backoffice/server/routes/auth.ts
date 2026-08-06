@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
-import { validationHook } from "../../../src/http/validation.js";
+import { validationHook } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   backofficeAuthStatusResponseSchema,

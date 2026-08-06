@@ -2,7 +2,7 @@
 type: Action Namespace
 title: organizationSecrets & userSecrets
 description: Write-only secret values under named keys — encrypted at rest, never returned, never in client state.
-resource: ../../../client/src/secret-actions.ts
+resource: ../../../client/secret-actions.ts
 tags: [client, actions, secrets]
 timestamp: 2026-08-06T00:00:00Z
 ---

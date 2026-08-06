@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-import { loadEnvironment } from "../src/config/env.js";
+import { loadEnvironment } from "../domain-server/config/env.js";
 
 import { loadBackofficeEnvironment } from "./server/env.js";
 

@@ -17,9 +17,8 @@
     "outDir": "dist"
   },
   "include": [
-    "src",
+    "domain-server",
     "scripts",
-    "tests",
     "client",
     "backoffice/core",
     "backoffice/tests",

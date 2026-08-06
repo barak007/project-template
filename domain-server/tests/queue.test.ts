@@ -2,12 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Database } from "../src/db/client.js";
+import type { Database } from "../db/client.js";
 import {
   MATERIALIZE_WORK_SESSION_DEAD_LETTER,
   MATERIALIZE_WORK_SESSION_QUEUE,
-} from "../src/jobs/materialize.js";
-import { QueueRuntime } from "../src/jobs/queue.js";
+} from "../jobs/materialize.js";
+import { QueueRuntime } from "../jobs/queue.js";
 
 const boss = vi.hoisted(() => ({
   start: vi.fn(),
@@ -26,12 +26,12 @@ vi.mock("pg-boss", () => ({
   },
 }));
 
-vi.mock("../src/jobs/materialize.js", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../src/jobs/materialize.js")>()),
+vi.mock("../jobs/materialize.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../jobs/materialize.js")>()),
   materializeWorkSession: vi.fn(),
 }));
 
-const { materializeWorkSession } = await import("../src/jobs/materialize.js");
+const { materializeWorkSession } = await import("../jobs/materialize.js");
 
 describe("QueueRuntime", () => {
   beforeEach(() => {

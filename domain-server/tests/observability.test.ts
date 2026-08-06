@@ -1,8 +1,8 @@
 import * as Sentry from "@sentry/node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Environment } from "../src/config/env.js";
-import { configureObservability } from "../src/observability.js";
+import type { Environment } from "../config/env.js";
+import { configureObservability } from "../observability.js";
 
 vi.mock("@sentry/node", () => ({
   init: vi.fn(),

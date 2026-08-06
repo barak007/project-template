@@ -1,7 +1,7 @@
 import { hc } from "hono/client";
 import type { InferRequestType, InferResponseType } from "hono/client";
 
-import type { AppType } from "../../src/app.js";
+import type { AppType } from "../domain-server/app.js";
 
 import type { Host } from "./host.js";
 

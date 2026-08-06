@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { organizationCreateSchema } from "../src/entities/organization.js";
-import { sourceInputSchema } from "../src/entities/source.js";
-import { workspaceInputSchema } from "../src/entities/workspace.js";
+import { organizationCreateSchema } from "../entities/organization.js";
+import { sourceInputSchema } from "../entities/source.js";
+import { workspaceInputSchema } from "../entities/workspace.js";
 
 describe("entity schemas", () => {
   it("trims and validates organizations", () => {

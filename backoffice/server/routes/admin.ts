@@ -2,9 +2,9 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
-import { idSchema } from "../../../src/entities/common.js";
-import { organizationResponseSchema } from "../../../src/entities/organization.js";
-import { validationHook } from "../../../src/http/validation.js";
+import { idSchema } from "../../../domain-server/entities/common.js";
+import { organizationResponseSchema } from "../../../domain-server/entities/organization.js";
+import { validationHook } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   adminOrganizationDetailResponseSchema,

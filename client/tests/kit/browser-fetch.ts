@@ -1,4 +1,4 @@
-import type { ClientFetch } from "../../src/index.js";
+import type { ClientFetch } from "../../index.js";
 
 /**
  * Binds a fetch to an in-process app, persisting cookies like a browser so

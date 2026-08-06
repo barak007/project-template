@@ -1,5 +1,5 @@
-import { createClientCore } from "../../src/index.js";
-import type { ClientFetch } from "../../src/index.js";
+import { createClientCore } from "../../index.js";
+import type { ClientFetch } from "../../index.js";
 
 import { browserFetch } from "./browser-fetch.js";
 import { clientWorldMode, sharedBaseUrlVariable } from "./mode.js";

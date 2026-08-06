@@ -2,7 +2,7 @@
 type: Concept
 title: Host
 description: The injected boundary through which every environmental capability reaches the client core.
-resource: ../../client/src/host.ts
+resource: ../../client/host.ts
 tags: [client, boundary, dependency-injection]
 timestamp: 2026-08-06T00:00:00Z
 ---
@@ -31,11 +31,11 @@ Headlessness is enforced, not hoped for:
 
 - **No `"dom"` lib** in any tsconfig — DOM globals are type errors.
 - **ESLint bans Node builtins** (`import-x/no-nodejs-modules`) and **platform
-  globals** in `client/src`: `process`, `Buffer`, `window`, `document`,
+  globals** in `client`: `process`, `Buffer`, `window`, `document`,
   `localStorage`, `setTimeout`, and even global `fetch` — the host is the only
   door.
 - **Server imports are type-only**: the single allowed crossing is
-  `import type { AppType } from "src/app.ts"`; any runtime import of server
+  `import type { AppType } from "domain-server/app.ts"`; any runtime import of server
   code is an ESLint error.
 
 Grow the host only when the core genuinely needs a new capability (storage,
