@@ -9,6 +9,7 @@ export const core = createBackofficeCore({
   baseUrl: "",
   host: { fetch: (input, init) => window.fetch(input, init) },
 });
+void core.auth.loadStatus();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element");

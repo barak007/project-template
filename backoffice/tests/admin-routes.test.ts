@@ -1,21 +1,25 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { Database } from "../src/db/client.js";
-import { platformAdmins, sources, workSessions } from "../src/db/schema.js";
-
+import type { Database } from "../../src/db/client.js";
+import { sources, workSessions } from "../../src/db/schema.js";
 import {
   asUser,
-  createTestApp,
   createTestDatabase,
   createTestUser,
   jsonBody,
-} from "./helpers/harness.js";
+} from "../../tests/helpers/harness.js";
+
+import {
+  backofficeSessionCookie,
+  createBackofficeTestApp,
+  withCookie,
+} from "./harness.js";
 
 let db: Database;
 let close: () => Promise<void>;
-let app: ReturnType<typeof createTestApp>["app"];
+let app: ReturnType<typeof createBackofficeTestApp>["app"];
+let adminCookie = "";
 
-const platformAdmin = "platform-admin-user";
 const founder = "founder-user";
 let organizationId = "";
 let workspaceId = "";
@@ -26,9 +30,9 @@ async function json(response: Response): Promise<unknown> {
 
 beforeAll(async () => {
   ({ db, close } = await createTestDatabase());
-  ({ app } = createTestApp(db));
-  for (const id of [platformAdmin, founder]) await createTestUser(db, id);
-  await db.insert(platformAdmins).values({ userId: platformAdmin });
+  ({ app } = createBackofficeTestApp(db));
+  await createTestUser(db, founder);
+  adminCookie = await backofficeSessionCookie(app);
 
   const created = await app.request(
     "/api/organizations",
@@ -65,63 +69,58 @@ afterAll(async () => {
   await close();
 });
 
-describe("GET /api/admin/users", () => {
-  it("lists every user for a platform admin", async () => {
+describe("GET /backoffice/admin/users", () => {
+  it("lists every user for the backoffice admin", async () => {
     const response = await app.request(
-      "/api/admin/users",
-      asUser(platformAdmin),
+      "/backoffice/admin/users",
+      withCookie(adminCookie),
     );
     expect(response.status).toBe(200);
     const users = (await json(response)) as { id: string; email: string }[];
     expect(users.map((entry) => entry.id)).toEqual(
-      expect.arrayContaining([platformAdmin, founder]),
+      expect.arrayContaining([founder]),
     );
   });
 
-  it("returns 403 for an authenticated non-admin", async () => {
-    const response = await app.request("/api/admin/users", asUser(founder));
-    expect(response.status).toBe(403);
+  it("returns 401 for an application-user session", async () => {
+    const response = await app.request(
+      "/backoffice/admin/users",
+      asUser(founder),
+    );
+    expect(response.status).toBe(401);
     expect(await json(response)).toMatchObject({
-      error: { code: "FORBIDDEN" },
+      error: { code: "AUTHENTICATION_REQUIRED" },
     });
   });
 
   it("returns 401 for anonymous requests", async () => {
-    const response = await app.request("/api/admin/users");
+    const response = await app.request("/backoffice/admin/users");
     expect(response.status).toBe(401);
   });
 });
 
-describe("GET /api/admin/organizations", () => {
+describe("GET /backoffice/admin/organizations", () => {
   it("lists organizations the admin is not a member of", async () => {
     const response = await app.request(
-      "/api/admin/organizations",
-      asUser(platformAdmin),
+      "/backoffice/admin/organizations",
+      withCookie(adminCookie),
     );
     expect(response.status).toBe(200);
     const organizations = (await json(response)) as { id: string }[];
     expect(organizations.map((entry) => entry.id)).toContain(organizationId);
   });
 
-  it("returns 403 for an authenticated non-admin", async () => {
-    const response = await app.request(
-      "/api/admin/organizations",
-      asUser(founder),
-    );
-    expect(response.status).toBe(403);
-  });
-
   it("returns 401 for anonymous requests", async () => {
-    const response = await app.request("/api/admin/organizations");
+    const response = await app.request("/backoffice/admin/organizations");
     expect(response.status).toBe(401);
   });
 });
 
-describe("GET /api/admin/organizations/:organizationId", () => {
+describe("GET /backoffice/admin/organizations/:organizationId", () => {
   it("embeds members, sources, workspaces, and work sessions", async () => {
     const response = await app.request(
-      `/api/admin/organizations/${organizationId}`,
-      asUser(platformAdmin),
+      `/backoffice/admin/organizations/${organizationId}`,
+      withCookie(adminCookie),
     );
     expect(response.status).toBe(200);
     const detail = (await json(response)) as Record<string, unknown>;
@@ -145,8 +144,8 @@ describe("GET /api/admin/organizations/:organizationId", () => {
 
   it("never exposes source config or work-session snapshot material", async () => {
     const response = await app.request(
-      `/api/admin/organizations/${organizationId}`,
-      asUser(platformAdmin),
+      `/backoffice/admin/organizations/${organizationId}`,
+      withCookie(adminCookie),
     );
     const body = await response.text();
     expect(body).not.toContain("config");
@@ -158,23 +157,16 @@ describe("GET /api/admin/organizations/:organizationId", () => {
 
   it("returns 404 for an unknown organization", async () => {
     const response = await app.request(
-      "/api/admin/organizations/00000000-0000-4000-8000-000000000999",
-      asUser(platformAdmin),
+      "/backoffice/admin/organizations/00000000-0000-4000-8000-000000000999",
+      withCookie(adminCookie),
     );
     expect(response.status).toBe(404);
   });
 
-  it("returns 403 for an authenticated non-admin, even a member", async () => {
+  it("returns 401 for an application-user session, even a member", async () => {
     const response = await app.request(
-      `/api/admin/organizations/${organizationId}`,
+      `/backoffice/admin/organizations/${organizationId}`,
       asUser(founder),
-    );
-    expect(response.status).toBe(403);
-  });
-
-  it("returns 401 for anonymous requests", async () => {
-    const response = await app.request(
-      `/api/admin/organizations/${organizationId}`,
     );
     expect(response.status).toBe(401);
   });

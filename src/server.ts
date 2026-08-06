@@ -1,12 +1,22 @@
 import { serve } from "@hono/node-server";
 
+import {
+  createBackofficeDependencies,
+  createBackofficeRoutes,
+} from "../backoffice/server/index.js";
+
 import { createApp, type AppType } from "./app.js";
 import { createRuntime } from "./runtime.js";
 
 export type { AppType };
 
+// Composition root: the one place (with src/dev-app.ts) allowed to know both
+// the app and the backoffice server, mounting the latter.
 const runtime = await createRuntime();
-const app: AppType = createApp(runtime.dependencies);
+const app = createApp(runtime.dependencies).route(
+  "/backoffice",
+  createBackofficeRoutes(createBackofficeDependencies(runtime.dependencies.db)),
+);
 const server = serve(
   { fetch: app.fetch, port: runtime.environment.PORT },
   (info) => {

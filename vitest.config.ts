@@ -12,13 +12,20 @@ export default defineConfig({
       // text for the CI log, html for local browsing, lcov/json-summary for tooling.
       reporter: ["text", "html", "lcov", "json-summary"],
       reportsDirectory: "coverage",
-      include: ["src/**/*.ts", "client/src/**/*.ts", "backoffice/core/**/*.ts"],
+      include: [
+        "src/**/*.ts",
+        "client/src/**/*.ts",
+        "backoffice/core/**/*.ts",
+        "backoffice/server/**/*.ts",
+      ],
       exclude: [
         // Process entrypoints and runtime wiring: construct real
         // connections only; exercised by the smoke test.
         "src/server.ts",
         "src/worker.ts",
         "src/runtime.ts",
+        "src/dev-app.ts",
+        "backoffice/server/runtime.ts",
         // Generated migration artifacts / type-only modules.
         "src/**/*.d.ts",
       ],

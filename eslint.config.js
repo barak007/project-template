@@ -64,9 +64,13 @@ export default tseslint.config(
               message: "The server must not depend on the client.",
             },
             {
+              // Composition roots (src/server.ts, src/dev-app.ts) mount the
+              // backoffice server; nothing else in src may reach into it.
               target: "./src",
               from: "./backoffice",
-              message: "The server must not depend on the backoffice.",
+              except: ["./server"],
+              message:
+                "Only the composition entries may mount the backoffice server; the app must not depend on the backoffice.",
             },
             {
               target: "./client",
@@ -74,11 +78,21 @@ export default tseslint.config(
               message: "The client must not depend on the backoffice.",
             },
             {
-              target: "./backoffice",
+              // Scoped to the browser-facing code: backoffice/server and
+              // backoffice/vite.config.ts are Node-side and may import the
+              // server freely.
+              target: ["./backoffice/core", "./backoffice/ui"],
               from: "./src",
-              except: ["./app.ts"],
               message:
-                "The backoffice may only import the AppType from src/app.ts.",
+                "The backoffice core and UI must not import server code; API types come from backoffice/server.",
+            },
+            {
+              // Backoffice tests exercise the real app + database.
+              target: "./backoffice/tests",
+              from: "./src",
+              except: ["./app.ts", "./db/client.ts", "./db/schema.ts"],
+              message:
+                "Backoffice tests may only use the app's database handles; everything else comes through the API.",
             },
             {
               target: "./backoffice",
@@ -161,6 +175,12 @@ export default tseslint.config(
               allowTypeImports: true,
               message:
                 "Only type imports may cross into the server; runtime code stays out of the backoffice core.",
+            },
+            {
+              group: ["../server/**", "**/backoffice/server/**"],
+              allowTypeImports: true,
+              message:
+                "The backoffice core is headless; only types may come from the backoffice server.",
             },
           ],
         },

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 
-import type { Database } from "../db/client.js";
+import type { Database } from "../../../src/db/client.js";
 import {
   organizationMembers,
   organizations,
@@ -8,13 +8,13 @@ import {
   user,
   workSessions,
   workspaces,
-} from "../db/schema.js";
-import { AppError } from "../errors.js";
+} from "../../../src/db/schema.js";
+import { AppError } from "../../../src/errors.js";
 
-import { requirePlatformAdmin } from "./policy.js";
-
-export async function listAllUsers(db: Database, userId: string) {
-  await requirePlatformAdmin(db, userId);
+// Authorization happens at the route boundary: the admin routes require the
+// backoffice-admin session (../session.ts), so these functions receive
+// pre-authorized calls.
+export async function listAllUsers(db: Database) {
   return db
     .select({
       id: user.id,
@@ -28,17 +28,14 @@ export async function listAllUsers(db: Database, userId: string) {
     .orderBy(desc(user.createdAt));
 }
 
-export async function listAllOrganizations(db: Database, userId: string) {
-  await requirePlatformAdmin(db, userId);
+export async function listAllOrganizations(db: Database) {
   return db.select().from(organizations).orderBy(desc(organizations.createdAt));
 }
 
 export async function getOrganizationDetail(
   db: Database,
-  userId: string,
   organizationId: string,
 ) {
-  await requirePlatformAdmin(db, userId);
   const [organization] = await db
     .select()
     .from(organizations)

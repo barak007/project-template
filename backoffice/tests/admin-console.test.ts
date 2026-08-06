@@ -1,113 +1,123 @@
-import { describe } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { browserFetch } from "../../client/tests/kit/browser-fetch.js";
-import { it } from "../../client/tests/kit/fixtures.js";
-import type { World } from "../../client/tests/kit/world.js";
-import { ApiError, createBackofficeCore } from "../core/index.js";
+import type { Database } from "../../src/db/client.js";
+import {
+  asUser,
+  createTestDatabase,
+  createTestUser,
+  jsonBody,
+} from "../../tests/helpers/harness.js";
+import { createBackofficeCore } from "../core/index.js";
 
-function newBackofficeClient(world: World) {
+import {
+  backofficeAdminCredentials,
+  createBackofficeTestApp,
+} from "./harness.js";
+
+const baseUrl = "http://backoffice.test";
+
+let db: Database;
+let close: () => Promise<void>;
+let app: ReturnType<typeof createBackofficeTestApp>["app"];
+
+const founder = "console-founder";
+let organizationId = "";
+
+beforeAll(async () => {
+  ({ db, close } = await createTestDatabase());
+  ({ app } = createBackofficeTestApp(db));
+  await createTestUser(db, founder);
+  const created = await app.request(
+    "/api/organizations",
+    asUser(founder, jsonBody({ name: "Console Tenant" })),
+  );
+  expect(created.status).toBe(201);
+  organizationId = ((await created.json()) as { id: string }).id;
+});
+
+afterAll(async () => {
+  await close();
+});
+
+/** Each client is an independent "browser": its own core and cookie jar. */
+function newBackofficeClient() {
   return createBackofficeCore({
-    baseUrl: world.baseUrl,
-    host: { fetch: browserFetch(world.request) },
+    baseUrl,
+    host: {
+      fetch: browserFetch(async (input, init) =>
+        app.request(
+          input instanceof Request ? input : new URL(input, baseUrl),
+          init,
+        ),
+      ),
+    },
   });
 }
 
-async function signedInBackoffice(
-  world: World,
-  credentials: { email: string; password: string },
-) {
-  const backoffice = newBackofficeClient(world);
-  await backoffice.auth.signIn(credentials);
+async function signedInBackoffice() {
+  const backoffice = newBackofficeClient();
+  await backoffice.auth.signIn(backofficeAdminCredentials);
   if (backoffice.getState().auth.status !== "authenticated")
     throw new Error("Backoffice sign-in failed");
   return backoffice;
 }
 
 describe("backoffice admin console", () => {
-  it.concurrent(
-    "keeps sign-in failures as state, never thrown",
-    async ({ world, expect }) => {
-      const backoffice = newBackofficeClient(world);
-      await backoffice.auth.signIn({
-        email: world.uniqueEmail("nobody"),
-        password: "wrong-password",
-      });
-      const { auth } = backoffice.getState();
-      expect(auth.status).toBe("anonymous");
-      if (auth.status === "anonymous") expect(auth.error).toBeDefined();
-    },
-  );
+  it("resolves boot status to anonymous when configured", async () => {
+    const backoffice = newBackofficeClient();
+    expect(backoffice.getState().auth.status).toBe("unknown");
+    await backoffice.auth.loadStatus();
+    expect(backoffice.getState().auth.status).toBe("anonymous");
+  });
 
-  it.concurrent(
-    "rejects a signed-in non-admin with a FORBIDDEN ApiError",
-    async ({ world, expect }) => {
-      const persona = await world.signedUpUser();
-      const backoffice = await signedInBackoffice(world, persona.credentials);
-      const failure = backoffice.admin.loadUsers();
-      await expect(failure).rejects.toBeInstanceOf(ApiError);
-      await expect(failure).rejects.toMatchObject({ code: "FORBIDDEN" });
-      expect(backoffice.getState().users).toHaveLength(0);
-    },
-  );
+  it("keeps sign-in failures as state, never thrown", async () => {
+    const backoffice = newBackofficeClient();
+    await backoffice.auth.signIn({
+      email: backofficeAdminCredentials.email,
+      password: "wrong-password",
+    });
+    const { auth } = backoffice.getState();
+    expect(auth.status).toBe("anonymous");
+    if (auth.status === "anonymous") expect(auth.error).toBeDefined();
+  });
 
-  it.concurrent(
-    "shows a platform admin every user and organization",
-    async ({ world, expect }) => {
-      const admin = await world.platformAdmin();
-      const tenant = await world.founder();
-      const backoffice = await signedInBackoffice(world, admin.credentials);
+  it("shows the backoffice admin every user and organization", async () => {
+    const backoffice = await signedInBackoffice();
 
-      await backoffice.admin.loadUsers();
-      await backoffice.admin.loadOrganizations();
+    await backoffice.admin.loadUsers();
+    await backoffice.admin.loadOrganizations();
 
-      const state = backoffice.getState();
-      expect(state.users.map((user) => user.email)).toEqual(
-        expect.arrayContaining([
-          admin.credentials.email,
-          tenant.credentials.email,
-        ]),
-      );
-      expect(state.organizations.map((entry) => entry.id)).toContain(
-        tenant.organization.id,
-      );
-    },
-  );
+    const state = backoffice.getState();
+    expect(state.users.map((entry) => entry.id)).toContain(founder);
+    expect(state.organizations.map((entry) => entry.id)).toContain(
+      organizationId,
+    );
+  });
 
-  it.concurrent(
-    "shows an organization's members with their emails",
-    async ({ world, expect }) => {
-      const admin = await world.platformAdmin();
-      const tenant = await world.founder();
-      const backoffice = await signedInBackoffice(world, admin.credentials);
+  it("shows an organization's members with their emails", async () => {
+    const backoffice = await signedInBackoffice();
 
-      await backoffice.admin.loadOrganizationDetail(tenant.organization.id);
+    await backoffice.admin.loadOrganizationDetail(organizationId);
 
-      const detail = backoffice.getState().organizationDetail;
-      expect(detail?.organization.id).toBe(tenant.organization.id);
-      expect(detail?.members).toMatchObject([
-        { role: "owner", email: tenant.credentials.email },
-      ]);
-      expect(detail?.sources).toEqual([]);
-      expect(detail?.workspaces).toEqual([]);
-      expect(detail?.workSessions).toEqual([]);
-    },
-  );
+    const detail = backoffice.getState().organizationDetail;
+    expect(detail?.organization.id).toBe(organizationId);
+    expect(detail?.members).toMatchObject([
+      { role: "owner", email: `${founder}@example.test` },
+    ]);
+  });
 
-  it.concurrent(
-    "sign-out resets the whole state",
-    async ({ world, expect }) => {
-      const admin = await world.platformAdmin();
-      const backoffice = await signedInBackoffice(world, admin.credentials);
-      await backoffice.admin.loadUsers();
-      expect(backoffice.getState().users.length).toBeGreaterThan(0);
+  it("sign-out resets the whole state", async () => {
+    const backoffice = await signedInBackoffice();
+    await backoffice.admin.loadUsers();
+    expect(backoffice.getState().users.length).toBeGreaterThan(0);
 
-      await backoffice.auth.signOut();
+    await backoffice.auth.signOut();
 
-      const state = backoffice.getState();
-      expect(state.auth.status).toBe("anonymous");
-      expect(state.users).toEqual([]);
-      expect(state.organizations).toEqual([]);
-      expect(state.organizationDetail).toBeNull();
-    },
-  );
+    const state = backoffice.getState();
+    expect(state.auth.status).toBe("anonymous");
+    expect(state.users).toEqual([]);
+    expect(state.organizations).toEqual([]);
+    expect(state.organizationDetail).toBeNull();
+  });
 });

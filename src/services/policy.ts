@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 
 import type { Database } from "../db/client.js";
-import { organizationMembers, platformAdmins } from "../db/schema.js";
+import { organizationMembers } from "../db/schema.js";
 import { AppError } from "../errors.js";
 
 export type Permission =
@@ -52,19 +52,4 @@ export async function requireOrganizationPermission(
     );
   }
   return membership;
-}
-
-export async function requirePlatformAdmin(db: Database, userId: string) {
-  const [grant] = await db
-    .select()
-    .from(platformAdmins)
-    .where(eq(platformAdmins.userId, userId))
-    .limit(1);
-  if (!grant) {
-    throw new AppError(
-      "FORBIDDEN",
-      "You do not have permission to perform this operation",
-      403,
-    );
-  }
 }

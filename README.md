@@ -34,7 +34,7 @@ Owners manage memberships and all resources. Admins manage resources and secrets
 
 ## Backoffice
 
-A read-only operator console for inspecting all tenants ships in [`backoffice/`](./backoffice/): sign up normally, grant yourself platform admin with `pnpm admin:grant <email>`, then run `pnpm backoffice:dev` alongside `pnpm dev`. See [`docs/backoffice.md`](./docs/backoffice.md).
+A read-only operator console for inspecting all tenants ships in [`backoffice/`](./backoffice/): it has its own admin credential, separate from app accounts — on first open it shows a setup screen that stores the (hashed) credential in `.env`. `pnpm dev` already serves it on :5173 alongside the API. See [`docs/backoffice.md`](./docs/backoffice.md).
 
 ## Commands
 

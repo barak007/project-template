@@ -8,7 +8,7 @@
   },
   "packageManager": "pnpm@11.15.1",
   "scripts": {
-    "dev": "vite-node --watch src/server.ts",
+    "dev": "tsx scripts/dev.ts",
     "build": "vite build && vite build --config backoffice/vite.config.ts",
     "start": "node dist/server.js",
     "worker": "node dist/worker.js",
@@ -26,7 +26,6 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:check": "tsx scripts/check-migrations.ts",
     "db:seed": "tsx scripts/seed.ts",
-    "admin:grant": "tsx scripts/grant-platform-admin.ts",
     "db:test:setup": "tsx scripts/test-db.ts",
     "smoke": "tsx scripts/smoke.ts"
   },
@@ -61,7 +60,6 @@
     "typescript": "6.0.3",
     "typescript-eslint": "latest",
     "vite": "latest",
-    "vite-node": "latest",
     "vitest": "latest"
   }
 }

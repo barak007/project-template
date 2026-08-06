@@ -1,10 +1,10 @@
 import { toApiError } from "../../client/src/errors.js";
 
 import type { Api } from "./api.js";
-import type { AdminStore } from "./projection.js";
+import type { BackofficeStore } from "./projection.js";
 
-export function createAdminActions(api: Api, store: AdminStore) {
-  const routes = api.api.admin;
+export function createAdminActions(api: Api, store: BackofficeStore) {
+  const routes = api.admin;
   return {
     loadUsers: async () => {
       const response = await routes.users.$get();
