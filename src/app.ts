@@ -2,6 +2,7 @@ import { Hono } from "hono";
 
 import { handleError } from "./errors.js";
 import type { AppBindings, RuntimeDependencies } from "./http/context.js";
+import { createAdminRoutes } from "./routes/admin.js";
 import { createDomainRoutes } from "./routes/domain.js";
 
 export function createApp(dependencies: RuntimeDependencies) {
@@ -26,6 +27,7 @@ export function createApp(dependencies: RuntimeDependencies) {
     .on(["GET", "POST"], "/api/auth/*", (context) =>
       dependencies.auth.handler(context.req.raw),
     )
+    .route("/api/admin", createAdminRoutes(dependencies))
     .route("/api", createDomainRoutes(dependencies));
 
   app.notFound((context) =>

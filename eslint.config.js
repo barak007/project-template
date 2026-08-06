@@ -4,7 +4,13 @@ import tseslint from "typescript-eslint";
 
 export default tseslint.config(
   {
-    ignores: ["dist/**", "coverage/**", "drizzle/meta/**", "eslint.config.js"],
+    ignores: [
+      "dist/**",
+      "backoffice/dist/**",
+      "coverage/**",
+      "drizzle/meta/**",
+      "eslint.config.js",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -57,6 +63,41 @@ export default tseslint.config(
               from: "./client",
               message: "The server must not depend on the client.",
             },
+            {
+              target: "./src",
+              from: "./backoffice",
+              message: "The server must not depend on the backoffice.",
+            },
+            {
+              target: "./client",
+              from: "./backoffice",
+              message: "The client must not depend on the backoffice.",
+            },
+            {
+              target: "./backoffice",
+              from: "./src",
+              except: ["./app.ts"],
+              message:
+                "The backoffice may only import the AppType from src/app.ts.",
+            },
+            {
+              target: "./backoffice",
+              from: "./client/src",
+              except: ["./index.ts", "./store.ts", "./errors.ts", "./host.ts"],
+              message:
+                "The backoffice composes the client core through its public entry (plus the generic store/errors/host modules).",
+            },
+            {
+              target: "./backoffice/core",
+              from: [
+                "./tests",
+                "./client/tests",
+                "./backoffice/tests",
+                "./backoffice/ui",
+              ],
+              message:
+                "The backoffice core must not depend on test code or the UI.",
+            },
           ],
         },
       ],
@@ -67,7 +108,7 @@ export default tseslint.config(
     // browser, in Node, or anywhere else — so no runtime globals of either.
     // Every environmental capability enters through the Host (client/src/host.ts),
     // which is why even global fetch is banned.
-    files: ["client/src/**/*.ts"],
+    files: ["client/src/**/*.ts", "backoffice/core/**/*.ts"],
     rules: {
       "import-x/no-nodejs-modules": "error",
       // The zone above limits server imports to src/app.ts; this closes the
@@ -102,6 +143,27 @@ export default tseslint.config(
         "WebSocket",
         "setTimeout",
         "setInterval",
+      ],
+    },
+  },
+  {
+    // The backoffice core shares the headless rules above, but its allowed
+    // runtime imports (client/src/store.ts, errors.ts) live under a src/
+    // segment, so the type-only restriction narrows to the server's src.
+    files: ["backoffice/core/**/*.ts"],
+    rules: {
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/src/**", "!**/client/src/**"],
+              allowTypeImports: true,
+              message:
+                "Only type imports may cross into the server; runtime code stays out of the backoffice core.",
+            },
+          ],
+        },
       ],
     },
   },

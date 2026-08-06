@@ -1,11 +1,16 @@
+import { eq } from "drizzle-orm";
+
 import { createApp } from "../../../src/app.js";
 import { createAuth } from "../../../src/auth.js";
 import { loadEnvironment } from "../../../src/config/env.js";
+import { platformAdmins, user } from "../../../src/db/schema.js";
 import {
   createTestDatabase,
   recordingJobs,
   testCipher,
 } from "../../../tests/helpers/harness.js";
+
+export const grantPlatformAdminPath = "/test-kit/platform-admins";
 
 // The kit only serves and dispatches requests, so this deliberately narrow
 // shape keeps the app's full route-tree type (which makes tsc blow up with
@@ -44,5 +49,41 @@ export async function createWorldApp(baseUrl: string): Promise<WorldApp> {
     reportError: () => undefined,
     ready: () => Promise.resolve(),
   });
-  return { app, close };
+
+  // Test-kit-only escape hatch: granting platform admin has no production
+  // endpoint (operators run `pnpm admin:grant`), so the world intercepts it
+  // in front of the untouched production app.
+  const grantPlatformAdmin = async (request: Request): Promise<Response> => {
+    const { email } = (await request.json()) as { email: string };
+    const [target] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.email, email))
+      .limit(1);
+    if (!target)
+      return Response.json({ error: "unknown user" }, { status: 404 });
+    await db
+      .insert(platformAdmins)
+      .values({ userId: target.id })
+      .onConflictDoNothing();
+    return Response.json({ granted: true }, { status: 200 });
+  };
+  const dispatch = (request: Request) =>
+    request.method === "POST" &&
+    new URL(request.url).pathname === grantPlatformAdminPath
+      ? grantPlatformAdmin(request)
+      : app.fetch(request);
+
+  return {
+    app: {
+      fetch: dispatch,
+      request: (input, init) =>
+        dispatch(
+          input instanceof Request
+            ? input
+            : new Request(new URL(input, baseUrl), init),
+        ),
+    },
+    close,
+  };
 }

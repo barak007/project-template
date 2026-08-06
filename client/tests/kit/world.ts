@@ -3,7 +3,7 @@ import type { ClientFetch } from "../../src/index.js";
 
 import { browserFetch } from "./browser-fetch.js";
 import { clientWorldMode, sharedBaseUrlVariable } from "./mode.js";
-import { createWorldApp } from "./world-app.js";
+import { createWorldApp, grantPlatformAdminPath } from "./world-app.js";
 
 type Connection = {
   baseUrl: string;
@@ -75,7 +75,29 @@ export async function createWorld() {
     return { ...persona, organization };
   };
 
-  return { newClient, uniqueEmail, signedUpUser, founder, close };
+  /** Persona shortcut: a signed-up user granted platform admin. */
+  const platformAdmin = async (name = `admin-${(personas += 1)}`) => {
+    const persona = await signedUpUser(name);
+    const response = await request(new URL(grantPlatformAdminPath, baseUrl), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: persona.credentials.email }),
+    });
+    if (!response.ok)
+      throw new Error(`Platform admin grant failed for persona ${name}`);
+    return persona;
+  };
+
+  return {
+    baseUrl,
+    request,
+    newClient,
+    uniqueEmail,
+    signedUpUser,
+    founder,
+    platformAdmin,
+    close,
+  };
 }
 
 export type World = Awaited<ReturnType<typeof createWorld>>;

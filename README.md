@@ -32,6 +32,10 @@ All domain routes require authentication. Organization routes additionally enfor
 
 Owners manage memberships and all resources. Admins manage resources and secrets. Members have read access. Organization creation atomically assigns its creator as owner. Secret values are encrypted at rest and never returned by the API. Work sessions snapshot workspace sources and merged organization/user values; user values win on duplicate keys.
 
+## Backoffice
+
+A read-only operator console for inspecting all tenants ships in [`backoffice/`](./backoffice/): sign up normally, grant yourself platform admin with `pnpm admin:grant <email>`, then run `pnpm backoffice:dev` alongside `pnpm dev`. See [`docs/backoffice.md`](./docs/backoffice.md).
+
 ## Commands
 
 `pnpm check` mirrors CI: formatting, linting, strict type checking, tests with coverage, then production build. Tests run the full stack against an in-process Postgres (PGlite) with the real migrations applied, so no services are needed. The real-Postgres integration test additionally runs when `DATABASE_URL` is present; for that, use a database name containing `test` and run `pnpm db:test:setup` before `pnpm test`.

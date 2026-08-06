@@ -29,6 +29,8 @@ The application client lives in [client/src](client/src) and is **headless by pr
 5. **Client story tests run concurrently and never use fixed identifiers.** The universe is shared, so isolation comes from fresh identities: take emails from `world.uniqueEmail(...)` or `world.signedUpUser()`, always use `it.concurrent`, and take `expect` from the test context (`async ({ world, expect }) => ...`). Assert only on state the test's own users can see.
 6. **The client API is documented as an OKF wiki** in [docs/client](docs/client/index.md) — one markdown concept per namespace/idea, YAML frontmatter, relative links. When you change the client's surface (action, event, state slice, host capability), update the matching page in the same change.
 
+The backoffice operator console ([backoffice](backoffice), see [docs/backoffice.md](docs/backoffice.md)) follows the same rules and does not duplicate the client: [backoffice/core](backoffice/core) composes `createClientCore` for all client-side operations (auth included) and adds only the platform-admin actions/state, under the identical no-globals/type-only-server-imports lint block (zone-enforced); its React UI in [backoffice/ui](backoffice/ui) owns no logic.
+
 ## Style
 
 Prettier and ESLint own formatting; don't hand-format or add disable comments to get green.

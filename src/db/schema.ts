@@ -87,6 +87,15 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const platformAdmins = pgTable("platform_admins", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const memberRole = pgEnum("member_role", ["owner", "admin", "member"]);
 export const sourceKind = pgEnum("source_kind", ["git", "database", "other"]);
 export const workSessionStatus = pgEnum("work_session_status", [
@@ -289,6 +298,7 @@ export const schema = {
   organizationMembers,
   organizationSecrets,
   organizations,
+  platformAdmins,
   session,
   sources,
   user,
