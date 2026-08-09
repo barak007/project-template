@@ -1,4 +1,4 @@
-import { toApiError } from "../../client/errors.js";
+import { toApiError } from "../../domain-client/errors.js";
 import type { RowFilter, RowValues } from "../server/entities/data.js";
 
 import type { Api, RowsPage } from "./api.js";

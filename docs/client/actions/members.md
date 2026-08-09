@@ -2,7 +2,7 @@
 type: Action Namespace
 title: members
 description: Manage an organization's membership roster and roles.
-resource: ../../../client/member-actions.ts
+resource: ../../../domain-client/member-actions.ts
 tags: [client, actions, members, permissions]
 timestamp: 2026-08-06T00:00:00Z
 ---

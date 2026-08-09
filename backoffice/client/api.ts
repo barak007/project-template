@@ -1,7 +1,7 @@
 import { hc } from "hono/client";
 import type { InferResponseType } from "hono/client";
 
-import type { Host } from "../../client/host.js";
+import type { Host } from "../../domain-client/host.js";
 import type { BackofficeRoutes } from "../server/index.js";
 
 // Hono's documented pattern for compile performance: infer the client type

@@ -2,7 +2,7 @@
 type: Concept
 title: Error Contract
 description: Authentication failures are state; every other API failure throws a typed ApiError.
-resource: ../../client/errors.ts
+resource: ../../domain-client/errors.ts
 tags: [client, errors]
 timestamp: 2026-08-06T00:00:00Z
 ---

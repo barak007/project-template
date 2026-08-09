@@ -2,7 +2,7 @@
 type: Concept
 title: Client State
 description: The single immutable state tree — auth, organizations, current-organization slices, and user-scoped values.
-resource: ../../client/state.ts
+resource: ../../domain-client/state.ts
 tags: [client, state]
 timestamp: 2026-08-06T00:00:00Z
 ---

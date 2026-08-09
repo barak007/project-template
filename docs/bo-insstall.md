@@ -25,7 +25,7 @@ complete. Two capabilities:
 - `backoffice/` already exists (uncommitted, in-progress work — do not
   discard it) as a separate Vite React app mirroring the headless
   `client` action/state pattern: `backoffice/core/` (actions + store,
-  reusing `client/host.ts` / `store.ts` / `errors.ts` directly) and
+  reusing `domain-client/host.ts` / `store.ts` / `errors.ts` directly) and
   `backoffice/ui/` (React components). It currently has Sign-in →
   Users/Organizations admin console, gated by a `platformAdmins` DB table via
   `requirePlatformAdmin` (`domain-server/services/policy.ts`).

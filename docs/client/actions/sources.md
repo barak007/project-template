@@ -2,7 +2,7 @@
 type: Action Namespace
 title: sources
 description: CRUD an organization's sources — named, kinded configurations (git, database, other).
-resource: ../../../client/source-actions.ts
+resource: ../../../domain-client/source-actions.ts
 tags: [client, actions, sources]
 timestamp: 2026-08-06T00:00:00Z
 ---

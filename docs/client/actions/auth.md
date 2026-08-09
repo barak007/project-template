@@ -2,7 +2,7 @@
 type: Action Namespace
 title: auth
 description: Sign up, sign in, and sign out against Better Auth's email/password flow.
-resource: ../../../client/auth-actions.ts
+resource: ../../../domain-client/auth-actions.ts
 tags: [client, actions, auth]
 timestamp: 2026-08-06T00:00:00Z
 ---

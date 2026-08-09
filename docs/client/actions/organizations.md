@@ -2,7 +2,7 @@
 type: Action Namespace
 title: organizations
 description: List the user's organizations and create new ones (creator becomes owner).
-resource: ../../../client/organization-actions.ts
+resource: ../../../domain-client/organization-actions.ts
 tags: [client, actions, organizations]
 timestamp: 2026-08-06T00:00:00Z
 ---

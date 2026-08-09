@@ -2,7 +2,7 @@
 type: Concept
 title: Host
 description: The injected boundary through which every environmental capability reaches the client core.
-resource: ../../client/host.ts
+resource: ../../domain-client/host.ts
 tags: [client, boundary, dependency-injection]
 timestamp: 2026-08-06T00:00:00Z
 ---

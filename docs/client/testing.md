@@ -2,7 +2,7 @@
 type: Guide
 title: Testing Client Stories
 description: Full user stories run in Node against the real server via the world test-kit.
-resource: ../../client/tests/kit/world.ts
+resource: ../../domain-client/tests/kit/world.ts
 tags: [client, testing, kit]
 timestamp: 2026-08-06T00:00:00Z
 ---

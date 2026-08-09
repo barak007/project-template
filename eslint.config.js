@@ -47,20 +47,20 @@ export default tseslint.config(
         {
           zones: [
             {
-              target: "./client/*.ts",
+              target: "./domain-client/*.ts",
               from: "./domain-server",
               except: ["./app.ts"],
               message:
                 "The headless client may only import the AppType from domain-server/app.ts.",
             },
             {
-              target: "./client/*.ts",
-              from: ["./domain-server/tests", "./client/tests"],
+              target: "./domain-client/*.ts",
+              from: ["./domain-server/tests", "./domain-client/tests"],
               message: "Client logic must not depend on test code.",
             },
             {
               target: "./domain-server",
-              from: "./client",
+              from: "./domain-client",
               message: "The server must not depend on the client.",
             },
             {
@@ -73,7 +73,7 @@ export default tseslint.config(
                 "Only the composition entries may mount the backoffice server; the app must not depend on the backoffice.",
             },
             {
-              target: "./client",
+              target: "./domain-client",
               from: "./backoffice",
               message: "The client must not depend on the backoffice.",
             },
@@ -102,7 +102,7 @@ export default tseslint.config(
             },
             {
               target: "./backoffice",
-              from: "./client",
+              from: "./domain-client",
               except: [
                 "./index.ts",
                 "./store.ts",
@@ -118,7 +118,7 @@ export default tseslint.config(
               target: "./backoffice/client",
               from: [
                 "./domain-server/tests",
-                "./client/tests",
+                "./domain-client/tests",
                 "./backoffice/tests",
                 "./backoffice/ui",
               ],
@@ -133,9 +133,9 @@ export default tseslint.config(
   {
     // The client core is headless and environment-agnostic: it must run in a
     // browser, in Node, or anywhere else — so no runtime globals of either.
-    // Every environmental capability enters through the Host (client/host.ts),
+    // Every environmental capability enters through the Host (domain-client/host.ts),
     // which is why even global fetch is banned.
-    files: ["client/*.ts", "backoffice/client/**/*.ts"],
+    files: ["domain-client/*.ts", "backoffice/client/**/*.ts"],
     rules: {
       "import-x/no-nodejs-modules": "error",
       // The zone above limits server imports to domain-server/app.ts; this closes the

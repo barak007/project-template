@@ -3,7 +3,7 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    globalSetup: ["./client/tests/kit/global-setup.ts"],
+    globalSetup: ["./domain-client/tests/kit/global-setup.ts"],
     // CLIENT_WORLD=in-process boots one PGlite world per client story, and
     // many boot concurrently; the default 5s timeout is too tight for that.
     testTimeout: 30_000,
@@ -14,7 +14,7 @@ export default defineConfig({
       reportsDirectory: "coverage",
       include: [
         "domain-server/**/*.ts",
-        "client/*.ts",
+        "domain-client/*.ts",
         "backoffice/client/**/*.ts",
         "backoffice/server/**/*.ts",
       ],

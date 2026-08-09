@@ -1,4 +1,4 @@
-import { ApiError, toApiError } from "../../client/errors.js";
+import { ApiError, toApiError } from "../../domain-client/errors.js";
 
 import type { Api } from "./api.js";
 import type { BackofficeStore } from "./projection.js";

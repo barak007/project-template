@@ -2,7 +2,7 @@
 type: Action Namespace
 title: workSessions
 description: Start and observe work sessions — immutable snapshots of a workspace's sources and merged values, materialized asynchronously.
-resource: ../../../client/work-session-actions.ts
+resource: ../../../domain-client/work-session-actions.ts
 tags: [client, actions, work-sessions]
 timestamp: 2026-08-06T00:00:00Z
 ---

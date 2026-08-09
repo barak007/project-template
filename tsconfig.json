@@ -19,7 +19,7 @@
   "include": [
     "domain-server",
     "scripts",
-    "client",
+    "domain-client",
     "backoffice/core",
     "backoffice/tests",
     "*.ts"

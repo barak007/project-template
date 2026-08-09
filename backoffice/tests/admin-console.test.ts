@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { browserFetch } from "../../client/tests/kit/browser-fetch.js";
+import { browserFetch } from "../../domain-client/tests/kit/browser-fetch.js";
 import type { Database } from "../../domain-server/db/client.js";
 import {
   asUser,

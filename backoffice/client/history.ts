@@ -1,6 +1,6 @@
 /**
  * The URL surface the client needs from its environment, in the spirit of
- * Host (client/host.ts): the browser adapter wraps window.history, tests use
+ * Host (domain-client/host.ts): the browser adapter wraps window.history, tests use
  * createMemoryHistory — the client itself never touches platform globals.
  */
 export type History = {

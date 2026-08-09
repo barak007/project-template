@@ -2,7 +2,7 @@
 type: Action Namespace
 title: organizationData & userData
 description: Non-secret JSON values under named keys, merged into work-session snapshots (user wins).
-resource: ../../../client/data-actions.ts
+resource: ../../../domain-client/data-actions.ts
 tags: [client, actions, data]
 timestamp: 2026-08-06T00:00:00Z
 ---

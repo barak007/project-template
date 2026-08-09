@@ -2,7 +2,7 @@
 type: Concept
 title: Events & Projection
 description: Actions dispatch event facts; a single pure projection folds them into state.
-resource: ../../client/events.ts
+resource: ../../domain-client/events.ts
 tags: [client, events, projection]
 timestamp: 2026-08-06T00:00:00Z
 ---
@@ -19,7 +19,7 @@ what happened:
 { type: "user-secret-deleted", key }
 ```
 
-The **projection** (`client/projection.ts`) is the one place state
+The **projection** (`domain-client/projection.ts`) is the one place state
 changes: a pure `reduce(state, event): ClientState`, exhaustively switching
 over every event type. Pure means unit-testable without any API, and means the
 whole [state](./state.md) tree is a deterministic fold of the event stream.
@@ -35,6 +35,6 @@ whole [state](./state.md) tree is a deterministic fold of the event stream.
 
 ## Adding an event
 
-1. Add the variant to `ClientEvent` (`client/events.ts`).
+1. Add the variant to `ClientEvent` (`domain-client/events.ts`).
 2. Handle it in `reduce` — the exhaustive switch makes forgetting a compile error.
 3. Dispatch it from the owning action module.

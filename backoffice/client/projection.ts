@@ -1,4 +1,4 @@
-import type { Store } from "../../client/store.js";
+import type { Store } from "../../domain-client/store.js";
 
 import type { BackofficeEvent } from "./events.js";
 import { emptyUserDraft, initialAdminState } from "./state.js";

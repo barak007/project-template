@@ -47,7 +47,7 @@ export type RowsPage = z.infer<typeof rowsPageSchema>;
  * Wire aliases for the route responses: hc walks response types across the
  * whole route tree, and the recursive JsonValue rows blow its instantiation
  * depth. Responses are typed shallow on the wire and re-typed on the client
- * boundary (the same pattern as client/api.ts).
+ * boundary (the same pattern as domain-client/api.ts).
  */
 export type TableRowWire = Record<string, unknown>;
 export type RowsPageWire = {

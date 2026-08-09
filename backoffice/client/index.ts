@@ -1,5 +1,5 @@
-import type { Host } from "../../client/index.js";
-import { createStore } from "../../client/store.js";
+import type { Host } from "../../domain-client/index.js";
+import { createStore } from "../../domain-client/store.js";
 
 import { createAdminActions } from "./admin-actions.js";
 import { createApi } from "./api.js";
@@ -10,8 +10,8 @@ import { createNavigation } from "./navigation-actions.js";
 import { reduce } from "./projection.js";
 import { initialBackofficeState } from "./state.js";
 
-export { ApiError } from "../../client/errors.js";
-export type { ClientFetch, Host } from "../../client/index.js";
+export { ApiError } from "../../domain-client/errors.js";
+export type { ClientFetch, Host } from "../../domain-client/index.js";
 export type {
   ColumnMeta,
   OrganizationDetail,
