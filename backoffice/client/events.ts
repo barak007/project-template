@@ -7,7 +7,11 @@ import type {
 } from "./api.js";
 import type { TableQuery } from "./data-actions.js";
 import type { Route } from "./router.js";
-import type { BackofficeAuthError } from "./state.js";
+import type {
+  BackofficeAuthError,
+  BackofficeError,
+  UserDraft,
+} from "./state.js";
 
 export type BackofficeEvent =
   | {
@@ -21,7 +25,14 @@ export type BackofficeEvent =
   | { type: "signed-out" }
   | { type: "navigated"; route: Route }
   | { type: "users-loaded"; users: AdminUser[] }
+  | { type: "users-filter-set"; filter: string }
+  | { type: "user-editor-toggled"; open: boolean }
+  | { type: "user-draft-set"; draft: Partial<UserDraft> }
+  | { type: "user-mutation-failed"; error: BackofficeError }
   | { type: "organizations-loaded"; organizations: AdminOrganization[] }
+  | { type: "organizations-filter-set"; filter: string }
+  | { type: "organization-draft-set"; name: string }
+  | { type: "organization-mutation-failed"; error: BackofficeError }
   | { type: "organization-detail-loaded"; detail: OrganizationDetail }
   | { type: "tables-loaded"; tables: TableMeta[] }
   | {

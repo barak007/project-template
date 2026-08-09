@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
+import { visibleOrganizations } from "../client/index.js";
 import type { BackofficeCore } from "../client/index.js";
 
 import { useBackofficeState } from "./use-backoffice-state.js";
@@ -13,47 +14,83 @@ export function OrganizationsPage({
   load: (action: () => Promise<void>) => Promise<void>;
   onOpen: (organizationId: string) => void;
 }) {
-  const organizations = useBackofficeState(
-    core,
-    (state) => state.organizations,
-  );
-  const [filter, setFilter] = useState("");
+  const page = useBackofficeState(core, (state) => state.organizationsPage);
+  const organizations = useBackofficeState(core, visibleOrganizations);
 
   useEffect(() => {
     void load(() => core.admin.loadOrganizations());
   }, [core, load]);
 
-  const query = filter.trim().toLowerCase();
-  const visible = query
-    ? organizations.filter((organization) =>
-        organization.name.toLowerCase().includes(query),
+  const create = () => void load(() => core.admin.createOrganization());
+
+  const remove = (organization: { id: string; name: string }) => {
+    if (
+      !window.confirm(
+        `Delete organization "${organization.name}" and everything in it (members, sources, workspaces, work sessions)? This cannot be undone.`,
       )
-    : organizations;
+    )
+      return;
+    void load(() => core.admin.deleteOrganization(organization.id));
+  };
 
   return (
     <section>
       <h1>Organizations</h1>
+      {page.error ? <p className="error">{page.error.message}</p> : null}
+      <div className="editor-actions">
+        <input
+          placeholder="New organization name"
+          value={page.draftName}
+          onChange={(event) => {
+            core.admin.setOrganizationDraft(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && page.draftName.trim()) create();
+          }}
+        />
+        <button
+          className="primary"
+          disabled={!page.draftName.trim()}
+          onClick={create}
+        >
+          Add organization
+        </button>
+      </div>
       <input
         type="search"
         placeholder="Filter by name"
-        value={filter}
-        onChange={(event) => setFilter(event.target.value)}
+        value={page.filter}
+        onChange={(event) => {
+          core.admin.setOrganizationsFilter(event.target.value);
+        }}
       />
       <table>
         <thead>
           <tr>
+            <th>ID</th>
             <th>Name</th>
             <th>Created</th>
-            <th></th>
+            <th />
           </tr>
         </thead>
         <tbody>
-          {visible.map((organization) => (
+          {organizations.map((organization) => (
             <tr key={organization.id}>
+              <td title={organization.id}>
+                <code>{organization.id}</code>
+              </td>
               <td>{organization.name}</td>
               <td>{new Date(organization.createdAt).toLocaleString()}</td>
-              <td>
+              <td className="row-actions">
                 <button onClick={() => onOpen(organization.id)}>Open</button>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    remove(organization);
+                  }}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}

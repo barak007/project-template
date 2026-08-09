@@ -18,6 +18,24 @@ export const adminUserResponseSchema = z
   })
   .extend(timestampsSchema.shape);
 
+// The password is write-only: it is hashed into the credential account row
+// and never appears in any response.
+export const createAdminUserBodySchema = z.object({
+  name: z.string().trim().min(1),
+  email: z.email(),
+  password: z.string().min(8),
+});
+
+export type CreateAdminUserInput = z.infer<typeof createAdminUserBodySchema>;
+
+export const createAdminOrganizationBodySchema = z.object({
+  name: z.string().trim().min(1),
+});
+
+export type CreateAdminOrganizationInput = z.infer<
+  typeof createAdminOrganizationBodySchema
+>;
+
 export const adminMemberResponseSchema = z.object({
   userId: z.string(),
   role: memberRoleSchema,

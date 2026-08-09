@@ -9,7 +9,26 @@ import type { TableQuery } from "./data-actions.js";
 import { defaultRoute } from "./router.js";
 import type { Route } from "./router.js";
 
-export type BackofficeAuthError = { code: string; message: string };
+export type BackofficeError = { code: string; message: string };
+export type BackofficeAuthError = BackofficeError;
+
+export type UserDraft = { name: string; email: string; password: string };
+
+export const emptyUserDraft: UserDraft = { name: "", email: "", password: "" };
+
+/** Everything the users page shows or edits — no state lives in the UI. */
+export type UsersPageState = {
+  filter: string;
+  editorOpen: boolean;
+  draft: UserDraft;
+  error: BackofficeError | null;
+};
+
+export type OrganizationsPageState = {
+  filter: string;
+  draftName: string;
+  error: BackofficeError | null;
+};
 
 /**
  * The backoffice admin is a standalone credential configured on the server —
@@ -32,7 +51,9 @@ export type TableDataState = {
 
 export type AdminState = {
   users: AdminUser[];
+  usersPage: UsersPageState;
   organizations: AdminOrganization[];
+  organizationsPage: OrganizationsPageState;
   organizationDetail: OrganizationDetail | null;
   tables: TableMeta[];
   tableData: TableDataState;
@@ -45,7 +66,14 @@ export type BackofficeState = AdminState & {
 
 export const initialAdminState: AdminState = {
   users: [],
+  usersPage: {
+    filter: "",
+    editorOpen: false,
+    draft: emptyUserDraft,
+    error: null,
+  },
   organizations: [],
+  organizationsPage: { filter: "", draftName: "", error: null },
   organizationDetail: null,
   tables: [],
   tableData: null,

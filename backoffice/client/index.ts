@@ -28,11 +28,16 @@ export { createMemoryHistory } from "./history.js";
 export type { History, MemoryHistory } from "./history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
 export type { Route } from "./router.js";
+export { visibleOrganizations, visibleUsers } from "./selectors.js";
 export type {
   BackofficeAuthError,
   BackofficeAuthState,
+  BackofficeError,
   BackofficeState,
+  OrganizationsPageState,
   TableDataState,
+  UserDraft,
+  UsersPageState,
 } from "./state.js";
 
 export type BackofficeCoreDependencies = {
