@@ -16,6 +16,7 @@ import type {
   TableRow,
 } from "../client/index.js";
 
+import { DateRangeFilter } from "./date-range-filter.js";
 import { RowEditor } from "./row-editor.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
@@ -306,24 +307,13 @@ export function TablePage({
     if (column.redacted || column.dataType === "json") return null;
     if (column.dataType === "date")
       return (
-        <span className="date-range">
-          <input
-            type="datetime-local"
-            title={`${column.key} from`}
-            value={drafts[`${column.key}:from`] ?? ""}
-            onChange={(event) => {
-              setDraft(`${column.key}:from`, event.target.value);
-            }}
-          />
-          <input
-            type="datetime-local"
-            title={`${column.key} to`}
-            value={drafts[`${column.key}:to`] ?? ""}
-            onChange={(event) => {
-              setDraft(`${column.key}:to`, event.target.value);
-            }}
-          />
-        </span>
+        <DateRangeFilter
+          from={drafts[`${column.key}:from`] ?? ""}
+          to={drafts[`${column.key}:to`] ?? ""}
+          onChange={(bound, value) => {
+            setDraft(`${column.key}:${bound}`, value);
+          }}
+        />
       );
     if (column.enumValues || column.dataType === "boolean")
       return (

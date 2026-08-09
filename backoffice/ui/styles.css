@@ -234,10 +234,42 @@ tr.filters select {
   padding: 0.25rem 0.4rem;
 }
 
-.date-range {
+/* Date filters collapse to a one-line button; the from/to inputs live in
+   a fixed-position portal panel so the table scroll cannot clip them. */
+button.date-range {
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.4rem;
+  color: #555555;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.date-range-panel {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: #ffffff;
+  border: 1px solid #c8c8c8;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.date-range-panel label {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #555555;
+}
+
+.date-range-panel input {
+  width: 13rem;
 }
 
 td.redacted {
