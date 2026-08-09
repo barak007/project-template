@@ -64,38 +64,40 @@ export function OrganizationsPage({
           core.admin.setOrganizationsFilter(event.target.value);
         }}
       />
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Created</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {organizations.map((organization) => (
-            <tr key={organization.id}>
-              <td title={organization.id}>
-                <code>{organization.id}</code>
-              </td>
-              <td>{organization.name}</td>
-              <td>{new Date(organization.createdAt).toLocaleString()}</td>
-              <td className="row-actions">
-                <button onClick={() => onOpen(organization.id)}>Open</button>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    remove(organization);
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Created</th>
+              <th className="actions" />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {organizations.map((organization) => (
+              <tr key={organization.id}>
+                <td title={organization.id}>
+                  <code>{organization.id}</code>
+                </td>
+                <td title={organization.name}>{organization.name}</td>
+                <td>{new Date(organization.createdAt).toLocaleString()}</td>
+                <td className="row-actions">
+                  <button onClick={() => onOpen(organization.id)}>Open</button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      remove(organization);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

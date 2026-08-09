@@ -94,48 +94,50 @@ export function UsersPage({
           core.admin.setUsersFilter(event.target.value);
         }}
       />
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Verified</th>
-            <th>Created</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td title={user.id}>
-                <code>{user.id}</code>
-              </td>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.emailVerified ? "yes" : "no"}</td>
-              <td>{new Date(user.createdAt).toLocaleString()}</td>
-              <td className="row-actions">
-                <button
-                  onClick={() => {
-                    onOpen(user.id);
-                  }}
-                >
-                  Open
-                </button>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    remove(user);
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Verified</th>
+              <th>Created</th>
+              <th className="actions" />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td title={user.id}>
+                  <code>{user.id}</code>
+                </td>
+                <td title={user.name}>{user.name}</td>
+                <td title={user.email}>{user.email}</td>
+                <td>{user.emailVerified ? "yes" : "no"}</td>
+                <td>{new Date(user.createdAt).toLocaleString()}</td>
+                <td className="row-actions">
+                  <button
+                    onClick={() => {
+                      onOpen(user.id);
+                    }}
+                  >
+                    Open
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      remove(user);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { ApiError, defaultTableQuery, referencesTo } from "../client/index.js";
 import type {
@@ -100,7 +100,9 @@ export function TablePage({
 
   // Serialized so the effect keys on filter content, not array identity.
   const routeFiltersKey = JSON.stringify(routeFilters ?? []);
+  const skipApply = useRef(true);
   useEffect(() => {
+    skipApply.current = true;
     setQuery({
       ...defaultTableQuery,
       filters: JSON.parse(routeFiltersKey) as RowFilter[],
@@ -110,6 +112,28 @@ export function TablePage({
     setError(null);
   }, [table, routeFiltersKey]);
 
+  // Filters apply automatically, debounced, whenever a draft changes. The
+  // skip flag keeps the reset above (empty drafts) from wiping route filters.
+  // Columns go through a ref so the effect keys on draft edits alone.
+  const columnsRef = useRef<ColumnMeta[]>([]);
+  columnsRef.current = meta?.columns ?? [];
+  useEffect(() => {
+    if (skipApply.current) {
+      skipApply.current = false;
+      return;
+    }
+    const timer = setTimeout(() => {
+      setQuery((current) => ({
+        ...current,
+        offset: 0,
+        filters: buildFilters(columnsRef.current, drafts),
+      }));
+    }, 300);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [drafts]);
+
   useEffect(() => {
     void load(() => core.data.loadRows(table, query));
   }, [core, load, table, query]);
@@ -117,14 +141,6 @@ export function TablePage({
   if (!meta) return <p>Loading…</p>;
   const columns = meta.columns;
   const page = tableData?.table === table ? tableData.page : null;
-
-  const applyFilters = () => {
-    setQuery((current) => ({
-      ...current,
-      offset: 0,
-      filters: buildFilters(columns, drafts),
-    }));
-  };
 
   const setDraft = (key: string, value: string) => {
     setDrafts((current) => ({ ...current, [key]: value }));
@@ -221,7 +237,6 @@ export function TablePage({
             onChange={(event) => {
               setDraft(`${column.key}:from`, event.target.value);
             }}
-            onBlur={applyFilters}
           />
           <input
             type="datetime-local"
@@ -230,7 +245,6 @@ export function TablePage({
             onChange={(event) => {
               setDraft(`${column.key}:to`, event.target.value);
             }}
-            onBlur={applyFilters}
           />
         </span>
       );
@@ -239,13 +253,7 @@ export function TablePage({
         <select
           value={drafts[column.key] ?? ""}
           onChange={(event) => {
-            const next = { ...drafts, [column.key]: event.target.value };
-            setDrafts(next);
-            setQuery((current) => ({
-              ...current,
-              offset: 0,
-              filters: buildFilters(columns, next),
-            }));
+            setDraft(column.key, event.target.value);
           }}
         >
           <option value="">all</option>
@@ -263,10 +271,6 @@ export function TablePage({
         value={drafts[column.key] ?? ""}
         onChange={(event) => {
           setDraft(column.key, event.target.value);
-        }}
-        onBlur={applyFilters}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") applyFilters();
         }}
       />
     );
@@ -333,22 +337,30 @@ export function TablePage({
       ) : null}
 
       <div className="table-scroll">
-        <table>
+        {/* Width floor per column: with fixed layout, wide tables scroll
+            inside the wrapper instead of squeezing columns to slivers. */}
+        <table style={{ minWidth: `${String(columns.length * 8 + 11)}rem` }}>
           <thead>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
                   className={column.redacted ? "" : "sortable"}
-                  onClick={() => {
-                    toggleSort(column);
-                  }}
                 >
-                  {column.key}
-                  {sortMarker(column)}
+                  {/* Sort on the label, not the cell, so dragging the
+                      resize handle never toggles the sort. */}
+                  <span
+                    className="sort-label"
+                    onClick={() => {
+                      toggleSort(column);
+                    }}
+                  >
+                    {column.key}
+                    {sortMarker(column)}
+                  </span>
                 </th>
               ))}
-              <th />
+              <th className="actions" />
             </tr>
             <tr className="filters">
               {columns.map((column) => (
