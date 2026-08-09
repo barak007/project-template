@@ -26,10 +26,10 @@ export function UserDetailPage({
   if (detail?.user.id !== userId) return <p>Loading…</p>;
 
   return (
-    <section>
+    <section className="detail-page">
       <button onClick={onBack}>← Users</button>
       <h1>{detail.user.name}</h1>
-      <p>
+      <p className="detail-meta">
         <code>{detail.user.id}</code> · {detail.user.email} ·{" "}
         {detail.user.emailVerified ? "verified" : "not verified"} · joined{" "}
         {new Date(detail.user.createdAt).toLocaleString()}

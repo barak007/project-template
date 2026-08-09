@@ -24,7 +24,7 @@ export function OrganizationDetailPage({
   if (detail?.organization.id !== organizationId) return <p>Loading…</p>;
 
   return (
-    <section>
+    <section className="detail-page">
       <button onClick={onBack}>← Organizations</button>
       <h1>{detail.organization.name}</h1>
 

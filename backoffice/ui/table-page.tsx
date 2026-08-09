@@ -18,6 +18,7 @@ import type {
 
 import { DateRangeFilter } from "./date-range-filter.js";
 import { RowEditor } from "./row-editor.js";
+import { RowRefs } from "./row-refs.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
 /**
@@ -278,25 +279,12 @@ export function TablePage({
       return null;
     if (incoming.length === 0) return null;
     return (
-      <details className="row-refs">
-        <summary>refs</summary>
-        {incoming.map((reference) => (
-          <button
-            key={`${reference.table}.${reference.column}`}
-            title={
-              reference.onDelete === "restrict"
-                ? "Existing rows here block deletion (on delete restrict)"
-                : undefined
-            }
-            onClick={() => {
-              follow(reference.table, reference.column, keyValue);
-            }}
-          >
-            {reference.table}.{reference.column}
-            {reference.onDelete === "restrict" ? " ⛔" : ""}
-          </button>
-        ))}
-      </details>
+      <RowRefs
+        references={incoming}
+        onSelect={(reference) => {
+          follow(reference.table, reference.column, keyValue);
+        }}
+      />
     );
   };
 
@@ -351,9 +339,10 @@ export function TablePage({
   return (
     <section className="table-page">
       <header className="table-header">
-        <h1>{heading ?? table}</h1>
+        <h1 className={heading ? "" : "raw"}>{heading ?? table}</h1>
         <span className="spacer" />
         <button
+          className="primary"
           onClick={() => {
             setEditor({ mode: "insert" });
           }}
