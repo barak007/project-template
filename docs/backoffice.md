@@ -80,6 +80,33 @@ only place the app touches the backoffice is the composition entries
 under `/backoffice`. Its tests live in
 [backoffice/tests/](../backoffice/tests/) with their own harness.
 
+## Filtering
+
+Every text filter input — the Users/Organizations pages and the per-column
+filters on the table pages — shares one query syntax, parsed in
+[backoffice/client/filter-query.ts](../backoffice/client/filter-query.ts):
+
+| Query   | Meaning                                            |
+| ------- | -------------------------------------------------- |
+| `abc`   | contains "abc"                                     |
+| `!abc`  | does **not** contain "abc" (rest stays literal)    |
+| `^abc`  | starts with "abc"                                  |
+| `abc$`  | ends with "abc"                                    |
+| `^abc$` | equals "abc" (case-insensitive)                    |
+| `\!abc` | literal "!abc" (`\^` and a trailing `\$` likewise) |
+
+Matching is always case-insensitive; modifiers are only special at the edges
+(`a!b` is literal), and a query that reduces to an empty term (`!`, `^`, `$`)
+filters nothing. The admin pages match in the client (name/email for users —
+negation means _no_ field matches); the table pages translate the same syntax
+into server operators (`contains`, `not-contains`, `starts-with`, `ends-with`,
+`ieq`) that become escaped `ILIKE` SQL. Under `not-contains`, `NULL` cells
+count as "doesn't contain" and the row is kept.
+
+Table URLs carry the active state: route-driven filters ride the `filters`
+query param, and non-default pagination rides `limit`/`offset`, so a reload or
+a shared link lands on the same filtered page.
+
 ## Deploying (follow-up)
 
 The build (`pnpm build`) emits a static SPA to `backoffice/dist`, which v1 does

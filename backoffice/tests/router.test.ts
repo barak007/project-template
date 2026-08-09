@@ -34,9 +34,38 @@ describe("router", () => {
         table: "account",
         filters: [{ column: "userId", op: "eq", value: "user-1" }],
       },
+      {
+        kind: "table",
+        table: "account",
+        filters: [{ column: "email", op: "starts-with", value: "a" }],
+        limit: 100,
+        offset: 200,
+      },
+      { kind: "table", table: "account", offset: 200 },
     ];
     for (const route of routes)
       expect(pathToRoute(routeToPath(route))).toEqual(route);
+  });
+
+  it("keeps default pagination out of the path", () => {
+    expect(
+      routeToPath({ kind: "table", table: "account", limit: 50, offset: 0 }),
+    ).toBe("/tables/account");
+    expect(
+      routeToPath({ kind: "table", table: "account", limit: 25, offset: 0 }),
+    ).toBe("/tables/account?limit=25");
+  });
+
+  it("ignores malformed pagination query params", () => {
+    expect(pathToRoute("/tables/account?limit=abc&offset=-5")).toEqual({
+      kind: "table",
+      table: "account",
+    });
+    expect(pathToRoute("/tables/account?limit=25.5&offset=10")).toEqual({
+      kind: "table",
+      table: "account",
+      offset: 10,
+    });
   });
 
   it("lands unknown paths on the default route", () => {

@@ -25,6 +25,13 @@ export type {
 export { defaultTableQuery } from "./data-actions.js";
 export type { RowFilter, TableQuery } from "./data-actions.js";
 export type { BackofficeEvent } from "./events.js";
+export {
+  FILTER_SYNTAX_HINT,
+  matchesFilter,
+  parseFilterQuery,
+  textRowFilter,
+} from "./filter-query.js";
+export type { FilterMode, ParsedFilter } from "./filter-query.js";
 export { createMemoryHistory } from "./history.js";
 export type { History, MemoryHistory } from "./history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";

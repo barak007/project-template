@@ -12,6 +12,8 @@ import {
   lt,
   lte,
   ne,
+  notIlike,
+  or,
 } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
@@ -96,14 +98,38 @@ function filterCondition(adminTable: AdminTable, filter: RowFilter): SQL {
       `Filter on "${meta.key}" requires a value`,
       400,
     );
-  if (filter.op === "contains") {
+  if (
+    filter.op === "contains" ||
+    filter.op === "not-contains" ||
+    filter.op === "starts-with" ||
+    filter.op === "ends-with" ||
+    filter.op === "ieq"
+  ) {
     if (meta.dataType !== "string" || typeof filter.value !== "string")
       throw new AppError(
         "VALIDATION_FAILED",
-        `"contains" only applies to text columns`,
+        `"${filter.op}" only applies to text columns`,
         400,
       );
-    return ilike(column, `%${filter.value.replaceAll(/[%_\\]/g, "\\$&")}%`);
+    const escaped = filter.value.replaceAll(/[%_\\]/g, "\\$&");
+    switch (filter.op) {
+      case "contains":
+        return ilike(column, `%${escaped}%`);
+      case "not-contains": {
+        // NULL "doesn't contain" the term either — keep those rows, matching
+        // the client-side matcher's semantics.
+        const condition = or(isNull(column), notIlike(column, `%${escaped}%`));
+        if (!condition)
+          throw new AppError("VALIDATION_FAILED", "Empty filter", 400);
+        return condition;
+      }
+      case "starts-with":
+        return ilike(column, `${escaped}%`);
+      case "ends-with":
+        return ilike(column, `%${escaped}`);
+      case "ieq":
+        return ilike(column, escaped);
+    }
   }
   if (meta.dataType === "json")
     throw new AppError(

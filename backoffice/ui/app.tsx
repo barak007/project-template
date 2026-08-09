@@ -135,6 +135,8 @@ export function App({ core }: { core: BackofficeCore }) {
             load={load}
             table={route.table}
             routeFilters={route.filters}
+            routeLimit={route.limit}
+            routeOffset={route.offset}
           />
         )}
       </main>

@@ -89,6 +89,23 @@ describe("backoffice data console", () => {
     expect(tableData?.page.rows.map((row) => row.id)).toEqual([organizationId]);
   });
 
+  it("round-trips a modifier operator through the server", async () => {
+    const backoffice = await signedInBackoffice();
+    await backoffice.data.loadRows("organizations", {
+      ...defaultTableQuery,
+      filters: [{ column: "name", op: "starts-with", value: "console data" }],
+    });
+    expect(
+      backoffice.getState().tableData?.page.rows.map((row) => row.id),
+    ).toEqual([organizationId]);
+
+    await backoffice.data.loadRows("organizations", {
+      ...defaultTableQuery,
+      filters: [{ column: "name", op: "not-contains", value: "console" }],
+    });
+    expect(backoffice.getState().tableData?.page.total).toBe(0);
+  });
+
   it("mutations refresh the loaded page", async () => {
     const backoffice = await signedInBackoffice();
     await backoffice.data.loadRows("workspaces", defaultTableQuery);

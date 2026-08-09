@@ -360,6 +360,53 @@ describe("GET /backoffice/data/tables/:table/rows", () => {
     expect(withImage.total).toBe(0);
   });
 
+  it("supports the text modifier operators", async () => {
+    const named = async (filter: Record<string, unknown>) => {
+      const page = await json<Page>(
+        await app.request(
+          rowsUrl("sources", { filters: JSON.stringify([filter]) }),
+          withCookie(adminCookie),
+        ),
+      );
+      return page.rows.map((row) => row.name);
+    };
+
+    expect(
+      await named({ column: "name", op: "starts-with", value: "ALPHA" }),
+    ).toEqual(["alpha-repo"]);
+    expect(
+      await named({ column: "name", op: "ends-with", value: "-DB" }),
+    ).toEqual(["beta-db"]);
+    expect(
+      await named({ column: "name", op: "ieq", value: "Beta-DB" }),
+    ).toEqual(["beta-db"]);
+    expect(
+      await named({ column: "name", op: "not-contains", value: "alpha" }),
+    ).toEqual(["beta-db"]);
+    // LIKE metacharacters stay literal under the new operators too.
+    expect(
+      await named({ column: "name", op: "starts-with", value: "%" }),
+    ).toEqual([]);
+    expect(
+      await named({ column: "name", op: "not-contains", value: "_" }),
+    ).toEqual(expect.arrayContaining(["alpha-repo", "beta-db"]));
+  });
+
+  it("keeps NULL rows under not-contains", async () => {
+    const page = await json<Page>(
+      await app.request(
+        rowsUrl("user", {
+          filters: JSON.stringify([
+            { column: "image", op: "not-contains", value: "anything" },
+          ]),
+        }),
+        withCookie(adminCookie),
+      ),
+    );
+    // The founder has no image; "NULL doesn't contain it" keeps the row.
+    expect(page.rows.map((row) => row.id)).toContain(founder);
+  });
+
   it("rejects type-mismatched and unsupported filters", async () => {
     const badFilter = async (table: string, filter: unknown) =>
       (
@@ -376,6 +423,17 @@ describe("GET /backoffice/data/tables/:table/rows", () => {
         op: "contains",
         value: "yes",
       }),
+    ).toBe(400);
+    // modifier operators are text-only too
+    expect(
+      await badFilter("user", {
+        column: "emailVerified",
+        op: "starts-with",
+        value: "y",
+      }),
+    ).toBe(400);
+    expect(
+      await badFilter("sources", { column: "createdAt", op: "not-contains" }),
     ).toBe(400);
     // comparison on a json column
     expect(

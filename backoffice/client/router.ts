@@ -1,5 +1,7 @@
 import type { RowFilter } from "../server/entities/data.js";
 
+import { defaultTableQuery } from "./data-actions.js";
+
 /**
  * Routing is headless: routes are plain values, and the mapping to and from
  * URL paths lives here so the UI never parses locations itself.
@@ -9,7 +11,13 @@ export type Route =
   | { kind: "user"; userId: string }
   | { kind: "organizations" }
   | { kind: "organization"; organizationId: string }
-  | { kind: "table"; table: string; filters?: RowFilter[] };
+  | {
+      kind: "table";
+      table: string;
+      filters?: RowFilter[];
+      limit?: number;
+      offset?: number;
+    };
 
 export const defaultRoute: Route = { kind: "users" };
 
@@ -25,9 +33,20 @@ export function routeToPath(route: Route): string {
       return `/organizations/${encodeURIComponent(route.organizationId)}`;
     case "table": {
       const base = `/tables/${encodeURIComponent(route.table)}`;
-      return route.filters && route.filters.length > 0
-        ? `${base}?filters=${encodeURIComponent(JSON.stringify(route.filters))}`
-        : base;
+      const params: string[] = [];
+      if (route.filters && route.filters.length > 0)
+        params.push(
+          `filters=${encodeURIComponent(JSON.stringify(route.filters))}`,
+        );
+      // Default pagination stays out of the URL so plain links stay clean.
+      if (route.limit !== undefined && route.limit !== defaultTableQuery.limit)
+        params.push(`limit=${String(route.limit)}`);
+      if (
+        route.offset !== undefined &&
+        route.offset !== defaultTableQuery.offset
+      )
+        params.push(`offset=${String(route.offset)}`);
+      return params.length > 0 ? `${base}?${params.join("&")}` : base;
     }
   }
 }
@@ -66,6 +85,17 @@ function filtersFromSearch(search: string): RowFilter[] | undefined {
   return undefined;
 }
 
+/** Reads a non-negative integer query param; anything else is ignored. */
+function pageParamFromSearch(search: string, key: string): number | undefined {
+  for (const pair of search.split("&")) {
+    const [name, ...rest] = pair.split("=");
+    if (name !== key) continue;
+    const value = Number(decodeURIComponent(rest.join("=")));
+    if (Number.isInteger(value) && value >= 0) return value;
+  }
+  return undefined;
+}
+
 /** Unknown paths land on the default route rather than a dead end. */
 export function pathToRoute(path: string): Route {
   const [pathname = "", search = ""] = path.split("?");
@@ -80,7 +110,15 @@ export function pathToRoute(path: string): Route {
   if (first === "organizations") return { kind: "organizations" };
   if (first === "tables" && second !== undefined) {
     const filters = filtersFromSearch(search);
-    return { kind: "table", table: second, ...(filters ? { filters } : {}) };
+    const limit = pageParamFromSearch(search, "limit");
+    const offset = pageParamFromSearch(search, "offset");
+    return {
+      kind: "table",
+      table: second,
+      ...(filters ? { filters } : {}),
+      ...(limit === undefined ? {} : { limit }),
+      ...(offset === undefined ? {} : { offset }),
+    };
   }
   return defaultRoute;
 }

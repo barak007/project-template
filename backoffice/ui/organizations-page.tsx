@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { visibleOrganizations } from "../client/index.js";
+import { FILTER_SYNTAX_HINT, visibleOrganizations } from "../client/index.js";
 import type { BackofficeCore } from "../client/index.js";
 
 import { useBackofficeState } from "./use-backoffice-state.js";
@@ -59,6 +59,7 @@ export function OrganizationsPage({
       <input
         type="search"
         placeholder="Filter by name"
+        title={FILTER_SYNTAX_HINT}
         value={page.filter}
         onChange={(event) => {
           core.admin.setOrganizationsFilter(event.target.value);

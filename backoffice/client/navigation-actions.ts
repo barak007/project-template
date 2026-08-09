@@ -23,5 +23,10 @@ export function createNavigation(history: History, store: BackofficeStore) {
       history.push(routeToPath(route));
       store.dispatch({ type: "navigated", route });
     },
+    /** Rewrites the current entry — for URL state (e.g. pagination), not moves. */
+    replace: (route: Route) => {
+      history.replace(routeToPath(route));
+      store.dispatch({ type: "navigated", route });
+    },
   };
 }

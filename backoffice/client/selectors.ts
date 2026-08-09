@@ -1,4 +1,5 @@
 import type { TableMeta } from "./api.js";
+import { matchesFilter, parseFilterQuery } from "./filter-query.js";
 import type { BackofficeState } from "./state.js";
 
 export type IncomingReference = {
@@ -28,20 +29,18 @@ export function referencesTo(
 
 /** Users matching the users-page filter (name or email, case-insensitive). */
 export function visibleUsers(state: BackofficeState) {
-  const query = state.usersPage.filter.trim().toLowerCase();
-  if (!query) return state.users;
-  return state.users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(query) ||
-      user.email.toLowerCase().includes(query),
+  const filter = parseFilterQuery(state.usersPage.filter);
+  if (!filter) return state.users;
+  return state.users.filter((user) =>
+    matchesFilter([user.name, user.email], filter),
   );
 }
 
 /** Organizations matching the organizations-page filter (name). */
 export function visibleOrganizations(state: BackofficeState) {
-  const query = state.organizationsPage.filter.trim().toLowerCase();
-  if (!query) return state.organizations;
+  const filter = parseFilterQuery(state.organizationsPage.filter);
+  if (!filter) return state.organizations;
   return state.organizations.filter((organization) =>
-    organization.name.toLowerCase().includes(query),
+    matchesFilter([organization.name], filter),
   );
 }

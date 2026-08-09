@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import { visibleUsers } from "../client/index.js";
+import { FILTER_SYNTAX_HINT, visibleUsers } from "../client/index.js";
 import type { BackofficeCore } from "../client/index.js";
 
 import { useBackofficeState } from "./use-backoffice-state.js";
@@ -89,6 +89,7 @@ export function UsersPage({
       <input
         type="search"
         placeholder="Filter by name or email"
+        title={FILTER_SYNTAX_HINT}
         value={page.filter}
         onChange={(event) => {
           core.admin.setUsersFilter(event.target.value);

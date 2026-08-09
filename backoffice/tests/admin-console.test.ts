@@ -200,6 +200,34 @@ describe("backoffice admin console", () => {
     ).toEqual([organizationId]);
   });
 
+  it("supports filter modifiers in the admin filters", async () => {
+    const backoffice = await signedInBackoffice();
+    await backoffice.admin.loadUsers();
+    await backoffice.admin.loadOrganizations();
+    const userIds = () =>
+      visibleUsers(backoffice.getState()).map((entry) => entry.id);
+
+    // The fixture user is "User console-founder" <console-founder@example.test>.
+    backoffice.admin.setUsersFilter(`^user ${founder}$`);
+    expect(userIds()).toEqual([founder]);
+    backoffice.admin.setUsersFilter("example.test$");
+    expect(userIds()).toContain(founder);
+    backoffice.admin.setUsersFilter(`!${founder}`);
+    expect(userIds()).not.toContain(founder);
+    backoffice.admin.setUsersFilter("\\!anything");
+    expect(userIds()).toEqual([]);
+    // A bare modifier reduces to an empty term and filters nothing.
+    backoffice.admin.setUsersFilter("!");
+    expect(userIds()).toContain(founder);
+
+    backoffice.admin.setOrganizationsFilter("^console");
+    expect(
+      visibleOrganizations(backoffice.getState()).map((entry) => entry.id),
+    ).toEqual([organizationId]);
+    backoffice.admin.setOrganizationsFilter("!tenant");
+    expect(visibleOrganizations(backoffice.getState())).toEqual([]);
+  });
+
   it("loads a user's detail with memberships", async () => {
     const backoffice = await signedInBackoffice();
 

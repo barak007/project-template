@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import { ApiError, defaultTableQuery, referencesTo } from "../client/index.js";
+import {
+  ApiError,
+  defaultTableQuery,
+  FILTER_SYNTAX_HINT,
+  referencesTo,
+  textRowFilter,
+} from "../client/index.js";
 import type {
   BackofficeCore,
   ColumnMeta,
@@ -33,13 +39,15 @@ function buildFilters(columns: ColumnMeta[], drafts: Drafts): RowFilter[] {
     const draft = drafts[column.key];
     if (!draft) continue;
     switch (column.dataType) {
-      case "string":
-        filters.push(
-          column.enumValues
-            ? { column: column.key, op: "eq", value: draft }
-            : { column: column.key, op: "contains", value: draft },
-        );
+      case "string": {
+        if (column.enumValues) {
+          filters.push({ column: column.key, op: "eq", value: draft });
+          break;
+        }
+        const filter = textRowFilter(column.key, draft);
+        if (filter) filters.push(filter);
         break;
+      }
       case "boolean":
         filters.push({ column: column.key, op: "eq", value: draft === "true" });
         break;
@@ -80,12 +88,17 @@ export function TablePage({
   load,
   table,
   routeFilters,
+  routeLimit,
+  routeOffset,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   table: string;
   /** Filters carried by the route (e.g. a followed foreign-key link). */
   routeFilters?: RowFilter[] | undefined;
+  /** Pagination carried by the route so reloads keep their page. */
+  routeLimit?: number | undefined;
+  routeOffset?: number | undefined;
 }) {
   const meta = useBackofficeState(core, (state) =>
     state.tables.find((entry) => entry.name === table),
@@ -93,7 +106,25 @@ export function TablePage({
   const tables = useBackofficeState(core, (state) => state.tables);
   const tableData = useBackofficeState(core, (state) => state.tableData);
 
-  const [query, setQuery] = useState<TableQuery>(defaultTableQuery);
+  // Pagination rides a ref so the reset effect keys on table/filter changes
+  // alone — the URL mirror below rewrites the route on every page turn, and
+  // that must not wipe drafts or reset the query it just came from.
+  const routePage = useRef({ limit: routeLimit, offset: routeOffset });
+  routePage.current = { limit: routeLimit, offset: routeOffset };
+  const queryFromRoute = (filters: RowFilter[]): TableQuery => ({
+    ...defaultTableQuery,
+    ...(routePage.current.limit === undefined
+      ? {}
+      : { limit: routePage.current.limit }),
+    ...(routePage.current.offset === undefined
+      ? {}
+      : { offset: routePage.current.offset }),
+    filters,
+  });
+
+  const [query, setQuery] = useState<TableQuery>(() =>
+    queryFromRoute(routeFilters ?? []),
+  );
   const [drafts, setDrafts] = useState<Drafts>({});
   const [editor, setEditor] = useState<Editor | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,16 +132,32 @@ export function TablePage({
   // Serialized so the effect keys on filter content, not array identity.
   const routeFiltersKey = JSON.stringify(routeFilters ?? []);
   const skipApply = useRef(true);
+  const skipReset = useRef(true);
   useEffect(() => {
+    // The lazy useState above already holds the boot route's query.
+    if (skipReset.current) {
+      skipReset.current = false;
+      return;
+    }
     skipApply.current = true;
-    setQuery({
-      ...defaultTableQuery,
-      filters: JSON.parse(routeFiltersKey) as RowFilter[],
-    });
+    setQuery(queryFromRoute(JSON.parse(routeFiltersKey) as RowFilter[]));
     setDrafts({});
     setEditor(null);
     setError(null);
   }, [table, routeFiltersKey]);
+
+  // The URL mirrors pagination so a reload or shared link lands on the same
+  // page. Replace, not push — turning a page is state, not a navigation step.
+  useEffect(() => {
+    const filters = JSON.parse(routeFiltersKey) as RowFilter[];
+    core.navigation.replace({
+      kind: "table",
+      table,
+      ...(filters.length > 0 ? { filters } : {}),
+      limit: query.limit,
+      offset: query.offset,
+    });
+  }, [core, table, routeFiltersKey, query.limit, query.offset]);
 
   // Filters apply automatically, debounced, whenever a draft changes. The
   // skip flag keeps the reset above (empty drafts) from wiping route filters.
@@ -268,6 +315,7 @@ export function TablePage({
       <input
         type="search"
         placeholder="filter"
+        title={FILTER_SYNTAX_HINT}
         value={drafts[column.key] ?? ""}
         onChange={(event) => {
           setDraft(column.key, event.target.value);
