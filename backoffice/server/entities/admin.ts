@@ -66,6 +66,37 @@ export const adminWorkSessionResponseSchema = z
   })
   .extend(timestampsSchema.shape);
 
+// Provider inventory only — the password hash and OAuth tokens never leave
+// the database through the backoffice.
+export const adminAccountResponseSchema = z
+  .object({ id: z.string(), providerId: z.string() })
+  .extend(timestampsSchema.shape);
+
+export const adminSessionResponseSchema = z.object({
+  id: z.string(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  expiresAt: z.coerce.date(),
+  createdAt: z.coerce.date(),
+});
+
+export const adminMembershipResponseSchema = z.object({
+  organizationId: z.uuid(),
+  organizationName: z.string(),
+  role: memberRoleSchema,
+  createdAt: z.coerce.date(),
+});
+
+export const adminUserDetailResponseSchema = z.object({
+  user: adminUserResponseSchema,
+  accounts: z.array(adminAccountResponseSchema),
+  sessions: z.array(adminSessionResponseSchema),
+  memberships: z.array(adminMembershipResponseSchema),
+  workSessions: z.array(
+    adminWorkSessionResponseSchema.extend({ organizationId: z.uuid() }),
+  ),
+});
+
 export const adminOrganizationDetailResponseSchema = z.object({
   organization: organizationResponseSchema,
   members: z.array(adminMemberResponseSchema),

@@ -200,6 +200,18 @@ describe("backoffice admin console", () => {
     ).toEqual([organizationId]);
   });
 
+  it("loads a user's detail with memberships", async () => {
+    const backoffice = await signedInBackoffice();
+
+    await backoffice.admin.loadUserDetail(founder);
+
+    const detail = backoffice.getState().userDetail;
+    expect(detail?.user.id).toBe(founder);
+    expect(detail?.memberships).toMatchObject([
+      { organizationId, organizationName: "Console Tenant", role: "owner" },
+    ]);
+  });
+
   it("sign-out resets the whole state", async () => {
     const backoffice = await signedInBackoffice();
     await backoffice.admin.loadUsers();

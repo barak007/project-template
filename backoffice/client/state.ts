@@ -4,6 +4,7 @@ import type {
   OrganizationDetail,
   RowsPage,
   TableMeta,
+  UserDetail,
 } from "./api.js";
 import type { TableQuery } from "./data-actions.js";
 import { defaultRoute } from "./router.js";
@@ -52,6 +53,7 @@ export type TableDataState = {
 export type AdminState = {
   users: AdminUser[];
   usersPage: UsersPageState;
+  userDetail: UserDetail | null;
   organizations: AdminOrganization[];
   organizationsPage: OrganizationsPageState;
   organizationDetail: OrganizationDetail | null;
@@ -72,6 +74,7 @@ export const initialAdminState: AdminState = {
     draft: emptyUserDraft,
     error: null,
   },
+  userDetail: null,
   organizations: [],
   organizationsPage: { filter: "", draftName: "", error: null },
   organizationDetail: null,

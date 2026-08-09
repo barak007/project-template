@@ -25,9 +25,15 @@ describe("router", () => {
   it("round-trips every route through its path", () => {
     const routes: Route[] = [
       { kind: "users" },
+      { kind: "user", userId: "user-1" },
       { kind: "organizations" },
       { kind: "organization", organizationId: "org-1" },
       { kind: "table", table: "work_sessions" },
+      {
+        kind: "table",
+        table: "account",
+        filters: [{ column: "userId", op: "eq", value: "user-1" }],
+      },
     ];
     for (const route of routes)
       expect(pathToRoute(routeToPath(route))).toEqual(route);
@@ -36,6 +42,21 @@ describe("router", () => {
   it("lands unknown paths on the default route", () => {
     expect(pathToRoute("/")).toEqual({ kind: "users" });
     expect(pathToRoute("/no/such/page")).toEqual({ kind: "users" });
+  });
+
+  it("drops malformed or empty filter query strings", () => {
+    expect(pathToRoute("/tables/account?filters=not-json")).toEqual({
+      kind: "table",
+      table: "account",
+    });
+    expect(pathToRoute("/tables/account?filters=%7B%22a%22%3A1%7D")).toEqual({
+      kind: "table",
+      table: "account",
+    });
+    expect(pathToRoute("/tables/account?filters=%5B%5D")).toEqual({
+      kind: "table",
+      table: "account",
+    });
   });
 });
 

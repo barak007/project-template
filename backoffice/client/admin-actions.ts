@@ -49,6 +49,16 @@ export function createAdminActions(api: Api, store: BackofficeStore) {
   return {
     loadUsers,
     loadOrganizations,
+    loadUserDetail: async (userId: string) => {
+      const response = await routes.users[":userId"].$get({
+        param: { userId },
+      });
+      if (!response.ok) throw await toApiError(response);
+      store.dispatch({
+        type: "user-detail-loaded",
+        detail: await response.json(),
+      });
+    },
     loadOrganizationDetail: async (organizationId: string) => {
       const response = await routes.organizations[":organizationId"].$get({
         param: { organizationId },

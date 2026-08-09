@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { ApiError, defaultTableQuery } from "../client/index.js";
+import { ApiError, defaultTableQuery, referencesTo } from "../client/index.js";
 import type {
   BackofficeCore,
   ColumnMeta,
@@ -79,14 +79,18 @@ export function TablePage({
   core,
   load,
   table,
+  routeFilters,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   table: string;
+  /** Filters carried by the route (e.g. a followed foreign-key link). */
+  routeFilters?: RowFilter[] | undefined;
 }) {
   const meta = useBackofficeState(core, (state) =>
     state.tables.find((entry) => entry.name === table),
   );
+  const tables = useBackofficeState(core, (state) => state.tables);
   const tableData = useBackofficeState(core, (state) => state.tableData);
 
   const [query, setQuery] = useState<TableQuery>(defaultTableQuery);
@@ -94,12 +98,17 @@ export function TablePage({
   const [editor, setEditor] = useState<Editor | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Serialized so the effect keys on filter content, not array identity.
+  const routeFiltersKey = JSON.stringify(routeFilters ?? []);
   useEffect(() => {
-    setQuery(defaultTableQuery);
+    setQuery({
+      ...defaultTableQuery,
+      filters: JSON.parse(routeFiltersKey) as RowFilter[],
+    });
     setDrafts({});
     setEditor(null);
     setError(null);
-  }, [table]);
+  }, [table, routeFiltersKey]);
 
   useEffect(() => {
     void load(() => core.data.loadRows(table, query));
@@ -148,6 +157,53 @@ export function TablePage({
   const remove = (row: TableRow) => {
     if (!window.confirm("Delete this row? This cannot be undone.")) return;
     void run(() => core.data.deleteRow(table, rowKey(meta.primaryKey, row)));
+  };
+
+  /** Jump to another table filtered to the rows a value points at. */
+  const follow = (target: string, column: string, value: string | number) => {
+    core.navigation.navigate({
+      kind: "table",
+      table: target,
+      filters: [{ column, op: "eq", value }],
+    });
+  };
+
+  const clearFilters = () => {
+    setDrafts({});
+    setQuery((current) => ({ ...current, offset: 0, filters: [] }));
+    if (routeFilters && routeFilters.length > 0)
+      core.navigation.navigate({ kind: "table", table });
+  };
+
+  // Tables whose foreign keys point here — each row links to its dependents.
+  const incoming =
+    meta.primaryKey.length === 1 ? referencesTo(tables, table) : [];
+  const rowReferences = (row: TableRow) => {
+    const keyValue = row[meta.primaryKey[0] ?? ""];
+    if (typeof keyValue !== "string" && typeof keyValue !== "number")
+      return null;
+    if (incoming.length === 0) return null;
+    return (
+      <details className="row-refs">
+        <summary>refs</summary>
+        {incoming.map((reference) => (
+          <button
+            key={`${reference.table}.${reference.column}`}
+            title={
+              reference.onDelete === "restrict"
+                ? "Existing rows here block deletion (on delete restrict)"
+                : undefined
+            }
+            onClick={() => {
+              follow(reference.table, reference.column, keyValue);
+            }}
+          >
+            {reference.table}.{reference.column}
+            {reference.onDelete === "restrict" ? " ⛔" : ""}
+          </button>
+        ))}
+      </details>
+    );
   };
 
   const sortMarker = (column: ColumnMeta) =>
@@ -236,6 +292,23 @@ export function TablePage({
 
       {error ? <p className="error">{error}</p> : null}
 
+      {query.filters.length > 0 ? (
+        <p className="active-filters">
+          Filtered:{" "}
+          {query.filters
+            .map(
+              (filter) =>
+                `${filter.column} ${filter.op}${
+                  filter.value === undefined || filter.value === null
+                    ? ""
+                    : ` ${typeof filter.value === "object" ? JSON.stringify(filter.value) : String(filter.value)}`
+                }`,
+            )
+            .join(", ")}{" "}
+          <button onClick={clearFilters}>Clear</button>
+        </p>
+      ) : null}
+
       {editor ? (
         <RowEditor
           key={editor.mode === "edit" ? JSON.stringify(editor.row) : "insert"}
@@ -287,16 +360,34 @@ export function TablePage({
           <tbody>
             {page?.rows.map((row, index) => (
               <tr key={JSON.stringify(rowKey(meta.primaryKey, row)) + index}>
-                {columns.map((column) => (
-                  <td
-                    key={column.key}
-                    className={column.redacted ? "redacted" : ""}
-                    title={formatCell(column, row[column.key])}
-                  >
-                    {formatCell(column, row[column.key])}
-                  </td>
-                ))}
+                {columns.map((column) => {
+                  const value = row[column.key];
+                  const reference = column.references;
+                  return (
+                    <td
+                      key={column.key}
+                      className={column.redacted ? "redacted" : ""}
+                      title={formatCell(column, value)}
+                    >
+                      {formatCell(column, value)}
+                      {reference &&
+                      (typeof value === "string" ||
+                        typeof value === "number") ? (
+                        <button
+                          className="fk-link"
+                          title={`Open ${reference.table} where ${reference.column} = ${String(value)}`}
+                          onClick={() => {
+                            follow(reference.table, reference.column, value);
+                          }}
+                        >
+                          ↗
+                        </button>
+                      ) : null}
+                    </td>
+                  );
+                })}
                 <td className="row-actions">
+                  {rowReferences(row)}
                   <button
                     onClick={() => {
                       setEditor({ mode: "edit", row });

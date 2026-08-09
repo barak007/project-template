@@ -2,6 +2,12 @@ import { z } from "zod";
 
 import { jsonValueSchema } from "../../../domain-server/entities/common.js";
 
+export const columnReferenceSchema = z.object({
+  table: z.string(),
+  column: z.string(),
+  onDelete: z.string().optional(),
+});
+
 export const columnMetaSchema = z.object({
   key: z.string(),
   dataType: z.enum(["string", "number", "boolean", "date", "json"]),
@@ -10,7 +16,10 @@ export const columnMetaSchema = z.object({
   primaryKey: z.boolean(),
   redacted: z.boolean(),
   enumValues: z.array(z.string()).optional(),
+  references: columnReferenceSchema.optional(),
 });
+
+export type ColumnReference = z.infer<typeof columnReferenceSchema>;
 
 export const tableMetaSchema = z.object({
   name: z.string(),

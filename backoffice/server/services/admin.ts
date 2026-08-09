@@ -6,6 +6,7 @@ import {
   account,
   organizationMembers,
   organizations,
+  session,
   sources,
   user,
   workSessions,
@@ -83,6 +84,82 @@ export async function deleteUser(db: Database, userId: string) {
 
 export async function listAllOrganizations(db: Database) {
   return db.select().from(organizations).orderBy(desc(organizations.createdAt));
+}
+
+/**
+ * Everything hanging off one user, minus secret material: accounts carry the
+ * provider but never the password hash or tokens; sessions never the token.
+ */
+export async function getUserDetail(db: Database, userId: string) {
+  const [detailUser] = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  if (!detailUser) throw new AppError("NOT_FOUND", "User not found", 404);
+
+  const accounts = await db
+    .select({
+      id: account.id,
+      providerId: account.providerId,
+      createdAt: account.createdAt,
+      updatedAt: account.updatedAt,
+    })
+    .from(account)
+    .where(eq(account.userId, userId));
+  const sessions = await db
+    .select({
+      id: session.id,
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+      expiresAt: session.expiresAt,
+      createdAt: session.createdAt,
+    })
+    .from(session)
+    .where(eq(session.userId, userId))
+    .orderBy(desc(session.createdAt));
+  const memberships = await db
+    .select({
+      organizationId: organizationMembers.organizationId,
+      organizationName: organizations.name,
+      role: organizationMembers.role,
+      createdAt: organizationMembers.createdAt,
+    })
+    .from(organizationMembers)
+    .innerJoin(
+      organizations,
+      eq(organizations.id, organizationMembers.organizationId),
+    )
+    .where(eq(organizationMembers.userId, userId));
+  const createdWorkSessions = await db
+    .select({
+      id: workSessions.id,
+      organizationId: workSessions.organizationId,
+      workspaceId: workSessions.workspaceId,
+      createdByUserId: workSessions.createdByUserId,
+      status: workSessions.status,
+      failureCode: workSessions.failureCode,
+      createdAt: workSessions.createdAt,
+      updatedAt: workSessions.updatedAt,
+    })
+    .from(workSessions)
+    .where(eq(workSessions.createdByUserId, userId))
+    .orderBy(desc(workSessions.createdAt));
+
+  return {
+    user: detailUser,
+    accounts,
+    sessions,
+    memberships,
+    workSessions: createdWorkSessions,
+  };
 }
 
 export async function createOrganization(

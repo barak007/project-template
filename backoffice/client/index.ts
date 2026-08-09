@@ -20,6 +20,7 @@ export type {
   RowsPage,
   TableMeta,
   TableRow,
+  UserDetail,
 } from "./api.js";
 export { defaultTableQuery } from "./data-actions.js";
 export type { RowFilter, TableQuery } from "./data-actions.js";
@@ -28,7 +29,12 @@ export { createMemoryHistory } from "./history.js";
 export type { History, MemoryHistory } from "./history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
 export type { Route } from "./router.js";
-export { visibleOrganizations, visibleUsers } from "./selectors.js";
+export {
+  referencesTo,
+  visibleOrganizations,
+  visibleUsers,
+} from "./selectors.js";
+export type { IncomingReference } from "./selectors.js";
 export type {
   BackofficeAuthError,
   BackofficeAuthState,

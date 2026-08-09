@@ -6,8 +6,10 @@ import type { History } from "../client/index.js";
 import { App } from "./app.js";
 import "./styles.css";
 
+// Routes carry state in the query string (table filters), so the path
+// surface is pathname + search.
 const browserHistory: History = {
-  path: () => window.location.pathname,
+  path: () => window.location.pathname + window.location.search,
   push: (path) => {
     window.history.pushState(null, "", path);
   },
@@ -16,7 +18,7 @@ const browserHistory: History = {
   },
   onChange: (listener) => {
     window.addEventListener("popstate", () => {
-      listener(window.location.pathname);
+      listener(window.location.pathname + window.location.search);
     });
   },
 };

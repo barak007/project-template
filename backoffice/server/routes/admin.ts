@@ -8,6 +8,7 @@ import { validationHook } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   adminOrganizationDetailResponseSchema,
+  adminUserDetailResponseSchema,
   adminUserResponseSchema,
   createAdminOrganizationBodySchema,
   createAdminUserBodySchema,
@@ -18,6 +19,7 @@ import {
   deleteOrganization,
   deleteUser,
   getOrganizationDetail,
+  getUserDetail,
   listAllOrganizations,
   listAllUsers,
 } from "../services/admin.js";
@@ -47,6 +49,17 @@ export function createBackofficeAdminRoutes(
           context.req.valid("json"),
         );
         return context.json(adminUserResponseSchema.parse(result), 201);
+      },
+    )
+    .get(
+      "/users/:userId",
+      zValidator("param", userParams, validationHook),
+      async (context) => {
+        const result = await getUserDetail(
+          dependencies.db,
+          context.req.valid("param").userId,
+        );
+        return context.json(adminUserDetailResponseSchema.parse(result), 200);
       },
     )
     .delete(

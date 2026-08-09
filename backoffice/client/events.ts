@@ -4,6 +4,7 @@ import type {
   OrganizationDetail,
   RowsPage,
   TableMeta,
+  UserDetail,
 } from "./api.js";
 import type { TableQuery } from "./data-actions.js";
 import type { Route } from "./router.js";
@@ -29,6 +30,7 @@ export type BackofficeEvent =
   | { type: "user-editor-toggled"; open: boolean }
   | { type: "user-draft-set"; draft: Partial<UserDraft> }
   | { type: "user-mutation-failed"; error: BackofficeError }
+  | { type: "user-detail-loaded"; detail: UserDetail }
   | { type: "organizations-loaded"; organizations: AdminOrganization[] }
   | { type: "organizations-filter-set"; filter: string }
   | { type: "organization-draft-set"; name: string }

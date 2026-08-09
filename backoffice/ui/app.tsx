@@ -9,6 +9,7 @@ import { Setup } from "./setup.js";
 import { SignIn } from "./sign-in.js";
 import { TablePage } from "./table-page.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
+import { UserDetailPage } from "./user-detail-page.js";
 import { UsersPage } from "./users-page.js";
 
 export function App({ core }: { core: BackofficeCore }) {
@@ -64,7 +65,11 @@ export function App({ core }: { core: BackofficeCore }) {
         <div className="brand">Backoffice</div>
         <nav>
           <span className="nav-section">Console</span>
-          {navButton({ kind: "users" }, "Users", route.kind === "users")}
+          {navButton(
+            { kind: "users" },
+            "Users",
+            route.kind === "users" || route.kind === "user",
+          )}
           {navButton(
             { kind: "organizations" },
             "Organizations",
@@ -88,7 +93,25 @@ export function App({ core }: { core: BackofficeCore }) {
       </aside>
       <main>
         {route.kind === "users" ? (
-          <UsersPage core={core} load={load} />
+          <UsersPage
+            core={core}
+            load={load}
+            onOpen={(userId) => {
+              navigate({ kind: "user", userId });
+            }}
+          />
+        ) : route.kind === "user" ? (
+          <UserDetailPage
+            core={core}
+            load={load}
+            userId={route.userId}
+            onBack={() => {
+              navigate({ kind: "users" });
+            }}
+            onOpenOrganization={(organizationId) => {
+              navigate({ kind: "organization", organizationId });
+            }}
+          />
         ) : route.kind === "organizations" ? (
           <OrganizationsPage
             core={core}
@@ -107,7 +130,12 @@ export function App({ core }: { core: BackofficeCore }) {
             }}
           />
         ) : (
-          <TablePage core={core} load={load} table={route.table} />
+          <TablePage
+            core={core}
+            load={load}
+            table={route.table}
+            routeFilters={route.filters}
+          />
         )}
       </main>
     </div>

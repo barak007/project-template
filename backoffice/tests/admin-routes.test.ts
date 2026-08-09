@@ -6,6 +6,7 @@ import type { Database } from "../../domain-server/db/client.js";
 import {
   account,
   organizations,
+  session,
   sources,
   user,
   workSessions,
@@ -203,6 +204,70 @@ describe("POST /backoffice/admin/users", () => {
         password: "a-strong-password",
       }),
     );
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("GET /backoffice/admin/users/:userId", () => {
+  beforeAll(async () => {
+    await db.insert(account).values({
+      id: "founder-credential",
+      accountId: founder,
+      providerId: "credential",
+      userId: founder,
+      password: "hash-material-must-not-leak",
+    });
+    await db.insert(session).values({
+      id: "founder-session",
+      token: "token-material-must-not-leak",
+      userId: founder,
+      expiresAt: new Date(Date.now() + 3_600_000),
+      ipAddress: "203.0.113.7",
+      userAgent: "TestBrowser/1.0",
+    });
+  });
+
+  it("embeds sign-in methods, sessions, memberships, and work sessions", async () => {
+    const response = await app.request(
+      `/backoffice/admin/users/${founder}`,
+      withCookie(adminCookie),
+    );
+    expect(response.status).toBe(200);
+    const detail = (await json(response)) as Record<string, unknown>;
+    expect(detail).toMatchObject({
+      user: { id: founder, email: `${founder}@example.test` },
+      accounts: [{ providerId: "credential" }],
+      sessions: [{ ipAddress: "203.0.113.7", userAgent: "TestBrowser/1.0" }],
+      memberships: [
+        { organizationId, organizationName: "Tenant", role: "owner" },
+      ],
+      workSessions: [{ organizationId, workspaceId, status: "failed" }],
+    });
+  });
+
+  it("never exposes password hashes, tokens, or snapshot material", async () => {
+    const response = await app.request(
+      `/backoffice/admin/users/${founder}`,
+      withCookie(adminCookie),
+    );
+    const body = await response.text();
+    expect(body).not.toContain("password");
+    expect(body).not.toContain("hash-material-must-not-leak");
+    expect(body).not.toContain("token-material-must-not-leak");
+    expect(body).not.toContain("Snapshot");
+    expect(body).not.toContain("encrypted-material");
+  });
+
+  it("returns 404 for an unknown user", async () => {
+    const response = await app.request(
+      "/backoffice/admin/users/no-such-user",
+      withCookie(adminCookie),
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("returns 401 for anonymous requests", async () => {
+    const response = await app.request(`/backoffice/admin/users/${founder}`);
     expect(response.status).toBe(401);
   });
 });

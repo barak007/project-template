@@ -145,6 +145,43 @@ describe("GET /backoffice/data/tables", () => {
     );
   });
 
+  it("exposes foreign keys as column references with delete behavior", async () => {
+    const response = await app.request(
+      "/backoffice/data/tables",
+      withCookie(adminCookie),
+    );
+    const tables = await json<
+      {
+        name: string;
+        columns: {
+          key: string;
+          references?: { table: string; column: string; onDelete?: string };
+        }[];
+      }[]
+    >(response);
+
+    const accounts = tables.find((table) => table.name === "account");
+    expect(
+      accounts?.columns.find((column) => column.key === "userId")?.references,
+    ).toEqual({ table: "user", column: "id", onDelete: "cascade" });
+
+    const workSessions = tables.find((table) => table.name === "work_sessions");
+    expect(
+      workSessions?.columns.find((column) => column.key === "createdByUserId")
+        ?.references,
+    ).toEqual({ table: "user", column: "id", onDelete: "restrict" });
+    expect(
+      workSessions?.columns.find((column) => column.key === "workspaceId")
+        ?.references,
+    ).toEqual({ table: "workspaces", column: "id", onDelete: "restrict" });
+
+    // Non-FK columns carry no reference.
+    const users = tables.find((table) => table.name === "user");
+    expect(
+      users?.columns.find((column) => column.key === "email")?.references,
+    ).toBeUndefined();
+  });
+
   it("returns 401 for anonymous and application-user requests", async () => {
     expect((await app.request("/backoffice/data/tables")).status).toBe(401);
     expect(

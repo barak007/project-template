@@ -8,9 +8,11 @@ import { useBackofficeState } from "./use-backoffice-state.js";
 export function UsersPage({
   core,
   load,
+  onOpen,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
+  onOpen: (userId: string) => void;
 }) {
   const page = useBackofficeState(core, (state) => state.usersPage);
   const users = useBackofficeState(core, visibleUsers);
@@ -114,6 +116,13 @@ export function UsersPage({
               <td>{user.emailVerified ? "yes" : "no"}</td>
               <td>{new Date(user.createdAt).toLocaleString()}</td>
               <td className="row-actions">
+                <button
+                  onClick={() => {
+                    onOpen(user.id);
+                  }}
+                >
+                  Open
+                </button>
                 <button
                   className="danger"
                   onClick={() => {

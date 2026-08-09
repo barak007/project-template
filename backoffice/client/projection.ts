@@ -81,6 +81,8 @@ export function reduce(
         ...state,
         usersPage: { ...state.usersPage, error: event.error },
       };
+    case "user-detail-loaded":
+      return { ...state, userDetail: event.detail };
     case "organizations-loaded":
       return {
         ...state,

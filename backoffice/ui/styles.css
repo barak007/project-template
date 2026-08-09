@@ -357,3 +357,37 @@ td.empty {
 .status-pending {
   background: #fdf0cf;
 }
+
+.fk-link {
+  margin-left: 0.35rem;
+  padding: 0 0.3rem;
+  font-size: 0.75rem;
+}
+
+.active-filters {
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: #555555;
+}
+
+.row-refs {
+  display: inline-block;
+  position: relative;
+}
+
+.row-refs summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #555555;
+}
+
+.row-refs button {
+  display: block;
+  margin: 0.15rem 0;
+  font-size: 0.8rem;
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: #555555;
+}

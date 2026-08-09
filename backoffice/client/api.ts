@@ -28,6 +28,9 @@ export type AdminOrganization = InferResponseType<
 export type OrganizationDetail = InferResponseType<
   AdminRoutes["organizations"][":organizationId"]["$get"]
 >;
+export type UserDetail = InferResponseType<
+  AdminRoutes["users"][":userId"]["$get"]
+>;
 
 // Data responses carry recursive JSON values, which InferResponseType cannot
 // walk without blowing the instantiation depth — so their types come from the

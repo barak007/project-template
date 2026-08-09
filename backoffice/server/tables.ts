@@ -6,6 +6,13 @@ import { schema } from "../../domain-server/db/schema.js";
 
 export type ColumnDataType = "string" | "number" | "boolean" | "date" | "json";
 
+/** A foreign key, named by property keys so it composes with row filters. */
+export type ColumnReference = {
+  table: string;
+  column: string;
+  onDelete?: string;
+};
+
 export type ColumnMeta = {
   key: string;
   dataType: ColumnDataType;
@@ -15,6 +22,7 @@ export type ColumnMeta = {
   /** Masked in every response and rejected in every write. */
   redacted: boolean;
   enumValues?: string[];
+  references?: ColumnReference;
 };
 
 export type TableMeta = {
@@ -41,10 +49,41 @@ const redactedColumns: Record<string, readonly string[]> = {
   work_sessions: ["secretsSnapshot"],
 };
 
+/** Translates a database column name to its drizzle property key. */
+function propertyKey(table: PgTable, columnName: string): string | undefined {
+  return Object.entries(
+    getTableColumns(table) as Record<string, PgColumn>,
+  ).find(([, column]) => column.name === columnName)?.[0];
+}
+
+function columnReferences(table: PgTable): Map<string, ColumnReference> {
+  const references = new Map<string, ColumnReference>();
+  for (const foreignKey of getTableConfig(table).foreignKeys) {
+    const reference = foreignKey.reference();
+    reference.columns.forEach((own, index) => {
+      const foreignColumn = reference.foreignColumns[index];
+      if (!foreignColumn) return;
+      const ownKey = propertyKey(table, own.name);
+      const foreignKeyName = propertyKey(
+        reference.foreignTable,
+        foreignColumn.name,
+      );
+      if (!ownKey || !foreignKeyName) return;
+      references.set(ownKey, {
+        table: getTableName(reference.foreignTable),
+        column: foreignKeyName,
+        ...(foreignKey.onDelete ? { onDelete: foreignKey.onDelete } : {}),
+      });
+    });
+  }
+  return references;
+}
+
 function buildAdminTable(table: PgTable): AdminTable {
   const name = getTableName(table);
   const columns = getTableColumns(table) as Record<string, PgColumn>;
   const redacted = new Set(redactedColumns[name] ?? []);
+  const references = columnReferences(table);
 
   // Composite primary keys live in the table config, not on the columns.
   const compositeKeyColumnNames = new Set(
@@ -54,15 +93,19 @@ function buildAdminTable(table: PgTable): AdminTable {
   );
 
   const columnMetas = Object.entries(columns).map(
-    ([key, column]): ColumnMeta => ({
-      key,
-      dataType: column.dataType as ColumnDataType,
-      notNull: column.notNull,
-      hasDefault: column.hasDefault,
-      primaryKey: column.primary || compositeKeyColumnNames.has(column.name),
-      redacted: redacted.has(key),
-      ...(column.enumValues ? { enumValues: [...column.enumValues] } : {}),
-    }),
+    ([key, column]): ColumnMeta => {
+      const reference = references.get(key);
+      return {
+        key,
+        dataType: column.dataType as ColumnDataType,
+        notNull: column.notNull,
+        hasDefault: column.hasDefault,
+        primaryKey: column.primary || compositeKeyColumnNames.has(column.name),
+        redacted: redacted.has(key),
+        ...(column.enumValues ? { enumValues: [...column.enumValues] } : {}),
+        ...(reference ? { references: reference } : {}),
+      };
+    },
   );
 
   return {
