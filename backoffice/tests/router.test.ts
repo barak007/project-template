@@ -24,10 +24,10 @@ function coreAt(path: string) {
 describe("router", () => {
   it("round-trips every route through its path", () => {
     const routes: Route[] = [
-      { kind: "users" },
       { kind: "user", userId: "user-1" },
-      { kind: "organizations" },
       { kind: "organization", organizationId: "org-1" },
+      { kind: "table", table: "user" },
+      { kind: "table", table: "organizations" },
       { kind: "table", table: "work_sessions" },
       {
         kind: "table",
@@ -69,8 +69,19 @@ describe("router", () => {
   });
 
   it("lands unknown paths on the default route", () => {
-    expect(pathToRoute("/")).toEqual({ kind: "users" });
-    expect(pathToRoute("/no/such/page")).toEqual({ kind: "users" });
+    expect(pathToRoute("/")).toEqual({ kind: "table", table: "user" });
+    expect(pathToRoute("/no/such/page")).toEqual({
+      kind: "table",
+      table: "user",
+    });
+  });
+
+  it("maps the legacy list paths onto their table routes", () => {
+    expect(pathToRoute("/users")).toEqual({ kind: "table", table: "user" });
+    expect(pathToRoute("/organizations")).toEqual({
+      kind: "table",
+      table: "organizations",
+    });
   });
 
   it("drops malformed or empty filter query strings", () => {
@@ -96,35 +107,47 @@ describe("navigation", () => {
     expect(history.path()).toBe("/tables/sources");
 
     const atRoot = coreAt("/");
-    expect(atRoot.core.getState().route).toEqual({ kind: "users" });
-    expect(atRoot.history.path()).toBe("/users");
+    expect(atRoot.core.getState().route).toEqual({
+      kind: "table",
+      table: "user",
+    });
+    expect(atRoot.history.path()).toBe("/tables/user");
   });
 
   it("navigate updates both the state and the URL", () => {
-    const { core, history } = coreAt("/users");
-    core.navigation.navigate({ kind: "organizations" });
-    expect(core.getState().route).toEqual({ kind: "organizations" });
-    expect(history.path()).toBe("/organizations");
+    const { core, history } = coreAt("/tables/user");
+    core.navigation.navigate({ kind: "table", table: "organizations" });
+    expect(core.getState().route).toEqual({
+      kind: "table",
+      table: "organizations",
+    });
+    expect(history.path()).toBe("/tables/organizations");
   });
 
   it("follows environment-driven history changes (browser back)", () => {
-    const { core, history } = coreAt("/users");
-    core.navigation.navigate({ kind: "table", table: "user" });
+    const { core, history } = coreAt("/tables/user");
+    core.navigation.navigate({ kind: "table", table: "sources" });
     history.back();
-    expect(core.getState().route).toEqual({ kind: "users" });
+    expect(core.getState().route).toEqual({ kind: "table", table: "user" });
   });
 
   it("stays put when back is pressed at the start of history", () => {
-    const { core, history } = coreAt("/organizations");
+    const { core, history } = coreAt("/tables/organizations");
     history.back();
-    expect(history.path()).toBe("/organizations");
-    expect(core.getState().route).toEqual({ kind: "organizations" });
+    expect(history.path()).toBe("/tables/organizations");
+    expect(core.getState().route).toEqual({
+      kind: "table",
+      table: "organizations",
+    });
   });
 
   it("keeps the route across sign-out", () => {
     const { core } = coreAt("/tables/sources");
-    core.navigation.navigate({ kind: "organizations" });
+    core.navigation.navigate({ kind: "table", table: "organizations" });
     // signed-out resets admin data but not where the operator is looking.
-    expect(core.getState().route).toEqual({ kind: "organizations" });
+    expect(core.getState().route).toEqual({
+      kind: "table",
+      table: "organizations",
+    });
   });
 });

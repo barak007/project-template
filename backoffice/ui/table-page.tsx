@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import {
   ApiError,
@@ -75,6 +76,13 @@ function formatCell(
   return String(value);
 }
 
+/** A row value as plain text — ids and names, not jsonb payloads. */
+export function rowText(value: TableRow[string] | undefined): string {
+  return typeof value === "string" || typeof value === "number"
+    ? String(value)
+    : "";
+}
+
 function rowKey(primaryKey: string[], row: TableRow): TableRow {
   return Object.fromEntries(
     primaryKey.map((column) => [column, row[column] ?? null]),
@@ -90,6 +98,11 @@ export function TablePage({
   routeFilters,
   routeLimit,
   routeOffset,
+  heading,
+  insertControl,
+  rowActions,
+  deleteConfirm,
+  deleteAction,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
@@ -99,6 +112,17 @@ export function TablePage({
   /** Pagination carried by the route so reloads keep their page. */
   routeLimit?: number | undefined;
   routeOffset?: number | undefined;
+  /** Page title when the raw table name is not it (e.g. "Users"). */
+  heading?: string | undefined;
+  /** Replaces the generic insert editor when creation has side effects. */
+  insertControl?:
+    { label: string; editor: (close: () => void) => ReactNode } | undefined;
+  /** Extra per-row actions, rendered before Edit/Delete. */
+  rowActions?: ((row: TableRow) => ReactNode) | undefined;
+  /** Custom delete confirmation message. */
+  deleteConfirm?: ((row: TableRow) => string) | undefined;
+  /** Replaces the generic row delete when deletion has side effects. */
+  deleteAction?: ((row: TableRow) => Promise<void>) | undefined;
 }) {
   const meta = useBackofficeState(core, (state) =>
     state.tables.find((entry) => entry.name === table),
@@ -218,8 +242,14 @@ export function TablePage({
   };
 
   const remove = (row: TableRow) => {
-    if (!window.confirm("Delete this row? This cannot be undone.")) return;
-    void run(() => core.data.deleteRow(table, rowKey(meta.primaryKey, row)));
+    const message =
+      deleteConfirm?.(row) ?? "Delete this row? This cannot be undone.";
+    if (!window.confirm(message)) return;
+    void run(() =>
+      deleteAction
+        ? deleteAction(row)
+        : core.data.deleteRow(table, rowKey(meta.primaryKey, row)),
+    );
   };
 
   /** Jump to another table filtered to the rows a value points at. */
@@ -331,14 +361,14 @@ export function TablePage({
   return (
     <section className="table-page">
       <header className="table-header">
-        <h1>{table}</h1>
+        <h1>{heading ?? table}</h1>
         <span className="spacer" />
         <button
           onClick={() => {
             setEditor({ mode: "insert" });
           }}
         >
-          Add row
+          {insertControl?.label ?? "Add row"}
         </button>
       </header>
 
@@ -361,7 +391,11 @@ export function TablePage({
         </p>
       ) : null}
 
-      {editor ? (
+      {editor?.mode === "insert" && insertControl ? (
+        insertControl.editor(() => {
+          setEditor(null);
+        })
+      ) : editor ? (
         <RowEditor
           key={editor.mode === "edit" ? JSON.stringify(editor.row) : "insert"}
           meta={meta}
@@ -447,6 +481,7 @@ export function TablePage({
                   );
                 })}
                 <td className="row-actions">
+                  {rowActions?.(row)}
                   {rowReferences(row)}
                   <button
                     onClick={() => {

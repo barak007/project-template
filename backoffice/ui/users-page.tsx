@@ -1,144 +1,125 @@
 import { useEffect } from "react";
 
-import { FILTER_SYNTAX_HINT, visibleUsers } from "../client/index.js";
-import type { BackofficeCore } from "../client/index.js";
+import type { BackofficeCore, RowFilter, TableRow } from "../client/index.js";
 
+import { rowText, TablePage } from "./table-page.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
+/**
+ * The generic row editor cannot create a user: the password is hashed into
+ * a credential account row alongside the user. This editor drives that
+ * admin flow; the draft and its errors live in the client state.
+ */
+function AddUserEditor({
+  core,
+  load,
+  close,
+}: {
+  core: BackofficeCore;
+  load: (action: () => Promise<void>) => Promise<void>;
+  close: () => void;
+}) {
+  const editor = useBackofficeState(core, (state) => state.userEditor);
+
+  // Opening always starts from a clean draft, even after an aborted attempt.
+  useEffect(() => {
+    core.admin.resetUserEditor();
+  }, [core]);
+
+  const create = () =>
+    void load(async () => {
+      await core.admin.createUser();
+      if (!core.getState().userEditor.error) close();
+    });
+
+  return (
+    <div className="row-editor">
+      <h2>Add user</h2>
+      {editor.error ? <p className="error">{editor.error.message}</p> : null}
+      <div className="fields">
+        <label>
+          <span>name *</span>
+          <input
+            value={editor.draft.name}
+            onChange={(event) => {
+              core.admin.setUserDraft({ name: event.target.value });
+            }}
+          />
+        </label>
+        <label>
+          <span>email *</span>
+          <input
+            type="email"
+            value={editor.draft.email}
+            onChange={(event) => {
+              core.admin.setUserDraft({ email: event.target.value });
+            }}
+          />
+        </label>
+        <label>
+          <span>password * (min 8 characters)</span>
+          <input
+            type="password"
+            value={editor.draft.password}
+            onChange={(event) => {
+              core.admin.setUserDraft({ password: event.target.value });
+            }}
+          />
+        </label>
+      </div>
+      <div className="editor-actions">
+        <button className="primary" onClick={create}>
+          Create
+        </button>
+        <button onClick={close}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/** The users table page: the generic console plus user-specific affordances. */
 export function UsersPage({
   core,
   load,
   onOpen,
+  routeFilters,
+  routeLimit,
+  routeOffset,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   onOpen: (userId: string) => void;
+  routeFilters?: RowFilter[] | undefined;
+  routeLimit?: number | undefined;
+  routeOffset?: number | undefined;
 }) {
-  const page = useBackofficeState(core, (state) => state.usersPage);
-  const users = useBackofficeState(core, visibleUsers);
-
-  useEffect(() => {
-    void load(() => core.admin.loadUsers());
-  }, [core, load]);
-
-  const remove = (user: { id: string; email: string }) => {
-    if (!window.confirm(`Delete user ${user.email}? This cannot be undone.`))
-      return;
-    void load(() => core.admin.deleteUser(user.id));
-  };
-
   return (
-    <section>
-      <header className="table-header">
-        <h1>Users</h1>
-        <span className="spacer" />
+    <TablePage
+      core={core}
+      load={load}
+      table="user"
+      heading="Users"
+      routeFilters={routeFilters}
+      routeLimit={routeLimit}
+      routeOffset={routeOffset}
+      insertControl={{
+        label: "Add user",
+        editor: (close) => (
+          <AddUserEditor core={core} load={load} close={close} />
+        ),
+      }}
+      rowActions={(row: TableRow) => (
         <button
           onClick={() => {
-            if (page.editorOpen) core.admin.closeUserEditor();
-            else core.admin.openUserEditor();
+            onOpen(rowText(row.id));
           }}
         >
-          {page.editorOpen ? "Cancel" : "Add user"}
+          Open
         </button>
-      </header>
-      {page.error ? <p className="error">{page.error.message}</p> : null}
-      {page.editorOpen ? (
-        <div className="row-editor">
-          <h2>Add user</h2>
-          <div className="fields">
-            <label>
-              <span>name *</span>
-              <input
-                value={page.draft.name}
-                onChange={(event) => {
-                  core.admin.setUserDraft({ name: event.target.value });
-                }}
-              />
-            </label>
-            <label>
-              <span>email *</span>
-              <input
-                type="email"
-                value={page.draft.email}
-                onChange={(event) => {
-                  core.admin.setUserDraft({ email: event.target.value });
-                }}
-              />
-            </label>
-            <label>
-              <span>password * (min 8 characters)</span>
-              <input
-                type="password"
-                value={page.draft.password}
-                onChange={(event) => {
-                  core.admin.setUserDraft({ password: event.target.value });
-                }}
-              />
-            </label>
-          </div>
-          <div className="editor-actions">
-            <button
-              className="primary"
-              onClick={() => void load(() => core.admin.createUser())}
-            >
-              Create
-            </button>
-          </div>
-        </div>
-      ) : null}
-      <input
-        type="search"
-        placeholder="Filter by name or email"
-        title={FILTER_SYNTAX_HINT}
-        value={page.filter}
-        onChange={(event) => {
-          core.admin.setUsersFilter(event.target.value);
-        }}
-      />
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Verified</th>
-              <th>Created</th>
-              <th className="actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id}>
-                <td title={user.id}>
-                  <code>{user.id}</code>
-                </td>
-                <td title={user.name}>{user.name}</td>
-                <td title={user.email}>{user.email}</td>
-                <td>{user.emailVerified ? "yes" : "no"}</td>
-                <td>{new Date(user.createdAt).toLocaleString()}</td>
-                <td className="row-actions">
-                  <button
-                    onClick={() => {
-                      onOpen(user.id);
-                    }}
-                  >
-                    Open
-                  </button>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      remove(user);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      )}
+      deleteConfirm={(row) =>
+        `Delete user ${rowText(row.email)}? This cannot be undone.`
+      }
+    />
   );
 }

@@ -21,10 +21,6 @@ export function createApi(baseUrl: string, host: Host): Api {
 // InferResponseType works — none of client/api.ts's re-typing is needed.
 type AdminRoutes = Api["admin"];
 
-export type AdminUser = InferResponseType<AdminRoutes["users"]["$get"]>[number];
-export type AdminOrganization = InferResponseType<
-  AdminRoutes["organizations"]["$get"]
->[number];
 export type OrganizationDetail = InferResponseType<
   AdminRoutes["organizations"][":organizationId"]["$get"]
 >;

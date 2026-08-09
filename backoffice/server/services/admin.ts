@@ -13,10 +13,7 @@ import {
   workspaces,
 } from "../../../domain-server/db/schema.js";
 import { AppError } from "../../../domain-server/errors.js";
-import type {
-  CreateAdminOrganizationInput,
-  CreateAdminUserInput,
-} from "../entities/admin.js";
+import type { CreateAdminUserInput } from "../entities/admin.js";
 
 /** Same shape better-auth generates for its own ids. */
 function generateId() {
@@ -26,19 +23,6 @@ function generateId() {
 // Authorization happens at the route boundary: the admin routes require the
 // backoffice-admin session (../session.ts), so these functions receive
 // pre-authorized calls.
-export async function listAllUsers(db: Database) {
-  return db
-    .select({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      emailVerified: user.emailVerified,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    })
-    .from(user)
-    .orderBy(desc(user.createdAt));
-}
 
 /**
  * Creates an application user with an email/password credential. The hash
@@ -69,21 +53,6 @@ export async function createUser(db: Database, input: CreateAdminUserInput) {
     });
     return created;
   });
-}
-
-export async function deleteUser(db: Database, userId: string) {
-  // Sessions, credentials, memberships, data, and secrets cascade; created
-  // work sessions restrict, which handleError surfaces as a 409 CONFLICT.
-  const deleted = await db
-    .delete(user)
-    .where(eq(user.id, userId))
-    .returning({ id: user.id });
-  if (deleted.length === 0)
-    throw new AppError("NOT_FOUND", "User not found", 404);
-}
-
-export async function listAllOrganizations(db: Database) {
-  return db.select().from(organizations).orderBy(desc(organizations.createdAt));
 }
 
 /**
@@ -160,17 +129,6 @@ export async function getUserDetail(db: Database, userId: string) {
     memberships,
     workSessions: createdWorkSessions,
   };
-}
-
-export async function createOrganization(
-  db: Database,
-  input: CreateAdminOrganizationInput,
-) {
-  const [created] = await db
-    .insert(organizations)
-    .values({ name: input.name })
-    .returning();
-  return created;
 }
 
 export async function deleteOrganization(db: Database, organizationId: string) {

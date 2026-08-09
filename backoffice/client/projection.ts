@@ -45,71 +45,26 @@ export function reduce(
       };
     case "navigated":
       return { ...state, route: event.route };
-    // A fresh list means the last mutation (if any) succeeded, so the
-    // page-level error clears with it.
-    case "users-loaded":
-      return {
-        ...state,
-        users: event.users,
-        usersPage: { ...state.usersPage, error: null },
-      };
-    case "users-filter-set":
-      return {
-        ...state,
-        usersPage: { ...state.usersPage, filter: event.filter },
-      };
-    case "user-editor-toggled":
-      return {
-        ...state,
-        usersPage: {
-          ...state.usersPage,
-          editorOpen: event.open,
-          draft: emptyUserDraft,
-          error: null,
-        },
-      };
     case "user-draft-set":
       return {
         ...state,
-        usersPage: {
-          ...state.usersPage,
-          draft: { ...state.usersPage.draft, ...event.draft },
+        userEditor: {
+          ...state.userEditor,
+          draft: { ...state.userEditor.draft, ...event.draft },
         },
+      };
+    case "user-editor-reset":
+      return {
+        ...state,
+        userEditor: { draft: emptyUserDraft, error: null },
       };
     case "user-mutation-failed":
       return {
         ...state,
-        usersPage: { ...state.usersPage, error: event.error },
+        userEditor: { ...state.userEditor, error: event.error },
       };
     case "user-detail-loaded":
       return { ...state, userDetail: event.detail };
-    case "organizations-loaded":
-      return {
-        ...state,
-        organizations: event.organizations,
-        organizationsPage: { ...state.organizationsPage, error: null },
-      };
-    case "organizations-filter-set":
-      return {
-        ...state,
-        organizationsPage: {
-          ...state.organizationsPage,
-          filter: event.filter,
-        },
-      };
-    case "organization-draft-set":
-      return {
-        ...state,
-        organizationsPage: {
-          ...state.organizationsPage,
-          draftName: event.name,
-        },
-      };
-    case "organization-mutation-failed":
-      return {
-        ...state,
-        organizationsPage: { ...state.organizationsPage, error: event.error },
-      };
     case "organization-detail-loaded":
       return { ...state, organizationDetail: event.detail };
     case "tables-loaded":

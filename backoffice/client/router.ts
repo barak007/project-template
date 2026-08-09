@@ -7,9 +7,7 @@ import { defaultTableQuery } from "./data-actions.js";
  * URL paths lives here so the UI never parses locations itself.
  */
 export type Route =
-  | { kind: "users" }
   | { kind: "user"; userId: string }
-  | { kind: "organizations" }
   | { kind: "organization"; organizationId: string }
   | {
       kind: "table";
@@ -19,16 +17,12 @@ export type Route =
       offset?: number;
     };
 
-export const defaultRoute: Route = { kind: "users" };
+export const defaultRoute: Route = { kind: "table", table: "user" };
 
 export function routeToPath(route: Route): string {
   switch (route.kind) {
-    case "users":
-      return "/users";
     case "user":
       return `/users/${encodeURIComponent(route.userId)}`;
-    case "organizations":
-      return "/organizations";
     case "organization":
       return `/organizations/${encodeURIComponent(route.organizationId)}`;
     case "table": {
@@ -107,7 +101,10 @@ export function pathToRoute(path: string): Route {
     return { kind: "user", userId: second };
   if (first === "organizations" && second !== undefined)
     return { kind: "organization", organizationId: second };
-  if (first === "organizations") return { kind: "organizations" };
+  // Legacy list paths from before users/organizations became table pages.
+  if (first === "users") return { kind: "table", table: "user" };
+  if (first === "organizations")
+    return { kind: "table", table: "organizations" };
   if (first === "tables" && second !== undefined) {
     const filters = filtersFromSearch(search);
     const limit = pageParamFromSearch(search, "limit");

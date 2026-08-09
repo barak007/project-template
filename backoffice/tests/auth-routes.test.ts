@@ -47,7 +47,7 @@ describe("backoffice first-run setup", () => {
       configured: false,
       authenticated: false,
     });
-    expect((await app.request("/backoffice/admin/users")).status).toBe(401);
+    expect((await app.request("/backoffice/data/tables")).status).toBe(401);
 
     const setup = await app.request(
       "/backoffice/auth/setup",
@@ -83,7 +83,7 @@ describe("backoffice first-run setup", () => {
       email: "operator@example.test",
     });
     expect(
-      (await app.request("/backoffice/admin/users", withCookie(cookie ?? "")))
+      (await app.request("/backoffice/data/tables", withCookie(cookie ?? "")))
         .status,
     ).toBe(200);
   });
@@ -116,7 +116,7 @@ describe("backoffice sign-in", () => {
     const { app } = createBackofficeTestApp(db);
     const cookie = await backofficeSessionCookie(app);
     const response = await app.request(
-      "/backoffice/admin/users",
+      "/backoffice/data/tables",
       withCookie(cookie),
     );
     expect(response.status).toBe(200);
@@ -153,7 +153,7 @@ describe("backoffice sign-in", () => {
     const cookie = await backofficeSessionCookie(app);
     const forged = cookie.replace(/.$/, (last) => (last === "a" ? "b" : "a"));
     const response = await app.request(
-      "/backoffice/admin/users",
+      "/backoffice/data/tables",
       withCookie(forged),
     );
     expect(response.status).toBe(401);

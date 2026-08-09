@@ -11,8 +11,8 @@ import {
 import {
   createBackofficeCore,
   createMemoryHistory,
-  visibleOrganizations,
-  visibleUsers,
+  defaultTableQuery,
+  textRowFilter,
 } from "../client/index.js";
 
 import {
@@ -69,6 +69,14 @@ async function signedInBackoffice() {
   return backoffice;
 }
 
+type Backoffice = ReturnType<typeof newBackofficeClient>;
+
+/** The ids on the loaded table page, which admin mutations keep fresh. */
+function loadedRowIds(backoffice: Backoffice): unknown[] {
+  const { tableData } = backoffice.getState();
+  return tableData?.page.rows.map((row) => row.id) ?? [];
+}
+
 describe("backoffice admin console", () => {
   it("resolves boot status to anonymous when configured", async () => {
     const backoffice = newBackofficeClient();
@@ -88,17 +96,27 @@ describe("backoffice admin console", () => {
     if (auth.status === "anonymous") expect(auth.error).toBeDefined();
   });
 
-  it("shows the backoffice admin every user and organization", async () => {
+  it("serves users and organizations through the table console", async () => {
     const backoffice = await signedInBackoffice();
 
-    await backoffice.admin.loadUsers();
-    await backoffice.admin.loadOrganizations();
+    await backoffice.data.loadRows("user", defaultTableQuery);
+    expect(loadedRowIds(backoffice)).toContain(founder);
 
-    const state = backoffice.getState();
-    expect(state.users.map((entry) => entry.id)).toContain(founder);
-    expect(state.organizations.map((entry) => entry.id)).toContain(
-      organizationId,
-    );
+    await backoffice.data.loadRows("organizations", defaultTableQuery);
+    expect(loadedRowIds(backoffice)).toContain(organizationId);
+  });
+
+  it("filters users server-side with the shared filter syntax", async () => {
+    const backoffice = await signedInBackoffice();
+    const emailFilter = textRowFilter("email", `^${founder}@`);
+    if (!emailFilter) throw new Error("filter did not parse");
+
+    await backoffice.data.loadRows("user", {
+      ...defaultTableQuery,
+      filters: [emailFilter],
+    });
+
+    expect(loadedRowIds(backoffice)).toEqual([founder]);
   });
 
   it("shows an organization's members with their emails", async () => {
@@ -113,10 +131,10 @@ describe("backoffice admin console", () => {
     ]);
   });
 
-  it("creates a user through the editor draft and deletes it again", async () => {
+  it("creates a user through the editor draft and deletes the row again", async () => {
     const backoffice = await signedInBackoffice();
+    await backoffice.data.loadRows("user", defaultTableQuery);
 
-    backoffice.admin.openUserEditor();
     backoffice.admin.setUserDraft({ name: "Console User" });
     backoffice.admin.setUserDraft({
       email: "console-user@example.test",
@@ -124,46 +142,40 @@ describe("backoffice admin console", () => {
     });
     await backoffice.admin.createUser();
 
-    const { usersPage, users } = backoffice.getState();
-    expect(usersPage.error).toBeNull();
-    // Success closes the editor and resets the draft for the next entry.
-    expect(usersPage.editorOpen).toBe(false);
-    expect(usersPage.draft).toEqual({ name: "", email: "", password: "" });
-    const created = users.find(
-      (entry) => entry.email === "console-user@example.test",
+    const { userEditor, tableData } = backoffice.getState();
+    expect(userEditor.error).toBeNull();
+    // Success resets the draft for the next entry...
+    expect(userEditor.draft).toEqual({ name: "", email: "", password: "" });
+    // ...and refreshes the loaded user rows.
+    const created = tableData?.page.rows.find(
+      (row) => row.email === "console-user@example.test",
     );
     expect(created).toBeDefined();
-    if (!created) throw new Error("user missing from state");
+    if (!created) throw new Error("user missing from loaded rows");
 
-    await backoffice.admin.deleteUser(created.id);
-    expect(backoffice.getState().users.map((entry) => entry.id)).not.toContain(
-      created.id,
-    );
+    await backoffice.data.deleteRow("user", { id: created.id ?? null });
+    expect(loadedRowIds(backoffice)).not.toContain(created.id);
   });
 
-  it("creates an organization from the draft name and deletes it again", async () => {
+  it("deletes an organization through the admin action, refreshing the rows", async () => {
     const backoffice = await signedInBackoffice();
+    await backoffice.data.insertRow("organizations", { name: "Console Org" });
 
-    backoffice.admin.setOrganizationDraft("Console Org");
-    await backoffice.admin.createOrganization();
-
-    const { organizationsPage, organizations } = backoffice.getState();
-    expect(organizationsPage.error).toBeNull();
-    expect(organizationsPage.draftName).toBe("");
-    const created = organizations.find((entry) => entry.name === "Console Org");
+    await backoffice.data.loadRows("organizations", defaultTableQuery);
+    const created = backoffice
+      .getState()
+      .tableData?.page.rows.find((row) => row.name === "Console Org");
     expect(created).toBeDefined();
-    if (!created) throw new Error("organization missing from state");
+    if (typeof created?.id !== "string")
+      throw new Error("organization missing from loaded rows");
 
     await backoffice.admin.deleteOrganization(created.id);
-    expect(
-      backoffice.getState().organizations.map((entry) => entry.id),
-    ).not.toContain(created.id);
+    expect(loadedRowIds(backoffice)).not.toContain(created.id);
   });
 
-  it("keeps a conflict as page state, never thrown", async () => {
+  it("keeps a conflict as editor state, never thrown", async () => {
     const backoffice = await signedInBackoffice();
 
-    backoffice.admin.openUserEditor();
     backoffice.admin.setUserDraft({
       name: "Duplicate Founder",
       email: `${founder}@example.test`,
@@ -171,61 +183,16 @@ describe("backoffice admin console", () => {
     });
     await backoffice.admin.createUser();
 
-    const { usersPage } = backoffice.getState();
-    expect(usersPage.error).toMatchObject({ code: "CONFLICT" });
-    // The editor stays open with the draft so the operator can correct it.
-    expect(usersPage.editorOpen).toBe(true);
-    expect(usersPage.draft.email).toBe(`${founder}@example.test`);
+    const { userEditor } = backoffice.getState();
+    expect(userEditor.error).toMatchObject({ code: "CONFLICT" });
+    // The draft survives so the operator can correct it.
+    expect(userEditor.draft.email).toBe(`${founder}@example.test`);
 
-    // The next successful load clears the error.
-    await backoffice.admin.loadUsers();
-    expect(backoffice.getState().usersPage.error).toBeNull();
-  });
-
-  it("filters users and organizations via state, not the UI", async () => {
-    const backoffice = await signedInBackoffice();
-    await backoffice.admin.loadUsers();
-    await backoffice.admin.loadOrganizations();
-
-    backoffice.admin.setUsersFilter(founder);
-    expect(
-      visibleUsers(backoffice.getState()).map((entry) => entry.id),
-    ).toEqual([founder]);
-    backoffice.admin.setUsersFilter("matches-nobody");
-    expect(visibleUsers(backoffice.getState())).toEqual([]);
-
-    backoffice.admin.setOrganizationsFilter("console tenant");
-    expect(
-      visibleOrganizations(backoffice.getState()).map((entry) => entry.id),
-    ).toEqual([organizationId]);
-  });
-
-  it("supports filter modifiers in the admin filters", async () => {
-    const backoffice = await signedInBackoffice();
-    await backoffice.admin.loadUsers();
-    await backoffice.admin.loadOrganizations();
-    const userIds = () =>
-      visibleUsers(backoffice.getState()).map((entry) => entry.id);
-
-    // The fixture user is "User console-founder" <console-founder@example.test>.
-    backoffice.admin.setUsersFilter(`^user ${founder}$`);
-    expect(userIds()).toEqual([founder]);
-    backoffice.admin.setUsersFilter("example.test$");
-    expect(userIds()).toContain(founder);
-    backoffice.admin.setUsersFilter(`!${founder}`);
-    expect(userIds()).not.toContain(founder);
-    backoffice.admin.setUsersFilter("\\!anything");
-    expect(userIds()).toEqual([]);
-    // A bare modifier reduces to an empty term and filters nothing.
-    backoffice.admin.setUsersFilter("!");
-    expect(userIds()).toContain(founder);
-
-    backoffice.admin.setOrganizationsFilter("^console");
-    expect(
-      visibleOrganizations(backoffice.getState()).map((entry) => entry.id),
-    ).toEqual([organizationId]);
-    backoffice.admin.setOrganizationsFilter("!tenant");
-    expect(visibleOrganizations(backoffice.getState())).toEqual([]);
+    // Reopening the editor starts clean.
+    backoffice.admin.resetUserEditor();
+    const reset = backoffice.getState().userEditor;
+    expect(reset.error).toBeNull();
+    expect(reset.draft).toEqual({ name: "", email: "", password: "" });
   });
 
   it("loads a user's detail with memberships", async () => {
@@ -242,15 +209,14 @@ describe("backoffice admin console", () => {
 
   it("sign-out resets the whole state", async () => {
     const backoffice = await signedInBackoffice();
-    await backoffice.admin.loadUsers();
-    expect(backoffice.getState().users.length).toBeGreaterThan(0);
+    await backoffice.data.loadRows("user", defaultTableQuery);
+    expect(loadedRowIds(backoffice).length).toBeGreaterThan(0);
 
     await backoffice.auth.signOut();
 
     const state = backoffice.getState();
     expect(state.auth.status).toBe("anonymous");
-    expect(state.users).toEqual([]);
-    expect(state.organizations).toEqual([]);
+    expect(state.tableData).toBeNull();
     expect(state.organizationDetail).toBeNull();
   });
 });

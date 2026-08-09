@@ -1,6 +1,4 @@
 import type {
-  AdminOrganization,
-  AdminUser,
   OrganizationDetail,
   RowsPage,
   TableMeta,
@@ -17,17 +15,13 @@ export type UserDraft = { name: string; email: string; password: string };
 
 export const emptyUserDraft: UserDraft = { name: "", email: "", password: "" };
 
-/** Everything the users page shows or edits — no state lives in the UI. */
-export type UsersPageState = {
-  filter: string;
-  editorOpen: boolean;
+/**
+ * The create-user editor — the one users-table affordance the generic row
+ * editor cannot provide, because it writes a password credential alongside
+ * the user row. Everything it shows or edits lives here, not in the UI.
+ */
+export type UserEditorState = {
   draft: UserDraft;
-  error: BackofficeError | null;
-};
-
-export type OrganizationsPageState = {
-  filter: string;
-  draftName: string;
   error: BackofficeError | null;
 };
 
@@ -51,11 +45,8 @@ export type TableDataState = {
 } | null;
 
 export type AdminState = {
-  users: AdminUser[];
-  usersPage: UsersPageState;
+  userEditor: UserEditorState;
   userDetail: UserDetail | null;
-  organizations: AdminOrganization[];
-  organizationsPage: OrganizationsPageState;
   organizationDetail: OrganizationDetail | null;
   tables: TableMeta[];
   tableData: TableDataState;
@@ -67,16 +58,8 @@ export type BackofficeState = AdminState & {
 };
 
 export const initialAdminState: AdminState = {
-  users: [],
-  usersPage: {
-    filter: "",
-    editorOpen: false,
-    draft: emptyUserDraft,
-    error: null,
-  },
+  userEditor: { draft: emptyUserDraft, error: null },
   userDetail: null,
-  organizations: [],
-  organizationsPage: { filter: "", draftName: "", error: null },
   organizationDetail: null,
   tables: [],
   tableData: null,

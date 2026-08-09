@@ -55,6 +55,8 @@ export function createDataActions(api: Api, store: BackofficeStore) {
   };
 
   return {
+    /** Reloads the loaded page of `table`, if that is the loaded table. */
+    refresh,
     loadTables: async () => {
       const response = await routes.tables.$get();
       if (!response.ok) throw await toApiError(response);

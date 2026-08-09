@@ -66,23 +66,30 @@ export function App({ core }: { core: BackofficeCore }) {
         <nav>
           <span className="nav-section">Console</span>
           {navButton(
-            { kind: "users" },
+            { kind: "table", table: "user" },
             "Users",
-            route.kind === "users" || route.kind === "user",
+            (route.kind === "table" && route.table === "user") ||
+              route.kind === "user",
           )}
           {navButton(
-            { kind: "organizations" },
+            { kind: "table", table: "organizations" },
             "Organizations",
-            route.kind === "organizations" || route.kind === "organization",
+            (route.kind === "table" && route.table === "organizations") ||
+              route.kind === "organization",
           )}
           <span className="nav-section">Tables</span>
-          {tables.map((table) =>
-            navButton(
-              { kind: "table", table: table.name },
-              table.name,
-              route.kind === "table" && route.table === table.name,
-            ),
-          )}
+          {tables
+            .filter(
+              (table) =>
+                table.name !== "user" && table.name !== "organizations",
+            )
+            .map((table) =>
+              navButton(
+                { kind: "table", table: table.name },
+                table.name,
+                route.kind === "table" && route.table === table.name,
+              ),
+            )}
         </nav>
         <footer>
           <span className="sidebar-email" title={auth.email}>
@@ -92,31 +99,15 @@ export function App({ core }: { core: BackofficeCore }) {
         </footer>
       </aside>
       <main>
-        {route.kind === "users" ? (
-          <UsersPage
-            core={core}
-            load={load}
-            onOpen={(userId) => {
-              navigate({ kind: "user", userId });
-            }}
-          />
-        ) : route.kind === "user" ? (
+        {route.kind === "user" ? (
           <UserDetailPage
             core={core}
             load={load}
             userId={route.userId}
             onBack={() => {
-              navigate({ kind: "users" });
+              navigate({ kind: "table", table: "user" });
             }}
             onOpenOrganization={(organizationId) => {
-              navigate({ kind: "organization", organizationId });
-            }}
-          />
-        ) : route.kind === "organizations" ? (
-          <OrganizationsPage
-            core={core}
-            load={load}
-            onOpen={(organizationId) => {
               navigate({ kind: "organization", organizationId });
             }}
           />
@@ -126,8 +117,30 @@ export function App({ core }: { core: BackofficeCore }) {
             load={load}
             organizationId={route.organizationId}
             onBack={() => {
-              navigate({ kind: "organizations" });
+              navigate({ kind: "table", table: "organizations" });
             }}
+          />
+        ) : route.table === "user" ? (
+          <UsersPage
+            core={core}
+            load={load}
+            onOpen={(userId) => {
+              navigate({ kind: "user", userId });
+            }}
+            routeFilters={route.filters}
+            routeLimit={route.limit}
+            routeOffset={route.offset}
+          />
+        ) : route.table === "organizations" ? (
+          <OrganizationsPage
+            core={core}
+            load={load}
+            onOpen={(organizationId) => {
+              navigate({ kind: "organization", organizationId });
+            }}
+            routeFilters={route.filters}
+            routeLimit={route.limit}
+            routeOffset={route.offset}
           />
         ) : (
           <TablePage

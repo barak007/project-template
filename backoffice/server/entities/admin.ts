@@ -28,14 +28,6 @@ export const createAdminUserBodySchema = z.object({
 
 export type CreateAdminUserInput = z.infer<typeof createAdminUserBodySchema>;
 
-export const createAdminOrganizationBodySchema = z.object({
-  name: z.string().trim().min(1),
-});
-
-export type CreateAdminOrganizationInput = z.infer<
-  typeof createAdminOrganizationBodySchema
->;
-
 export const adminMemberResponseSchema = z.object({
   userId: z.string(),
   role: memberRoleSchema,

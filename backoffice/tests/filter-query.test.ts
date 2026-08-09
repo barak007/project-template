@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  matchesFilter,
-  parseFilterQuery,
-  textRowFilter,
-} from "../client/filter-query.js";
+import { parseFilterQuery, textRowFilter } from "../client/filter-query.js";
 
 describe("parseFilterQuery", () => {
   it("parses each modifier at the edges", () => {
@@ -80,38 +76,6 @@ describe("parseFilterQuery", () => {
     expect(parseFilterQuery("^")).toBeNull();
     expect(parseFilterQuery("$")).toBeNull();
     expect(parseFilterQuery("^$")).toBeNull();
-  });
-});
-
-describe("matchesFilter", () => {
-  const fields = ["Ada Lovelace", "ada@example.test"];
-  const match = (query: string) =>
-    matchesFilter(fields, parseFilterQuery(query));
-
-  it("matches everything on a null filter", () => {
-    expect(matchesFilter(fields, null)).toBe(true);
-  });
-
-  it("matches case-insensitively across any field", () => {
-    expect(match("LOVE")).toBe(true);
-    expect(match("EXAMPLE")).toBe(true);
-    expect(match("nope")).toBe(false);
-  });
-
-  it("anchors starts-with, ends-with, and equals per field", () => {
-    expect(match("^ada")).toBe(true);
-    expect(match("^lovelace")).toBe(false);
-    expect(match("test$")).toBe(true);
-    expect(match("ada$")).toBe(false);
-    expect(match("^ada lovelace$")).toBe(true);
-    expect(match("^ada$")).toBe(false);
-  });
-
-  it("negates over the whole field set, not per field", () => {
-    // "ada" appears in one field but not the other; the row must still drop.
-    expect(match("!ada")).toBe(false);
-    expect(match("!lovelace")).toBe(false);
-    expect(match("!nope")).toBe(true);
   });
 });
 

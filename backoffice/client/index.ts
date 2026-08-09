@@ -13,8 +13,6 @@ import { initialBackofficeState } from "./state.js";
 export { ApiError } from "../../client/errors.js";
 export type { ClientFetch, Host } from "../../client/index.js";
 export type {
-  AdminOrganization,
-  AdminUser,
   ColumnMeta,
   OrganizationDetail,
   RowsPage,
@@ -27,7 +25,6 @@ export type { RowFilter, TableQuery } from "./data-actions.js";
 export type { BackofficeEvent } from "./events.js";
 export {
   FILTER_SYNTAX_HINT,
-  matchesFilter,
   parseFilterQuery,
   textRowFilter,
 } from "./filter-query.js";
@@ -36,21 +33,16 @@ export { createMemoryHistory } from "./history.js";
 export type { History, MemoryHistory } from "./history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
 export type { Route } from "./router.js";
-export {
-  referencesTo,
-  visibleOrganizations,
-  visibleUsers,
-} from "./selectors.js";
+export { referencesTo } from "./selectors.js";
 export type { IncomingReference } from "./selectors.js";
 export type {
   BackofficeAuthError,
   BackofficeAuthState,
   BackofficeError,
   BackofficeState,
-  OrganizationsPageState,
   TableDataState,
   UserDraft,
-  UsersPageState,
+  UserEditorState,
 } from "./state.js";
 
 export type BackofficeCoreDependencies = {
@@ -69,11 +61,14 @@ export type BackofficeCoreDependencies = {
 export function createBackofficeCore(dependencies: BackofficeCoreDependencies) {
   const store = createStore(reduce, initialBackofficeState);
   const api = createApi(dependencies.baseUrl, dependencies.host);
+  const data = createDataActions(api, store);
 
   return {
     auth: createBackofficeAuthActions(api, store),
-    admin: createAdminActions(api, store),
-    data: createDataActions(api, store),
+    // Admin mutations refresh the affected table through the data actions,
+    // so the loaded rows can never go stale behind a side-effectful write.
+    admin: createAdminActions(api, store, data.refresh),
+    data,
     navigation: createNavigation(dependencies.history, store),
     getState: store.getState,
     subscribe: store.subscribe,

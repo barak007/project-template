@@ -1,104 +1,49 @@
-import { useEffect } from "react";
+import type { BackofficeCore, RowFilter, TableRow } from "../client/index.js";
 
-import { FILTER_SYNTAX_HINT, visibleOrganizations } from "../client/index.js";
-import type { BackofficeCore } from "../client/index.js";
+import { rowText, TablePage } from "./table-page.js";
 
-import { useBackofficeState } from "./use-backoffice-state.js";
-
+/**
+ * The organizations table page: the generic console plus a detail view and
+ * a delete that clears restrict-prone work sessions before the cascade.
+ */
 export function OrganizationsPage({
   core,
   load,
   onOpen,
+  routeFilters,
+  routeLimit,
+  routeOffset,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   onOpen: (organizationId: string) => void;
+  routeFilters?: RowFilter[] | undefined;
+  routeLimit?: number | undefined;
+  routeOffset?: number | undefined;
 }) {
-  const page = useBackofficeState(core, (state) => state.organizationsPage);
-  const organizations = useBackofficeState(core, visibleOrganizations);
-
-  useEffect(() => {
-    void load(() => core.admin.loadOrganizations());
-  }, [core, load]);
-
-  const create = () => void load(() => core.admin.createOrganization());
-
-  const remove = (organization: { id: string; name: string }) => {
-    if (
-      !window.confirm(
-        `Delete organization "${organization.name}" and everything in it (members, sources, workspaces, work sessions)? This cannot be undone.`,
-      )
-    )
-      return;
-    void load(() => core.admin.deleteOrganization(organization.id));
-  };
-
   return (
-    <section>
-      <h1>Organizations</h1>
-      {page.error ? <p className="error">{page.error.message}</p> : null}
-      <div className="editor-actions">
-        <input
-          placeholder="New organization name"
-          value={page.draftName}
-          onChange={(event) => {
-            core.admin.setOrganizationDraft(event.target.value);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && page.draftName.trim()) create();
-          }}
-        />
+    <TablePage
+      core={core}
+      load={load}
+      table="organizations"
+      heading="Organizations"
+      routeFilters={routeFilters}
+      routeLimit={routeLimit}
+      routeOffset={routeOffset}
+      rowActions={(row: TableRow) => (
         <button
-          className="primary"
-          disabled={!page.draftName.trim()}
-          onClick={create}
+          onClick={() => {
+            onOpen(rowText(row.id));
+          }}
         >
-          Add organization
+          Open
         </button>
-      </div>
-      <input
-        type="search"
-        placeholder="Filter by name"
-        title={FILTER_SYNTAX_HINT}
-        value={page.filter}
-        onChange={(event) => {
-          core.admin.setOrganizationsFilter(event.target.value);
-        }}
-      />
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Created</th>
-              <th className="actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {organizations.map((organization) => (
-              <tr key={organization.id}>
-                <td title={organization.id}>
-                  <code>{organization.id}</code>
-                </td>
-                <td title={organization.name}>{organization.name}</td>
-                <td>{new Date(organization.createdAt).toLocaleString()}</td>
-                <td className="row-actions">
-                  <button onClick={() => onOpen(organization.id)}>Open</button>
-                  <button
-                    className="danger"
-                    onClick={() => {
-                      remove(organization);
-                    }}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
+      )}
+      deleteConfirm={(row) =>
+        `Delete organization "${rowText(row.name)}" and everything in it ` +
+        "(members, sources, workspaces, work sessions)? This cannot be undone."
+      }
+      deleteAction={(row) => core.admin.deleteOrganization(rowText(row.id))}
+    />
   );
 }

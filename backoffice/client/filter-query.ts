@@ -1,9 +1,8 @@
 import type { RowFilter } from "../server/entities/data.js";
 
 /**
- * Shared filter-query syntax for every text filter input, parsed once here
- * so the client-side matcher (admin pages) and the server-op mapping (data
- * console) can never drift apart:
+ * Filter-query syntax for every text filter input, parsed once here and
+ * mapped onto server row-filter ops:
  *
  *   abc      contains "abc"
  *   !abc     does NOT contain "abc" (rest is literal — no anchors after !)
@@ -59,31 +58,6 @@ export function parseFilterQuery(raw: string): ParsedFilter | null {
           ? "ends-with"
           : "contains";
   return { mode, term };
-}
-
-/**
- * Case-insensitive match over a row's searchable fields. Negation applies to
- * the whole field set: `!abc` keeps a row only when NO field contains "abc".
- */
-export function matchesFilter(
-  fields: readonly string[],
-  filter: ParsedFilter | null,
-): boolean {
-  if (!filter) return true;
-  const term = filter.term.toLowerCase();
-  const lowered = fields.map((field) => field.toLowerCase());
-  switch (filter.mode) {
-    case "contains":
-      return lowered.some((field) => field.includes(term));
-    case "not-contains":
-      return !lowered.some((field) => field.includes(term));
-    case "starts-with":
-      return lowered.some((field) => field.startsWith(term));
-    case "ends-with":
-      return lowered.some((field) => field.endsWith(term));
-    case "equals":
-      return lowered.some((field) => field === term);
-  }
 }
 
 const MODE_TO_OP: Record<FilterMode, RowFilter["op"]> = {

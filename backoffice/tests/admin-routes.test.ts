@@ -79,36 +79,6 @@ afterAll(async () => {
   await close();
 });
 
-describe("GET /backoffice/admin/users", () => {
-  it("lists every user for the backoffice admin", async () => {
-    const response = await app.request(
-      "/backoffice/admin/users",
-      withCookie(adminCookie),
-    );
-    expect(response.status).toBe(200);
-    const users = (await json(response)) as { id: string; email: string }[];
-    expect(users.map((entry) => entry.id)).toEqual(
-      expect.arrayContaining([founder]),
-    );
-  });
-
-  it("returns 401 for an application-user session", async () => {
-    const response = await app.request(
-      "/backoffice/admin/users",
-      asUser(founder),
-    );
-    expect(response.status).toBe(401);
-    expect(await json(response)).toMatchObject({
-      error: { code: "AUTHENTICATION_REQUIRED" },
-    });
-  });
-
-  it("returns 401 for anonymous requests", async () => {
-    const response = await app.request("/backoffice/admin/users");
-    expect(response.status).toBe(401);
-  });
-});
-
 describe("POST /backoffice/admin/users", () => {
   it("creates a user whose credential better-auth can verify", async () => {
     const response = await app.request(
@@ -138,12 +108,11 @@ describe("POST /backoffice/admin/users", () => {
       }),
     ).toBe(true);
 
-    const listed = await app.request(
-      "/backoffice/admin/users",
-      withCookie(adminCookie),
-    );
-    const users = (await json(listed)) as { id: string }[];
-    expect(users.map((entry) => entry.id)).toContain(created.id);
+    const [row] = await db
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, created.id));
+    expect(row?.id).toBe(created.id);
   });
 
   it("never echoes the password back", async () => {
@@ -205,6 +174,24 @@ describe("POST /backoffice/admin/users", () => {
       }),
     );
     expect(response.status).toBe(401);
+  });
+
+  it("returns 401 for an application-user session", async () => {
+    const response = await app.request(
+      "/backoffice/admin/users",
+      asUser(
+        founder,
+        jsonBody({
+          name: "App User",
+          email: "app-user@example.test",
+          password: "a-strong-password",
+        }),
+      ),
+    );
+    expect(response.status).toBe(401);
+    expect(await json(response)).toMatchObject({
+      error: { code: "AUTHENTICATION_REQUIRED" },
+    });
   });
 });
 
@@ -268,100 +255,6 @@ describe("GET /backoffice/admin/users/:userId", () => {
 
   it("returns 401 for anonymous requests", async () => {
     const response = await app.request(`/backoffice/admin/users/${founder}`);
-    expect(response.status).toBe(401);
-  });
-});
-
-describe("DELETE /backoffice/admin/users/:userId", () => {
-  it("deletes a user and their credential", async () => {
-    const deletable = await createTestUser(db, "deletable-user");
-    const response = await app.request(
-      `/backoffice/admin/users/${deletable}`,
-      withCookie(adminCookie, { method: "DELETE" }),
-    );
-    expect(response.status).toBe(204);
-    const remaining = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.id, deletable));
-    expect(remaining).toEqual([]);
-  });
-
-  it("refuses with 409 when the user created work sessions", async () => {
-    const response = await app.request(
-      `/backoffice/admin/users/${founder}`,
-      withCookie(adminCookie, { method: "DELETE" }),
-    );
-    expect(response.status).toBe(409);
-    expect(await json(response)).toMatchObject({
-      error: { code: "CONFLICT" },
-    });
-  });
-
-  it("returns 404 for an unknown user", async () => {
-    const response = await app.request(
-      "/backoffice/admin/users/no-such-user",
-      withCookie(adminCookie, { method: "DELETE" }),
-    );
-    expect(response.status).toBe(404);
-  });
-
-  it("returns 401 for anonymous requests", async () => {
-    const response = await app.request(`/backoffice/admin/users/${founder}`, {
-      method: "DELETE",
-    });
-    expect(response.status).toBe(401);
-  });
-});
-
-describe("GET /backoffice/admin/organizations", () => {
-  it("lists organizations the admin is not a member of", async () => {
-    const response = await app.request(
-      "/backoffice/admin/organizations",
-      withCookie(adminCookie),
-    );
-    expect(response.status).toBe(200);
-    const organizations = (await json(response)) as { id: string }[];
-    expect(organizations.map((entry) => entry.id)).toContain(organizationId);
-  });
-
-  it("returns 401 for anonymous requests", async () => {
-    const response = await app.request("/backoffice/admin/organizations");
-    expect(response.status).toBe(401);
-  });
-});
-
-describe("POST /backoffice/admin/organizations", () => {
-  it("creates an organization visible in the list", async () => {
-    const response = await app.request(
-      "/backoffice/admin/organizations",
-      withCookie(adminCookie, jsonBody({ name: "Created Tenant" })),
-    );
-    expect(response.status).toBe(201);
-    const created = (await json(response)) as { id: string; name: string };
-    expect(created.name).toBe("Created Tenant");
-
-    const listed = await app.request(
-      "/backoffice/admin/organizations",
-      withCookie(adminCookie),
-    );
-    const listedOrganizations = (await json(listed)) as { id: string }[];
-    expect(listedOrganizations.map((entry) => entry.id)).toContain(created.id);
-  });
-
-  it("rejects an empty name with 400", async () => {
-    const response = await app.request(
-      "/backoffice/admin/organizations",
-      withCookie(adminCookie, jsonBody({ name: "  " })),
-    );
-    expect(response.status).toBe(400);
-  });
-
-  it("returns 401 for anonymous requests", async () => {
-    const response = await app.request(
-      "/backoffice/admin/organizations",
-      jsonBody({ name: "Anon Tenant" }),
-    );
     expect(response.status).toBe(401);
   });
 });
