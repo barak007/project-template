@@ -10,6 +10,7 @@ import { OrganizationPage } from "./organization-page.js";
 import { SignInPage } from "./sign-in-page.js";
 import { SignUpPage } from "./sign-up-page.js";
 import { useAppState } from "./use-app-state.js";
+import { WorkspacePage } from "./workspace-page.js";
 
 /**
  * The whole router of the UI: which page the store says to show. The guard
@@ -50,6 +51,18 @@ export function App({ core }: { core: AppCore }) {
             organizationId={
               route.kind === "organization" ? route.organizationId : ""
             }
+          />
+        </AppShell>
+      );
+    case "workspace":
+      return (
+        <AppShell core={core}>
+          <WorkspacePage
+            core={core}
+            organizationId={
+              route.kind === "workspace" ? route.organizationId : ""
+            }
+            workspaceId={route.kind === "workspace" ? route.workspaceId : ""}
           />
         </AppShell>
       );

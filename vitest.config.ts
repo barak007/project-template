@@ -7,6 +7,9 @@ export default defineConfig({
     // CLIENT_WORLD=in-process boots one PGlite world per client story, and
     // many boot concurrently; the default 5s timeout is too tight for that.
     testTimeout: 30_000,
+    // Same reason, for the suites that boot their PGlite in `beforeAll`: under
+    // a full run they queue behind everyone else's, and the default is 10s.
+    hookTimeout: 30_000,
     coverage: {
       provider: "v8",
       // text for the CI log, html for local browsing, lcov/json-summary for tooling.

@@ -30,6 +30,7 @@ describe("router", () => {
       { kind: "sign-up" },
       { kind: "dashboard" },
       { kind: "organization", organizationId: "org-1" },
+      { kind: "workspace", organizationId: "org-1", workspaceId: "ws-1" },
     ];
     for (const route of routes)
       expect(pathToRoute(routeToPath(route))).toEqual(route);
@@ -46,6 +47,17 @@ describe("router", () => {
     expect(pathToRoute("/app/anything")).toEqual({ kind: "dashboard" });
   });
 
+  it("falls back to the organization when the workspace path is incomplete", () => {
+    expect(pathToRoute("/app/organizations/org-1/workspaces")).toEqual({
+      kind: "organization",
+      organizationId: "org-1",
+    });
+    expect(pathToRoute("/app/organizations/org-1/settings")).toEqual({
+      kind: "organization",
+      organizationId: "org-1",
+    });
+  });
+
   it("encodes organization ids in both directions", () => {
     const route: Route = { kind: "organization", organizationId: "a/b c" };
     expect(routeToPath(route)).toBe("/app/organizations/a%2Fb%20c");
@@ -56,6 +68,13 @@ describe("router", () => {
     expect(requiresAuthentication({ kind: "dashboard" })).toBe(true);
     expect(
       requiresAuthentication({ kind: "organization", organizationId: "x" }),
+    ).toBe(true);
+    expect(
+      requiresAuthentication({
+        kind: "workspace",
+        organizationId: "x",
+        workspaceId: "y",
+      }),
     ).toBe(true);
     expect(requiresAuthentication({ kind: "home" })).toBe(false);
     expect(requiresAuthentication({ kind: "sign-in" })).toBe(false);

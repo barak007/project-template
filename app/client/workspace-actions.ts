@@ -9,11 +9,15 @@ import type { NameDraft } from "./state.js";
 export function createWorkspaceActions({
   client,
   store,
+  navigation,
   attempt,
 }: AppActionContext) {
   return {
     load: (organizationId: string) =>
       attempt(() => client.workspaces.load(organizationId)),
+    open: (organizationId: string, workspaceId: string) => {
+      navigation.navigate({ kind: "workspace", organizationId, workspaceId });
+    },
     changeDraft: (draft: Partial<NameDraft>) => {
       store.dispatch({ type: "workspace-draft-changed", draft });
     },

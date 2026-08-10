@@ -40,10 +40,20 @@ export function OrganizationPage({
         <ul className="rows">
           {workspaces.map((workspace) => (
             <li key={workspace.id}>
-              <strong>{workspace.name}</strong>
+              <RouteLink
+                core={core}
+                to={{
+                  kind: "workspace",
+                  organizationId,
+                  workspaceId: workspace.id,
+                }}
+                className="link"
+              >
+                <strong>{workspace.name}</strong>
+              </RouteLink>
               <span className="muted">
-                {workspace.sourceIds.length} source
-                {workspace.sourceIds.length === 1 ? "" : "s"}
+                {workspace.sourceIds.length} repositor
+                {workspace.sourceIds.length === 1 ? "y" : "ies"}
               </span>
               <button
                 className="ghost danger"

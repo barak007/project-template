@@ -5,13 +5,14 @@ and a sign-in, and everything else behind the login** — in
 [app/](../app/). It is what an app generated from this template starts as, so
 it stays deliberately small: replace the copy, add pages, keep the shape.
 
-| Path                     | Route                         | Who sees it |
-| ------------------------ | ----------------------------- | ----------- |
-| `/`                      | home page                     | everyone    |
-| `/sign-up`               | create an account             | everyone    |
-| `/sign-in`               | sign in                       | everyone    |
-| `/app`                   | the user's organizations      | signed in   |
-| `/app/organizations/:id` | one organization's workspaces | signed in   |
+| Path                                           | Route                              | Who sees it |
+| ---------------------------------------------- | ---------------------------------- | ----------- |
+| `/`                                            | home page                          | everyone    |
+| `/sign-up`                                     | create an account                  | everyone    |
+| `/sign-in`                                     | sign in                            | everyone    |
+| `/app`                                         | the user's organizations           | signed in   |
+| `/app/organizations/:id`                       | one organization's workspaces      | signed in   |
+| `/app/organizations/:id/workspaces/:workspace` | one workspace and its repositories | signed in   |
 
 ## Layout
 
@@ -44,6 +45,20 @@ adds only what a product front end needs on top:
   turns a thrown `ApiError` into `state.error`, because a UI cannot handle a
   throw. An expired session is not a message: it re-resolves the session,
   which shows the sign-in page again.
+
+## Repositories
+
+A workspace names the repositories a work session opens together. The product
+word is **repository**; the server stores them as `kind: "git"`
+[sources](client/actions/sources.md) and a session snapshots that list, but the
+app never shows the word "source". `core.repositories`
+([repository-actions.ts](../app/client/repository-actions.ts)) loads an
+organization's repositories and attaches or detaches one — both are a full
+`workspaces.update`, since the server takes a replacement rather than a patch.
+
+The list is filtered and derived **during render**, never in a selector: a
+`filter` builds a fresh array on every call, and `useSyncExternalStore` reads a
+new reference as a changed snapshot.
 
 The two stores are exposed as one tree with one subscription
 ([store.ts](../app/client/store.ts)) — the app's slices layered over the

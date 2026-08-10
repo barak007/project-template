@@ -6,6 +6,7 @@ import { createAttempt } from "./attempt.js";
 import type { AppActionContext } from "./context.js";
 import { createAppNavigation } from "./navigation-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
+import { createRepositoryActions } from "./repository-actions.js";
 import { createSessionActions } from "./session-actions.js";
 import { createAppStore } from "./store.js";
 import { createWorkspaceActions } from "./workspace-actions.js";
@@ -15,6 +16,7 @@ export type {
   ClientFetch,
   Host,
   Organization,
+  Source,
   Workspace,
 } from "../../domain-client/index.js";
 export { createMemoryHistory } from "../../domain-client/history.js";
@@ -27,7 +29,12 @@ export {
   routeToPath,
 } from "./router.js";
 export type { Route } from "./router.js";
-export { currentOrganization, visibleRoute } from "./selectors.js";
+export {
+  currentOrganization,
+  currentWorkspace,
+  routeOrganizationId,
+  visibleRoute,
+} from "./selectors.js";
 export type {
   AppError,
   AppOwnState,
@@ -66,6 +73,7 @@ export function createAppCore(dependencies: AppCoreDependencies) {
     session: createSessionActions(context),
     organizations: createOrganizationActions(context),
     workspaces: createWorkspaceActions(context),
+    repositories: createRepositoryActions(context),
     navigation: context.navigation,
     getState: store.getState,
     subscribe: store.subscribe,

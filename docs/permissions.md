@@ -30,12 +30,12 @@ Recorded explicitly so they can be overturned before implementation:
 
 ## Entities
 
-| Entity                 | Meaning                                                                             |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| **Organization**       | The tenant boundary. Owns every source, workspace, secret, and work session.          |
-| **OrganizationMember** | A user's membership in an organization, with exactly one role: `owner`, `admin`, `member`. |
-| **Team**               | A named group of users inside one organization. Names unique per organization.        |
-| **TeamMember**         | A user's membership in a team, with one role: `maintainer` or `member`.               |
+| Entity                 | Meaning                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| **Organization**       | The tenant boundary. Owns every source, workspace, secret, and work session.                      |
+| **OrganizationMember** | A user's membership in an organization, with exactly one role: `owner`, `admin`, `member`.        |
+| **Team**               | A named group of users inside one organization. Names unique per organization.                    |
+| **TeamMember**         | A user's membership in a team, with one role: `maintainer` or `member`.                           |
 | **WorkspaceGrant**     | An access grant on one workspace to one subject — a team or a user — carrying one workspace role. |
 
 A user reaches a workspace through at most three paths: their organization
@@ -71,10 +71,10 @@ per-workspace roles at all.
 A team role governs the team's roster only. It carries no access to workspaces;
 access comes from the grants the team holds.
 
-| Permission     | maintainer | member |
-| -------------- | :--------: | :----: |
-| `team:read`    |     ✓      |   ✓    |
-| `team:roster`  |     ✓      |        |
+| Permission    | maintainer | member |
+| ------------- | :--------: | :----: |
+| `team:read`   |     ✓      |   ✓    |
+| `team:roster` |     ✓      |        |
 
 `team:roster` is adding and removing members of that one team. Creating and
 deleting teams remains `team:manage` at the organization level.
@@ -83,12 +83,12 @@ deleting teams remains `team:manage` at the organization level.
 
 Ordered, each strictly containing the one before it.
 
-| Permission           | viewer | operator | editor | manager |
-| -------------------- | :----: | :------: | :----: | :-----: |
-| `workspace:read`     |   ✓    |    ✓     |   ✓    |    ✓    |
-| `session:create`     |        |    ✓     |   ✓    |    ✓    |
-| `workspace:write`    |        |          |   ✓    |    ✓    |
-| `workspace:manage`   |        |          |        |    ✓    |
+| Permission         | viewer | operator | editor | manager |
+| ------------------ | :----: | :------: | :----: | :-----: |
+| `workspace:read`   |   ✓    |    ✓     |   ✓    |    ✓    |
+| `session:create`   |        |    ✓     |   ✓    |    ✓    |
+| `workspace:write`  |        |          |   ✓    |    ✓    |
+| `workspace:manage` |        |          |        |    ✓    |
 
 - `workspace:read` — see the workspace, its name, and its source list.
 - `session:create` — materialize a work session from it.

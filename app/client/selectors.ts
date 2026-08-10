@@ -1,4 +1,4 @@
-import type { Organization } from "../../domain-client/index.js";
+import type { Organization, Workspace } from "../../domain-client/index.js";
 
 import { requiresAuthentication } from "./router.js";
 import type { Route } from "./router.js";
@@ -21,11 +21,26 @@ export function visibleRoute(state: AppState): Route {
   return state.route;
 }
 
+/** The organization the route names, or none if the route names no organization. */
+export function routeOrganizationId(state: AppState): string | undefined {
+  const { route } = state;
+  if (route.kind === "organization" || route.kind === "workspace")
+    return route.organizationId;
+  return undefined;
+}
+
 /** The organization the route names, once the list holding it has loaded. */
 export function currentOrganization(state: AppState): Organization | undefined {
-  if (state.route.kind !== "organization") return undefined;
-  const { organizationId } = state.route;
+  const organizationId = routeOrganizationId(state);
+  if (organizationId === undefined) return undefined;
   return state.organizations.find(
     (organization) => organization.id === organizationId,
   );
+}
+
+/** The workspace the route names, once the organization's list has loaded. */
+export function currentWorkspace(state: AppState): Workspace | undefined {
+  if (state.route.kind !== "workspace") return undefined;
+  const { workspaceId } = state.route;
+  return state.workspaces.find((workspace) => workspace.id === workspaceId);
 }
