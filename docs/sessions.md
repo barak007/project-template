@@ -140,8 +140,21 @@ workspace into a shared one later.
    ([git/provider.ts](../domain-server/git/provider.ts) is the port,
    [local-provider.ts](../domain-server/git/local-provider.ts) reads
    repositories out of a folder on this machine). **GitHub is what remains**:
-   registering the App, storing the installation credential encrypted, and
-   adding a `github` entry to the registry. Nothing above the port changes.
+   registering the App, storing the installation credential, and adding a
+   `github` entry to the registry. Nothing above the port changes.
+
+   **`connections` has no credential column, deliberately.** Its `config` is
+   plaintext JSON readable by anyone with `resource:read` — a root path for
+   `local`, which is not a secret. A GitHub installation token is, so it
+   cannot go in `config`: it needs its own column, encrypted through the
+   `SecretCipher` already on `RuntimeDependencies`, and stripped from
+   `connectionResponseSchema` so it can never be serialized by accident —
+   the rule `organizationSecrets` already follows. The column was left out
+   rather than added empty, because guessing GitHub's shape before touching
+   its API would ship a field no code reads and no test proves is withheld.
+   Migrations here squash into a single `0000_init`, so adding it later is a
+   regeneration, not a migration chain.
+
 3. **A real materializer port** — injected on `RuntimeDependencies`, so the
    job can do git work and tests can stub it. Steps 1–3 are verifiable
    end-to-end with no agent and no cloud: press the button, a setup repository
