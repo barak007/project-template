@@ -1,0 +1,31 @@
+import type { Organization } from "../../domain-client/index.js";
+
+import { requiresAuthentication } from "./router.js";
+import type { Route } from "./router.js";
+import type { AppState } from "./state.js";
+
+/**
+ * The page to render for the current route given who is signed in. The guard
+ * is a pure projection rather than a redirect: the URL keeps pointing at the
+ * page the visitor asked for, so signing in lands them there.
+ */
+export function visibleRoute(state: AppState): Route {
+  const authenticated = state.auth.status === "authenticated";
+  if (requiresAuthentication(state.route) && !authenticated)
+    return { kind: "sign-in" };
+  if (
+    authenticated &&
+    (state.route.kind === "sign-in" || state.route.kind === "sign-up")
+  )
+    return { kind: "dashboard" };
+  return state.route;
+}
+
+/** The organization the route names, once the list holding it has loaded. */
+export function currentOrganization(state: AppState): Organization | undefined {
+  if (state.route.kind !== "organization") return undefined;
+  const { organizationId } = state.route;
+  return state.organizations.find(
+    (organization) => organization.id === organizationId,
+  );
+}

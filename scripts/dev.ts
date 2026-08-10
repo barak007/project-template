@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { getRequestListener } from "@hono/node-server";
 import { createServer as createViteServer } from "vite";
+import type { ViteDevServer } from "vite";
 
 type DevApp = typeof import("../domain-server/dev-app.js");
 
@@ -70,13 +71,19 @@ api.listen(port, () => {
   console.info(`API listening on http://localhost:${String(port)}`);
 });
 
-const backoffice = await createViteServer({
-  configFile: fileURLToPath(
-    new URL("../backoffice/vite.config.ts", import.meta.url),
-  ),
-});
-await backoffice.listen();
-backoffice.printUrls();
+// One Vite dev server per browser app, each proxying /api to the API above.
+const webApps: ViteDevServer[] = [];
+for (const config of [
+  "../app/vite.config.ts",
+  "../backoffice/vite.config.ts",
+]) {
+  const server = await createViteServer({
+    configFile: fileURLToPath(new URL(config, import.meta.url)),
+  });
+  await server.listen();
+  server.printUrls();
+  webApps.push(server);
+}
 
 let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
@@ -86,7 +93,7 @@ async function shutdown(signal: NodeJS.Signals) {
   const running = current;
   current = undefined;
   await Promise.allSettled([
-    backoffice.close(),
+    ...webApps.map((server) => server.close()),
     loader.close(),
     new Promise<void>((resolve) => api.close(() => resolve())),
     running?.then((module) => module.dispose()),

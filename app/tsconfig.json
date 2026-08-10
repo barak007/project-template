@@ -1,9 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2024",
-    "lib": ["ES2024"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -13,16 +14,7 @@
     "noUnusedParameters": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["node", "vitest/globals"],
-    "outDir": "dist"
+    "noEmit": true
   },
-  "include": [
-    "domain-server",
-    "scripts",
-    "domain-client",
-    "app/tests",
-    "backoffice/core",
-    "backoffice/tests",
-    "*.ts"
-  ]
+  "include": ["ui", "client", "vite.config.ts"]
 }

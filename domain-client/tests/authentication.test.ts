@@ -40,6 +40,40 @@ describe("authentication stories", () => {
   );
 
   it.concurrent(
+    "restores the session a reload starts without",
+    async ({ world, expect }) => {
+      const device = world.newDevice();
+      const before = device.reload();
+      const credentials = {
+        email: world.uniqueEmail("grace"),
+        password: "password-for-grace",
+      };
+      await before.auth.signUp({ ...credentials, name: "Grace" });
+
+      const after = device.reload();
+      expect(after.getState().auth.status).toBe("anonymous");
+
+      await after.auth.loadSession();
+
+      const auth = after.getState().auth;
+      expect(auth.status).toBe("authenticated");
+      if (auth.status !== "authenticated") return;
+      expect(auth.user.email).toBe(credentials.email);
+    },
+  );
+
+  it.concurrent(
+    "leaves a device with no session anonymous",
+    async ({ world, expect }) => {
+      const visitor = world.newClient();
+
+      await visitor.auth.loadSession();
+
+      expect(visitor.getState().auth.status).toBe("anonymous");
+    },
+  );
+
+  it.concurrent(
     "surfaces the server's error envelope when acting anonymously",
     async ({ world, expect }) => {
       const anonymous = world.newClient();

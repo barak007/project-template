@@ -1,3 +1,4 @@
+import type { History } from "../../domain-client/history.js";
 import type { Host } from "../../domain-client/index.js";
 import { createStore } from "../../domain-client/store.js";
 
@@ -5,8 +6,7 @@ import { createAdminActions } from "./admin-actions.js";
 import { createApi } from "./api.js";
 import { createBackofficeAuthActions } from "./auth-actions.js";
 import { createDataActions } from "./data-actions.js";
-import type { History } from "./history.js";
-import { createNavigation } from "./navigation-actions.js";
+import { createBackofficeNavigation } from "./navigation-actions.js";
 import { reduce } from "./projection.js";
 import { initialBackofficeState } from "./state.js";
 
@@ -29,8 +29,8 @@ export {
   textRowFilter,
 } from "./filter-query.js";
 export type { FilterMode, ParsedFilter } from "./filter-query.js";
-export { createMemoryHistory } from "./history.js";
-export type { History, MemoryHistory } from "./history.js";
+export { createMemoryHistory } from "../../domain-client/history.js";
+export type { History, MemoryHistory } from "../../domain-client/history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
 export type { Route } from "./router.js";
 export { referencesTo } from "./selectors.js";
@@ -69,7 +69,7 @@ export function createBackofficeCore(dependencies: BackofficeCoreDependencies) {
     // so the loaded rows can never go stale behind a side-effectful write.
     admin: createAdminActions(api, store, data.refresh),
     data,
-    navigation: createNavigation(dependencies.history, store),
+    navigation: createBackofficeNavigation(dependencies.history, store),
     getState: store.getState,
     subscribe: store.subscribe,
   };

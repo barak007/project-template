@@ -17,6 +17,8 @@ pnpm dev
 
 Use `openssl rand -base64 32` for `SECRETS_ENCRYPTION_KEY` and a separate random value of at least 32 characters for `BETTER_AUTH_SECRET`. The sample encryption key is intentionally public and must never be used outside local development.
 
+`pnpm dev` serves three things: the API on `http://localhost:3000`, the app on `http://localhost:5174`, and the backoffice on `http://localhost:5173`.
+
 The API listens on `http://localhost:3000`. Liveness is `GET /health`, dependency readiness is `GET /ready`, and Better Auth is mounted at `/api/auth/*`. Sign up through `POST /api/auth/sign-up/email`, then use the returned secure session cookie with domain routes.
 
 ## API surface
@@ -31,6 +33,10 @@ All domain routes require authentication. Organization routes additionally enfor
 - `/api/me/secrets` and `/api/me/data`
 
 Owners manage memberships and all resources. Admins manage resources and secrets. Members have read access. Organization creation atomically assigns its creator as owner. Secret values are encrypted at rest and never returned by the API. Work sessions snapshot workspace sources and merged organization/user values; user values win on duplicate keys.
+
+## The app
+
+The product itself ships in [`app/`](./app/): a public home page, sign-up, sign-in, and the pages behind the login (the user's organizations, and one organization's workspaces). It composes the headless client core rather than duplicating it, keeps routing, form drafts and the login guard in the store, and is tested as user stories in Node. In production the API process serves the built app from the same origin. See [`docs/app.md`](./docs/app.md).
 
 ## Backoffice
 

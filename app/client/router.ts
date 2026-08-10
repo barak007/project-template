@@ -1,0 +1,51 @@
+/**
+ * Routing is headless: routes are plain values, and the mapping to and from
+ * URL paths lives here so the UI never parses locations itself. The public
+ * site is at the root; everything behind the login sits under /app.
+ */
+export type Route =
+  | { kind: "home" }
+  | { kind: "sign-in" }
+  | { kind: "sign-up" }
+  | { kind: "dashboard" }
+  | { kind: "organization"; organizationId: string };
+
+export const defaultRoute: Route = { kind: "home" };
+
+/** Routes that only exist for a signed-in user; see selectors.visibleRoute. */
+export function requiresAuthentication(route: Route): boolean {
+  return route.kind === "dashboard" || route.kind === "organization";
+}
+
+export function routeToPath(route: Route): string {
+  switch (route.kind) {
+    case "home":
+      return "/";
+    case "sign-in":
+      return "/sign-in";
+    case "sign-up":
+      return "/sign-up";
+    case "dashboard":
+      return "/app";
+    case "organization":
+      return `/app/organizations/${encodeURIComponent(route.organizationId)}`;
+  }
+}
+
+/** Unknown paths land on the home page rather than a dead end. */
+export function pathToRoute(path: string): Route {
+  const [pathname = ""] = path.split("?");
+  const [first, second, third] = pathname
+    .split("/")
+    .filter(Boolean)
+    .map(decodeURIComponent);
+  if (first === undefined) return { kind: "home" };
+  if (first === "sign-in") return { kind: "sign-in" };
+  if (first === "sign-up") return { kind: "sign-up" };
+  if (first === "app") {
+    if (second === "organizations" && third !== undefined)
+      return { kind: "organization", organizationId: third };
+    return { kind: "dashboard" };
+  }
+  return defaultRoute;
+}

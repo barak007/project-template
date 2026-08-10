@@ -32,6 +32,17 @@ The application client lives in [domain-client](domain-client) and is **headless
 
 The backoffice operator console ([backoffice](backoffice), see [docs/backoffice.md](docs/backoffice.md)) follows the same rules and does not duplicate the client: [backoffice/core](backoffice/core) composes `createClientCore` for all client-side operations (auth included) and adds only the platform-admin actions/state, under the identical no-globals/type-only-server-imports lint block (zone-enforced); its React UI in [backoffice/ui](backoffice/ui) owns no logic.
 
+## The app
+
+The product front end lives in [app](app) (see [docs/app.md](docs/app.md)): the public home page, sign-up, sign-in, and the pages behind the login. It follows the headless rules above and composes — never duplicates — the client core: [app/client](app/client) wraps `createClientCore` and adds only what a product UI needs, [app/ui](app/ui) is a React adapter that owns no logic, and [app/server](app/server) is the Node-side glue (dev-server port, production static shell). Rules:
+
+1. **The route is state, and the URL is its projection.** Routes are values ([app/client/router.ts](app/client/router.ts)); the shared routing loop is [domain-client/navigation.ts](domain-client/navigation.ts) over the `History` boundary ([domain-client/history.ts](domain-client/history.ts)) — the app and the backoffice both use it, and neither parses locations in the UI.
+2. **The login guard is a pure projection, not a redirect.** `visibleRoute` ([app/client/selectors.ts](app/client/selectors.ts)) decides what an anonymous visitor sees while the URL keeps pointing at the page they asked for, so signing in lands them there. `state.sessionResolved` gates the first render: until `session.load()` answers, no page is chosen.
+3. **Every action goes through `attempt`** ([app/client/attempt.ts](app/client/attempt.ts)): an `ApiError` becomes `state.error` because a UI cannot handle a throw, and an `AUTHENTICATION_REQUIRED` re-resolves the session instead of showing a message.
+4. **The app's slices layer over the client core's** as one tree with one subscription ([app/client/store.ts](app/client/store.ts)). `getState()` returns a cached snapshot — React's `useSyncExternalStore` requires it, so never build a fresh object in a selector.
+5. **The composition root owns the mount.** [domain-server/server.ts](domain-server/server.ts) wraps the API in the app's static shell ([app/server/web.ts](app/server/web.ts)) so app and API share one origin (first-party cookie, no CORS); `domain-server/` itself knows nothing about the app, and zone rules keep it that way.
+6. **UI flows are tested as stories in Node** through the client's world kit, via `visit()` ([app/tests/harness.ts](app/tests/harness.ts)) — one browser with its own cookie jar and history. Nothing about a page should need a browser to test.
+
 ## Style
 
 Prettier and ESLint own formatting; don't hand-format or add disable comments to get green.

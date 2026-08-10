@@ -70,7 +70,70 @@ export default tseslint.config(
               from: "./backoffice",
               except: ["./server"],
               message:
-                "Only the composition entries may mount the backoffice server; the app must not depend on the backoffice.",
+                "Only the composition entries may mount the backoffice server; the API must not depend on the backoffice.",
+            },
+            {
+              // Same shape for the web app: the composition root wraps the API
+              // in the app's static shell (app/server/web.ts) and nothing else
+              // in the API knows the app exists.
+              target: "./domain-server",
+              from: "./app",
+              except: ["./server"],
+              message:
+                "Only the composition entries may mount the web app; the API must not depend on the app.",
+            },
+            {
+              target: "./domain-client",
+              from: "./app",
+              message: "The client must not depend on the app.",
+            },
+            {
+              target: "./app",
+              from: "./backoffice",
+              message:
+                "The app and the backoffice are separate front ends; neither may import the other.",
+            },
+            {
+              target: "./backoffice",
+              from: "./app",
+              message:
+                "The app and the backoffice are separate front ends; neither may import the other.",
+            },
+            {
+              target: "./app",
+              from: "./domain-client",
+              except: [
+                "./index.ts",
+                "./store.ts",
+                "./errors.ts",
+                "./host.ts",
+                "./history.ts",
+                "./navigation.ts",
+                // The app's story tests reuse the client test kit.
+                "./tests",
+              ],
+              message:
+                "The app composes the client core through its public entry (plus the generic store/errors/host/routing modules).",
+            },
+            {
+              // Scoped to the browser-facing code: app/server and
+              // app/vite.config.ts are Node-side and may import freely.
+              target: ["./app/client", "./app/ui"],
+              from: "./domain-server",
+              message:
+                "The app's client and UI must not import server code; API types come from the client core.",
+            },
+            {
+              target: "./app/client",
+              from: [
+                "./app/server",
+                "./app/ui",
+                "./app/tests",
+                "./domain-client/tests",
+                "./domain-server/tests",
+              ],
+              message:
+                "The app client is headless: no server code, no UI, no test code.",
             },
             {
               target: "./domain-client",
@@ -108,6 +171,8 @@ export default tseslint.config(
                 "./store.ts",
                 "./errors.ts",
                 "./host.ts",
+                "./history.ts",
+                "./navigation.ts",
                 // The backoffice tests reuse the client test kit.
                 "./tests",
               ],
@@ -135,7 +200,11 @@ export default tseslint.config(
     // browser, in Node, or anywhere else — so no runtime globals of either.
     // Every environmental capability enters through the Host (domain-client/host.ts),
     // which is why even global fetch is banned.
-    files: ["domain-client/*.ts", "backoffice/client/**/*.ts"],
+    files: [
+      "domain-client/*.ts",
+      "app/client/**/*.ts",
+      "backoffice/client/**/*.ts",
+    ],
     rules: {
       "import-x/no-nodejs-modules": "error",
       // The zone above limits server imports to domain-server/app.ts; this closes the

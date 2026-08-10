@@ -31,6 +31,7 @@ it.concurrent("a founder manages sources", async ({ world, expect }) => {
 
 - `it` — vitest test extended with a per-test `world` fixture, torn down automatically.
 - `world.newClient()` — one simulated device: its own core and cookie jar.
+- `world.newDevice()` — a cookie jar that survives `reload()`, which builds the fresh core a page load would.
 - `world.signedUpUser(name?)` — persona: signed up and signed in.
 - `world.founder(name?)` — persona: signed in and owning a fresh organization.
 - `world.uniqueEmail(name)` — salted address; **never hard-code identifiers**.

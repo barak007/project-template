@@ -15,6 +15,8 @@ export default defineConfig({
       include: [
         "domain-server/**/*.ts",
         "domain-client/*.ts",
+        "app/client/**/*.ts",
+        "app/server/**/*.ts",
         "backoffice/client/**/*.ts",
         "backoffice/server/**/*.ts",
       ],

@@ -8,6 +8,8 @@
 4. Protect the Render production environment for administrators. Enable notifications for failed deploys and unhealthy services. Render centralizes stdout/stderr logs and polls `/health`; Sentry receives unexpected application errors when configured.
 5. In GitHub branch protection, require the `CI / check` status on the default branch, require pull requests, and prevent bypass except for designated administrators. Render's `checksPass` trigger then deploys the default branch only after CI succeeds.
 
+The API service also serves the web app: `pnpm build` emits it to `dist/app` inside the image, and the API process serves that shell from its own origin (see [app.md](./app.md)), so the app needs no service, domain, or CORS configuration of its own. `RENDER_EXTERNAL_URL` is therefore both the API's and the app's origin, which is what makes the session cookie first-party in previews too.
+
 The Docker pre-deploy command runs `node dist/migrate.js` before the API revision starts. A non-zero migration exit blocks the revision. The API and worker use the same Dockerfile and Git revision. PostgreSQL credentials, auth secrets, and the 32-byte encryption key are injected by Render and are not build arguments or image layers.
 
 ## Pull request previews

@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 
+import { createWebApp } from "../app/server/web.js";
 import {
   createBackofficeDependencies,
   createBackofficeRoutes,
@@ -10,13 +11,15 @@ import { createRuntime } from "./runtime.js";
 
 export type { AppType };
 
-// Composition root: the one place (with domain-server/dev-app.ts) allowed to know both
-// the app and the backoffice server, mounting the latter.
+// Composition root: the one place (with domain-server/dev-app.ts) allowed to know the
+// API, the backoffice server and the web app — mounting the backoffice and
+// wrapping the whole thing in the app's static shell.
 const runtime = await createRuntime();
-const app = createApp(runtime.dependencies).route(
+const api = createApp(runtime.dependencies).route(
   "/backoffice",
   createBackofficeRoutes(createBackofficeDependencies(runtime.dependencies.db)),
 );
+const app = createWebApp(api);
 const server = serve(
   { fetch: app.fetch, port: runtime.environment.PORT },
   (info) => {

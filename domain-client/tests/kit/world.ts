@@ -47,8 +47,16 @@ export async function createWorld() {
       : await connectInProcess();
   let personas = 0;
 
-  const newClient = () =>
-    createClientCore({ baseUrl, host: { fetch: browserFetch(request) } });
+  /**
+   * One device: a single cookie jar the browser keeps across reloads. Every
+   * `reload()` is the fresh core a page load constructs — same session.
+   */
+  const newDevice = () => {
+    const fetch = browserFetch(request);
+    return { reload: () => createClientCore({ baseUrl, host: { fetch } }) };
+  };
+
+  const newClient = () => newDevice().reload();
   const uniqueEmail = (name: string) =>
     `${name}-${crypto.randomUUID().slice(0, 8)}@example.test`;
 
@@ -79,6 +87,7 @@ export async function createWorld() {
     baseUrl,
     request,
     newClient,
+    newDevice,
     uniqueEmail,
     signedUpUser,
     founder,

@@ -37,10 +37,10 @@ setup).
 ## Development workflow
 
 ```sh
-pnpm dev             # API on :3000 (hot-reloaded) + backoffice on :5173
+pnpm dev             # API on :3000 (hot-reloaded) + app on :5174 + backoffice on :5173
 ```
 
-One command runs both: the API is served through Vite's SSR module runner,
+One command runs all of them: the API is served through Vite's SSR module runner,
 so edits under `domain-server/` swap the app in-process without a restart, and the
 backoffice Vite dev server on :5173 proxies `/api` to :3000
 (`pnpm backoffice:dev` still runs the UI alone against an already-running API).
