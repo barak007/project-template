@@ -1,7 +1,9 @@
 import type {
+  Connection,
   DataEntry,
   Membership,
   Organization,
+  RemoteRepository,
   Secret,
   Source,
   WorkSession,
@@ -23,6 +25,23 @@ export type ClientEvent =
   | { type: "organization-created"; organization: Organization }
   | { type: "members-loaded"; organizationId: string; members: Membership[] }
   | { type: "membership-put"; organizationId: string; membership: Membership }
+  | {
+      type: "connections-loaded";
+      organizationId: string;
+      connections: Connection[];
+    }
+  | { type: "connection-put"; organizationId: string; connection: Connection }
+  | {
+      type: "connection-deleted";
+      organizationId: string;
+      connectionId: string;
+    }
+  | {
+      type: "repositories-loaded";
+      organizationId: string;
+      repositories: RemoteRepository[];
+    }
+  | { type: "repository-imported"; organizationId: string; source: Source }
   | { type: "sources-loaded"; organizationId: string; sources: Source[] }
   | { type: "source-created"; organizationId: string; source: Source }
   | { type: "source-updated"; organizationId: string; source: Source }

@@ -1,5 +1,6 @@
 import { createApi } from "./api.js";
 import { createAuthActions } from "./auth-actions.js";
+import { createConnectionActions } from "./connection-actions.js";
 import {
   createOrganizationDataActions,
   createUserDataActions,
@@ -8,6 +9,7 @@ import type { Host } from "./host.js";
 import { createMemberActions } from "./member-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
 import { reduce } from "./projection.js";
+import { createRepositoryActions } from "./repository-actions.js";
 import {
   createOrganizationSecretActions,
   createUserSecretActions,
@@ -20,9 +22,12 @@ import { createWorkspaceActions } from "./workspace-actions.js";
 
 export { ApiError } from "./errors.js";
 export type {
+  Connection,
+  ConnectionInput,
   DataEntry,
   Membership,
   Organization,
+  RemoteRepository,
   Secret,
   Source,
   WorkSession,
@@ -44,6 +49,8 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     auth: createAuthActions(dependencies.baseUrl, dependencies.host, store),
     organizations: createOrganizationActions(api, store),
     members: createMemberActions(api, store),
+    connections: createConnectionActions(api, store),
+    repositories: createRepositoryActions(api, store),
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),
     workSessions: createWorkSessionActions(api, store),

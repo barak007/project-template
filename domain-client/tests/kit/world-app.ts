@@ -1,6 +1,7 @@
 import { createApp } from "../../../domain-server/app.js";
 import { createAuth } from "../../../domain-server/auth.js";
 import { loadEnvironment } from "../../../domain-server/config/env.js";
+import { createLocalGitProvider } from "../../../domain-server/git/local-provider.js";
 import {
   createTestDatabase,
   recordingJobs,
@@ -41,6 +42,7 @@ export async function createWorldApp(baseUrl: string): Promise<WorldApp> {
     auth: createAuth(db, environment),
     cipher: testCipher,
     jobs: recordingJobs().jobs,
+    gitProviders: { local: createLocalGitProvider() },
     reportError: () => undefined,
     ready: () => Promise.resolve(),
   });

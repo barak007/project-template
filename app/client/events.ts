@@ -1,6 +1,7 @@
 import type { Route } from "./router.js";
 import type {
   AppError,
+  ConnectionDraft,
   CredentialsDraft,
   NameDraft,
   SignUpDraft,
@@ -18,5 +19,6 @@ export type AppEvent =
   | { type: "sign-up-draft-changed"; draft: Partial<SignUpDraft> }
   | { type: "organization-draft-changed"; draft: Partial<NameDraft> }
   | { type: "workspace-draft-changed"; draft: Partial<NameDraft> }
+  | { type: "connection-draft-changed"; draft: Partial<ConnectionDraft> }
   | { type: "action-started" }
   | { type: "action-failed"; error: AppError };

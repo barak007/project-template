@@ -89,6 +89,10 @@ export const verification = pgTable(
 
 export const memberRole = pgEnum("member_role", ["owner", "admin", "member"]);
 export const sourceKind = pgEnum("source_kind", ["git", "database", "other"]);
+export const connectionProvider = pgEnum("connection_provider", [
+  "local",
+  "github",
+]);
 export const workSessionStatus = pgEnum("work_session_status", [
   "pending",
   "materializing",
@@ -119,6 +123,31 @@ export const organizationMembers = pgTable(
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
     index("organization_members_user_idx").on(table.userId),
+  ],
+);
+
+/**
+ * Where an organization's repositories come from. One connection per provider
+ * per organization; `config` is provider-specific and validated by the
+ * provider itself (a root path for `local`, an installation for `github`).
+ */
+export const connections = pgTable(
+  "connections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    provider: connectionProvider("provider").notNull(),
+    label: text("label").notNull(),
+    config: jsonb("config").$type<JsonValue>().notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    uniqueIndex("connections_org_provider_unique").on(
+      table.organizationId,
+      table.provider,
+    ),
   ],
 );
 
@@ -285,6 +314,7 @@ export const workSessions = pgTable(
 
 export const schema = {
   account,
+  connections,
   organizationData,
   organizationMembers,
   organizationSecrets,
@@ -302,6 +332,7 @@ export const schema = {
 
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
+export type Connection = typeof connections.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkSession = typeof workSessions.$inferSelect;

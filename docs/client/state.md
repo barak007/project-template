@@ -20,6 +20,8 @@ type ClientState = {
   // Slices scoped to the organization currently being worked on:
   currentOrganizationId: string | null;
   members: Membership[];
+  connections: Connection[]; // where repositories come from
+  repositories: RemoteRepository[]; // what those connections expose right now
   sources: Source[];
   workspaces: Workspace[];
   workSessions: WorkSession[];

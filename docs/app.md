@@ -51,9 +51,21 @@ adds only what a product front end needs on top:
 A workspace names the repositories a work session opens together. The product
 word is **repository**; the server stores them as `kind: "git"`
 [sources](client/actions/sources.md) and a session snapshots that list, but the
-app never shows the word "source". `core.repositories`
-([repository-actions.ts](../app/client/repository-actions.ts)) loads an
-organization's repositories and attaches or detaches one — both are a full
+app never shows the word "source".
+
+Two steps, on two pages:
+
+1. **Connect** ([ConnectionPanel](../app/ui/connection-panel.tsx), on the
+   organization page) points the organization at a
+   [connection](client/actions/connections.md) — today a folder on this
+   machine. It is an explicit button, separate from signing in, because the
+   connection belongs to the organization and outlives whoever set it up.
+2. **Pick** (on the workspace page) adds one of the
+   [repositories](client/actions/repositories.md) that connection exposes.
+
+`core.repositories.add` ([repository-actions.ts](../app/client/repository-actions.ts))
+does both halves of adding: it imports the repository as a source, then
+rewrites the workspace's list. Attaching and detaching are a full
 `workspaces.update`, since the server takes a replacement rather than a patch.
 
 The list is filtered and derived **during render**, never in a selector: a

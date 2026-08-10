@@ -49,6 +49,20 @@ export type MembershipInput = InferRequestType<
 export type JsonValue =
   null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 
+export type Connection = Omit<
+  InferResponseType<OrganizationRoutes["connections"]["$get"]>[number],
+  "config"
+> & { config: JsonValue };
+export type ConnectionInput = Omit<
+  InferRequestType<OrganizationRoutes["connections"]["$put"]>["json"],
+  "config"
+> & { config: JsonValue };
+export type RemoteRepository = InferResponseType<
+  OrganizationRoutes["repositories"]["$get"]
+>[number];
+export type RepositoryImport = InferRequestType<
+  OrganizationRoutes["repositories"]["$post"]
+>["json"];
 export type Source = Omit<
   InferResponseType<OrganizationRoutes["sources"]["$get"]>[number],
   "config"

@@ -1,3 +1,4 @@
+CREATE TYPE "public"."connection_provider" AS ENUM('local', 'github');--> statement-breakpoint
 CREATE TYPE "public"."member_role" AS ENUM('owner', 'admin', 'member');--> statement-breakpoint
 CREATE TYPE "public"."source_kind" AS ENUM('git', 'database', 'other');--> statement-breakpoint
 CREATE TYPE "public"."work_session_status" AS ENUM('pending', 'materializing', 'ready', 'failed');--> statement-breakpoint
@@ -13,6 +14,16 @@ CREATE TABLE "account" (
 	"refresh_token_expires_at" timestamp with time zone,
 	"scope" text,
 	"password" text,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "connections" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"provider" "connection_provider" NOT NULL,
+	"label" text NOT NULL,
+	"config" jsonb NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -139,6 +150,7 @@ CREATE TABLE "workspaces" (
 );
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "connections" ADD CONSTRAINT "connections_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization_data" ADD CONSTRAINT "organization_data_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -154,6 +166,7 @@ ALTER TABLE "workspace_sources" ADD CONSTRAINT "workspace_sources_workspace_id_w
 ALTER TABLE "workspace_sources" ADD CONSTRAINT "workspace_sources_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "connections_org_provider_unique" ON "connections" USING btree ("organization_id","provider");--> statement-breakpoint
 CREATE UNIQUE INDEX "organization_data_scope_key_unique" ON "organization_data" USING btree ("organization_id","key");--> statement-breakpoint
 CREATE INDEX "organization_members_user_idx" ON "organization_members" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "organization_secrets_scope_key_unique" ON "organization_secrets" USING btree ("organization_id","key");--> statement-breakpoint

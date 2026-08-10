@@ -9,7 +9,8 @@ Persistence is defined in [domain-server/db/schema.ts](../src/db/schema.ts) and 
 - **Organization** — a group of users that owns sources, workspaces, and work sessions. Every organization-owned record carries an `organizationId`.
 - **User** — an individual who can belong to many organizations. Users also own personal secrets and data that exist outside any organization.
 - **OrganizationMember** — the membership record joining a user to an organization with one role: `owner`, `admin`, or `member`.
-- **Source** — a definition of a git repository, database, or other external data source (`kind`: `git` | `database` | `other`) plus a JSON `config`. Names are unique within an organization.
+- **Connection** — where an organization's repositories come from (`provider`: `local` | `github`) plus a provider-specific JSON `config`. One per provider per organization; connecting again replaces it. The `local` provider reads repositories from a folder on the machine running the server and needs no account; `github` is not registered yet, so connecting to it is rejected.
+- **Source** — a definition of a git repository, database, or other external data source (`kind`: `git` | `database` | `other`) plus a JSON `config`. Names are unique within an organization. Importing a repository from a connection creates one, and importing the same repository twice returns the source that already exists.
 - **Workspace** — a named set of sources within an organization, used as the template for a work session. Names are unique within an organization. Every referenced source must belong to the same organization.
 - **WorkSession** — the result of materializing a workspace. Created by copying the workspace's sources and the caller's resolved secrets and data into an immutable snapshot, then materializing asynchronously.
 - **OrganizationSecret** / **UserSecret** — a key and an encrypted value, at most one per scope and key. Values are encrypted at rest and never returned by the API; reads expose keys and metadata only.
@@ -28,6 +29,7 @@ Membership grants permissions; permissions gate operations. The matrix is define
 | `resource:read`       | ✓     | ✓     | ✓      |
 | `resource:write`      | ✓     | ✓     |        |
 | `secret:manage`       | ✓     | ✓     |        |
+| `connection:manage`   | ✓     | ✓     |        |
 
 Rules that hold across the domain:
 
@@ -50,6 +52,20 @@ Statuses: `pending` → `materializing` → `ready`, or `failed` with a `failure
 
 **Snapshot resolution.** Organization values and the creating user's values are merged by key, and **user values win on conflict**. Secret values are copied into the snapshot still encrypted; consumers decrypt them at use time, so secrets stay encrypted at rest everywhere. The snapshot is taken at creation, so later edits to a source, secret, or data value affect only future sessions — never an existing one. Source-specific materialization behavior is an extension point for apps built on this service; the base implementation only advances status.
 
+## Git providers
+
+Where repositories come from is a port, not a hard-coded host:
+[domain-server/git/provider.ts](../domain-server/git/provider.ts) defines
+`connect` and `listRepositories`, and the runtime registers the
+implementations this deployment can use. Neither the services nor the routes
+know whether a repository lives on GitHub or in a folder on this machine.
+
+A provider absent from the registry is one the domain refuses to connect —
+which is exactly how `github` behaves until its credentials exist, and why
+that is a `VALIDATION_FAILED` rather than a missing route.
+
 ## Extension points
 
-A client application, additional identity providers, and real per-`kind` source materializers are intentionally left to each app built from this boilerplate.
+A client application, additional identity providers, further git providers,
+and real per-`kind` source materializers are intentionally left to each app
+built from this boilerplate.

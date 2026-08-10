@@ -10,7 +10,7 @@ import { useAppState } from "./use-app-state.js";
 /**
  * One workspace and the repositories it works on. Picking repositories is the
  * whole page: the name is set where the workspace is created, and a session
- * reads exactly this list.
+ * opens exactly this list.
  */
 export function WorkspacePage({
   core,
@@ -24,6 +24,8 @@ export function WorkspacePage({
   const organization = useAppState(core, currentOrganization);
   const workspace = useAppState(core, currentWorkspace);
   const sources = useAppState(core, (state) => state.sources);
+  const repositories = useAppState(core, (state) => state.repositories);
+  const connections = useAppState(core, (state) => state.connections);
 
   useEffect(() => {
     void core.organizations.load();
@@ -33,17 +35,19 @@ export function WorkspacePage({
 
   // Derived during render, never in a selector: a filter builds a fresh array
   // every call, which useSyncExternalStore reads as a changed snapshot.
-  const repositories = sources.filter((source) => source.kind === "git");
-  const attached = repositories.filter((repository) =>
-    workspace?.sourceIds.includes(repository.id),
+  const attached = sources.filter((source) =>
+    workspace?.sourceIds.includes(source.id),
   );
+  const attachedNames = new Set(attached.map((source) => source.name));
+  // A repository already in this workspace is not offered again. Matching on
+  // name is what the import does when it reuses an existing source.
   const available = repositories.filter(
-    (repository) => !workspace?.sourceIds.includes(repository.id),
+    (repository) => !attachedNames.has(repository.name),
   );
   const nothingAvailable =
-    repositories.length === 0
-      ? "No repositories in this organization yet."
-      : "Every repository in this organization is already in the workspace.";
+    connections.length === 0
+      ? "No repository source connected yet — connect one on the organization page."
+      : "Every repository this source exposes is already in the workspace.";
 
   return (
     <section className="page">
@@ -67,16 +71,16 @@ export function WorkspacePage({
         <p className="empty">No repositories in this workspace yet.</p>
       ) : (
         <ul className="rows">
-          {attached.map((repository) => (
-            <li key={repository.id}>
-              <strong>{repository.name}</strong>
+          {attached.map((source) => (
+            <li key={source.id}>
+              <strong>{source.name}</strong>
               <button
                 className="ghost danger"
                 onClick={() => {
-                  void core.repositories.detach(
+                  void core.repositories.remove(
                     organizationId,
                     workspaceId,
-                    repository.id,
+                    source.id,
                   );
                 }}
               >
@@ -93,15 +97,15 @@ export function WorkspacePage({
       ) : (
         <ul className="rows">
           {available.map((repository) => (
-            <li key={repository.id}>
+            <li key={`${repository.connectionId}:${repository.externalId}`}>
               <strong>{repository.name}</strong>
+              <span className="muted">{repository.remote}</span>
               <button
                 onClick={() => {
-                  void core.repositories.attach(
-                    organizationId,
-                    workspaceId,
-                    repository.id,
-                  );
+                  void core.repositories.add(organizationId, workspaceId, {
+                    connectionId: repository.connectionId,
+                    externalId: repository.externalId,
+                  });
                 }}
               >
                 Add

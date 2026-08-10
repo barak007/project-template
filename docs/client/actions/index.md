@@ -17,6 +17,8 @@ touch [state](../state.md) directly.
 | [auth](./auth.md)                   | —            | `loadSession`, `signUp`, `signIn`, `signOut` |
 | [organizations](./organizations.md) | user         | `load`, `create`                             |
 | [members](./members.md)             | organization | `load`, `put`                                |
+| [connections](./connections.md)     | organization | `load`, `connect`, `disconnect`              |
+| [repositories](./repositories.md)   | organization | `load`, `importRepository`                   |
 | [sources](./sources.md)             | organization | `load`, `create`, `update`, `delete`         |
 | [workspaces](./workspaces.md)       | organization | `load`, `create`, `update`, `delete`         |
 | [workSessions](./work-sessions.md)  | organization | `load`, `start`, `refresh`                   |

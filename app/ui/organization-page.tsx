@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { currentOrganization } from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
+import { ConnectionPanel } from "./connection-panel.js";
 import { ErrorBanner } from "./error-banner.js";
 import { RouteLink } from "./route-link.js";
 import { useAppState } from "./use-app-state.js";
@@ -22,6 +23,7 @@ export function OrganizationPage({
   useEffect(() => {
     void core.organizations.load();
     void core.workspaces.load(organizationId);
+    void core.connections.load(organizationId);
   }, [core, organizationId]);
 
   return (
@@ -34,6 +36,8 @@ export function OrganizationPage({
         <p className="muted">Workspaces group the sources a session reads.</p>
       </header>
       <ErrorBanner core={core} />
+      <ConnectionPanel core={core} organizationId={organizationId} />
+      <h2>Workspaces</h2>
       {workspaces.length === 0 ? (
         <p className="empty">No workspaces yet.</p>
       ) : (

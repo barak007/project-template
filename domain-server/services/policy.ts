@@ -9,7 +9,8 @@ export type Permission =
   | "organization:manage"
   | "resource:read"
   | "resource:write"
-  | "secret:manage";
+  | "secret:manage"
+  | "connection:manage";
 
 const permissions = {
   owner: new Set<Permission>([
@@ -18,12 +19,14 @@ const permissions = {
     "resource:read",
     "resource:write",
     "secret:manage",
+    "connection:manage",
   ]),
   admin: new Set<Permission>([
     "organization:read",
     "resource:read",
     "resource:write",
     "secret:manage",
+    "connection:manage",
   ]),
   member: new Set<Permission>(["organization:read", "resource:read"]),
 } as const;

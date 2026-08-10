@@ -4,16 +4,21 @@ title: Work Session Creation
 description: The end-to-end flow from connecting GitHub to opening a session on a folder — local first, cloud later — with the decisions it forced and the order it gets built in.
 tags: [domain, sessions, git, github, runtime]
 timestamp: 2026-08-10T00:00:00Z
-status: agreed — build order set, step 1 in progress
+status: agreed — steps 1 and 2 built for the local provider; GitHub pending credentials
 ---
 
 # Work Session Creation
 
 The story, the decisions it forced, and the order they get built in. The
 entities it touches are defined in [domain.md](./domain.md) and the access
-rules in [permissions.md](./permissions.md). Only step 1 of the build order is
-underway: [work-sessions.ts](../domain-server/services/work-sessions.ts) still
-only snapshots and advances status.
+rules in [permissions.md](./permissions.md).
+
+Steps 1 and 2 are built, against a **local** git provider rather than GitHub:
+an organization connects a folder on this machine and a workspace picks
+repositories out of it. GitHub is the same port with different credentials.
+Steps 3 and 4 are untouched —
+[work-sessions.ts](../domain-server/services/work-sessions.ts) still only
+snapshots and advances status.
 
 ## The story
 
@@ -130,10 +135,13 @@ workspace into a shared one later.
 
 ## Build order
 
-1. **The workspace page** — a route, and repository selection on it. Nothing
-   else has anywhere to live until this exists.
-2. **The GitHub connection** — installation, encrypted credential, repository
-   listing.
+1. ~~**The workspace page**~~ — done: a route, and repository selection on it.
+2. **The connection** — done for `local`
+   ([git/provider.ts](../domain-server/git/provider.ts) is the port,
+   [local-provider.ts](../domain-server/git/local-provider.ts) reads
+   repositories out of a folder on this machine). **GitHub is what remains**:
+   registering the App, storing the installation credential encrypted, and
+   adding a `github` entry to the registry. Nothing above the port changes.
 3. **A real materializer port** — injected on `RuntimeDependencies`, so the
    job can do git work and tests can stub it. Steps 1–3 are verifiable
    end-to-end with no agent and no cloud: press the button, a setup repository
