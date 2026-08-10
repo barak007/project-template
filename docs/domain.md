@@ -19,6 +19,8 @@ Persistence is defined in [domain-server/db/schema.ts](../src/db/schema.ts) and 
 
 Membership grants permissions; permissions gate operations. The matrix is defined in [domain-server/services/policy.ts](../src/services/policy.ts).
 
+> This section describes what is implemented today. The agreed target model — teams, and per-workspace grants — is defined in [permissions.md](./permissions.md) and is not yet built.
+
 | Permission            | owner | admin | member |
 | --------------------- | ----- | ----- | ------ |
 | `organization:read`   | ✓     | ✓     | ✓      |
