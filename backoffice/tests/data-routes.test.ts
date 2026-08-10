@@ -627,7 +627,7 @@ describe("row mutations", () => {
           organizationId,
           name: "alpha-repo",
           kind: "git",
-          config: {},
+          config: { remote: "https://example.test/repo.git" },
         },
       }),
     );

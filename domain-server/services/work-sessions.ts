@@ -13,6 +13,7 @@ import {
   type JsonValue,
 } from "../db/schema.js";
 import { AppError } from "../errors.js";
+import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 import type { JobProducer } from "../jobs/queue.js";
 
 import { requireOrganizationPermission } from "./policy.js";
@@ -65,6 +66,53 @@ export async function getWorkSession(
     .limit(1);
   if (!row) throw new AppError("NOT_FOUND", "Work session not found", 404);
   return response(row);
+}
+
+/**
+ * Puts every repository in the session's project on one branch. The command a
+ * user reaches for first, because a submodule is checked out detached and
+ * committing needs a branch.
+ */
+export async function branchWorkSessionProject(
+  db: Database,
+  projectBuilder: WorkspaceProjectBuilder,
+  userId: string,
+  organizationId: string,
+  workSessionId: string,
+  branch: string,
+) {
+  await requireOrganizationPermission(
+    db,
+    userId,
+    organizationId,
+    "resource:write",
+  );
+  const [row] = await db
+    .select()
+    .from(workSessions)
+    .where(
+      and(
+        eq(workSessions.id, workSessionId),
+        eq(workSessions.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!row) throw new AppError("NOT_FOUND", "Work session not found", 404);
+  if (!row.projectLocation)
+    throw new AppError(
+      "VALIDATION_FAILED",
+      "This session is still being prepared",
+      400,
+    );
+
+  await projectBuilder.branchAll(row.projectLocation, branch);
+  const [updated] = await db
+    .update(workSessions)
+    .set({ projectBranch: branch, updatedAt: new Date() })
+    .where(eq(workSessions.id, workSessionId))
+    .returning();
+  if (!updated) throw new AppError("NOT_FOUND", "Work session not found", 404);
+  return response(updated);
 }
 
 export async function createWorkSession(

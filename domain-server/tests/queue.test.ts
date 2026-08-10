@@ -9,6 +9,8 @@ import {
 } from "../jobs/materialize.js";
 import { QueueRuntime } from "../jobs/queue.js";
 
+import { recordingProjectBuilder } from "./helpers/project-builder.js";
+
 const boss = vi.hoisted(() => ({
   start: vi.fn(),
   createQueue: vi.fn(),
@@ -88,7 +90,8 @@ describe("QueueRuntime", () => {
   it("routes worked jobs into the materializer", async () => {
     const runtime = new QueueRuntime("postgres://localhost/test");
     const db = {} as Database;
-    await runtime.registerWorkers(db);
+    const { projectBuilder } = recordingProjectBuilder();
+    await runtime.registerWorkers(db, projectBuilder);
     expect(boss.work).toHaveBeenCalledWith(
       MATERIALIZE_WORK_SESSION_QUEUE,
       { batchSize: 1 },
@@ -99,7 +102,10 @@ describe("QueueRuntime", () => {
     ) => Promise<void>;
     const workSessionId = randomUUID();
     await handler([{ data: { workSessionId } }]);
-    expect(materializeWorkSession).toHaveBeenCalledWith(db, { workSessionId });
+    // The builder reaches the job through the worker, not a module singleton.
+    expect(materializeWorkSession).toHaveBeenCalledWith(db, projectBuilder, {
+      workSessionId,
+    });
     await expect(handler([{ data: {} }])).rejects.toThrow();
   });
 

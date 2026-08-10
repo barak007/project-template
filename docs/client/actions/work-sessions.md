@@ -19,7 +19,9 @@ Starting a session snapshots, at that moment:
 
 Materialization is asynchronous: the session is accepted as `"pending"` and a
 worker advances it to `"materializing"`, `"ready"`, or `"failed"`
-(`failureCode` set).
+(`failureCode` set). What the worker builds is a **git project** — one submodule
+per git source in the snapshot, each checked out on a branch. `projectLocation`
+(where it was built) and `projectBranch` are null until `"ready"`.
 
 ## `load(organizationId)`
 
@@ -34,3 +36,13 @@ snapshot to `state.workSessions`.
 
 Re-fetches one session and upserts it — poll this to observe status
 transitions.
+
+## `branchAll(organizationId, workSessionId, branch)`
+
+Puts every repository in the session's project on `branch`, creating it where it
+does not exist, and upserts the updated session. Requires `resource:write`.
+
+The command a user reaches for first: a submodule is checked out detached, so
+committing needs a branch. Before the project exists — while the session is still
+preparing — this is `VALIDATION_FAILED`, and a project the running builder cannot
+reach (a bucket, from a local server) is the same.

@@ -11,7 +11,7 @@ describe("source stories", () => {
       await core.sources.create(organization.id, {
         name: "repo",
         kind: "git",
-        config: { url: "git://example.test/repo" },
+        config: { remote: "git://example.test/repo" },
       });
       const source = core.getState().sources[0];
       expect(source).toMatchObject({
@@ -24,7 +24,7 @@ describe("source stories", () => {
       await core.sources.update(organization.id, source.id, {
         name: "monorepo",
         kind: "git",
-        config: { url: "git://example.test/monorepo" },
+        config: { remote: "git://example.test/monorepo" },
       });
       expect(core.getState().sources.map(({ name }) => name)).toEqual([
         "monorepo",
@@ -52,7 +52,7 @@ describe("source stories", () => {
       await core.sources.create(first.id, {
         name: "repo",
         kind: "git",
-        config: {},
+        config: { remote: "https://example.test/repo.git" },
       });
       expect(core.getState().currentOrganizationId).toBe(first.id);
       expect(core.getState().sources).toHaveLength(1);

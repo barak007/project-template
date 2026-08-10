@@ -62,7 +62,7 @@ integration("work-session snapshots", () => {
         organizationId,
         name: "repo",
         kind: "git",
-        config: { url: "https://example.test/repo.git" },
+        config: { remote: "https://example.test/repo.git" },
       })
       .returning();
     const [workspace] = await db

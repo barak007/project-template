@@ -89,10 +89,6 @@ export const verification = pgTable(
 
 export const memberRole = pgEnum("member_role", ["owner", "admin", "member"]);
 export const sourceKind = pgEnum("source_kind", ["git", "database", "other"]);
-export const connectionProvider = pgEnum("connection_provider", [
-  "local",
-  "github",
-]);
 export const workSessionStatus = pgEnum("work_session_status", [
   "pending",
   "materializing",
@@ -127,30 +123,10 @@ export const organizationMembers = pgTable(
 );
 
 /**
- * Where an organization's repositories come from. One connection per provider
- * per organization; `config` is provider-specific and validated by the
- * provider itself (a root path for `local`, an installation for `github`).
+ * A definition of an external data source. A `git` source is a remote URL and
+ * nothing more — no account, no connection, no folder on any machine — because
+ * a session materializes it by cloning it as a submodule.
  */
-export const connections = pgTable(
-  "connections",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: uuid("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    provider: connectionProvider("provider").notNull(),
-    label: text("label").notNull(),
-    config: jsonb("config").$type<JsonValue>().notNull(),
-    ...timestamps,
-  },
-  (table) => [
-    uniqueIndex("connections_org_provider_unique").on(
-      table.organizationId,
-      table.provider,
-    ),
-  ],
-);
-
 export const sources = pgTable(
   "sources",
   {
@@ -276,6 +252,15 @@ export type SourceSnapshot = {
   config: JsonValue;
 };
 
+/**
+ * Where a session's git project was materialized. `local` is a directory on the
+ * machine running the server; a deployed installation writes to a bucket
+ * instead, which is why this is a shape rather than a path column.
+ */
+export type ProjectLocation =
+  | { kind: "local"; path: string }
+  | { kind: "s3"; bucket: string; prefix: string };
+
 export const workSessions = pgTable(
   "work_sessions",
   {
@@ -299,6 +284,9 @@ export const workSessions = pgTable(
     dataSnapshot: jsonb("data_snapshot")
       .$type<Record<string, JsonValue>>()
       .notNull(),
+    // Both are null until the project is built, which is what `ready` means.
+    projectBranch: text("project_branch"),
+    projectLocation: jsonb("project_location").$type<ProjectLocation>(),
     failureCode: text("failure_code"),
     ...timestamps,
   },
@@ -314,7 +302,6 @@ export const workSessions = pgTable(
 
 export const schema = {
   account,
-  connections,
   organizationData,
   organizationMembers,
   organizationSecrets,
@@ -332,7 +319,6 @@ export const schema = {
 
 export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
-export type Connection = typeof connections.$inferSelect;
 export type Source = typeof sources.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
 export type WorkSession = typeof workSessions.$inferSelect;

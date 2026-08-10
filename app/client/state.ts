@@ -6,7 +6,6 @@ import type { Route } from "./router.js";
 export type CredentialsDraft = { email: string; password: string };
 export type SignUpDraft = CredentialsDraft & { name: string };
 export type NameDraft = { name: string };
-export type ConnectionDraft = { rootPath: string };
 export type AppError = { code: string; message: string };
 
 /**
@@ -25,7 +24,8 @@ export type AppOwnState = {
   signUpDraft: SignUpDraft;
   organizationDraft: NameDraft;
   workspaceDraft: NameDraft;
-  connectionDraft: ConnectionDraft;
+  /** The repository URL being typed on the workspace page. */
+  repositoryDraft: string;
   /** The last failed action, cleared when the next one starts. */
   error: AppError | null;
 };
@@ -46,6 +46,6 @@ export const initialAppOwnState: AppOwnState = {
   signUpDraft: emptySignUpDraft,
   organizationDraft: { name: "" },
   workspaceDraft: { name: "" },
-  connectionDraft: { rootPath: "" },
+  repositoryDraft: "",
   error: null,
 };

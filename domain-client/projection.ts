@@ -76,25 +76,7 @@ export function reduce(previous: ClientState, event: ClientEvent): ClientState {
           event.membership,
         ],
       };
-    case "connections-loaded":
-      return { ...state, connections: event.connections };
-    case "connection-put":
-      return {
-        ...state,
-        connections: upsertById(state.connections, event.connection),
-      };
-    case "connection-deleted":
-      return {
-        ...state,
-        // The repositories it exposed go with it; nothing else can list them.
-        connections: removeById(state.connections, event.connectionId),
-        repositories: state.repositories.filter(
-          (repository) => repository.connectionId !== event.connectionId,
-        ),
-      };
-    case "repositories-loaded":
-      return { ...state, repositories: event.repositories };
-    case "repository-imported":
+    case "repository-added":
       return { ...state, sources: upsertById(state.sources, event.source) };
     case "sources-loaded":
       return { ...state, sources: event.sources };

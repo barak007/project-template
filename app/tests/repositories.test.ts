@@ -1,7 +1,3 @@
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-
 import { describe } from "vitest";
 
 import { it } from "../../domain-client/tests/kit/fixtures.js";
@@ -11,33 +7,12 @@ import type { AppCore } from "../client/index.js";
 
 import { signIn, visit } from "./harness.js";
 
-/**
- * A real folder holding real git repositories — the local provider reads the
- * filesystem, so a story about picking repositories is worth nothing against
- * a fake one.
- */
-async function folderOfRepositories(
-  names: string[],
-  // The context's own hook, not the imported one: these stories run
-  // concurrently, so cleanup has to be registered against this test.
-  cleanUpAfterwards: (clean: () => Promise<void>) => void,
-) {
-  const root = await mkdtemp(join(tmpdir(), "wwsa-repos-"));
-  cleanUpAfterwards(() => rm(root, { recursive: true, force: true }));
-  for (const name of names)
-    await mkdir(join(root, name, ".git"), { recursive: true });
-  return root;
-}
-
-/** A signed-in founder whose organization is connected to `root`. */
-async function connectedFounder(world: World, root: string) {
+/** A signed-in founder, on the page a workspace is created from. */
+async function founderAtWork(world: World) {
   const founder = await world.founder("ada");
-  const organizationId = founder.organization.id;
   const { core, history } = visit(world, "/sign-in");
   await signIn(core, founder.credentials);
-  core.connections.changeDraft({ rootPath: root });
-  await core.connections.connectLocal(organizationId);
-  return { core, history, organizationId };
+  return { core, history, organizationId: founder.organization.id };
 }
 
 /** Creates a workspace through the page's own form and returns it. */
@@ -55,34 +30,22 @@ async function createWorkspace(
   return workspace;
 }
 
+/** Types a URL into the page's field and submits it. */
+async function addRepository(
+  core: AppCore,
+  organizationId: string,
+  workspaceId: string,
+  remote: string,
+) {
+  core.repositories.draft(remote);
+  await core.repositories.add(organizationId, workspaceId);
+}
+
 describe("choosing the repositories a workspace works on", () => {
   it.concurrent(
-    "connecting a folder lists the repositories inside it",
-    async ({ world, expect, onTestFinished }) => {
-      const root = await folderOfRepositories(
-        ["engine", "notes"],
-        onTestFinished,
-      );
-      // A directory that is not a repository is not offered.
-      await mkdir(join(root, "scratch"), { recursive: true });
-      const { core } = await connectedFounder(world, root);
-
-      expect(core.getState().repositories.map((one) => one.name)).toEqual([
-        "engine",
-        "notes",
-      ]);
-      expect(core.getState().connections[0]?.label).toBe(root);
-    },
-  );
-
-  it.concurrent(
     "opening a workspace moves the URL and names the page",
-    async ({ world, expect, onTestFinished }) => {
-      const root = await folderOfRepositories([], onTestFinished);
-      const { core, history, organizationId } = await connectedFounder(
-        world,
-        root,
-      );
+    async ({ world, expect }) => {
+      const { core, history, organizationId } = await founderAtWork(world);
       const workspace = await createWorkspace(
         core,
         organizationId,
@@ -99,30 +62,30 @@ describe("choosing the repositories a workspace works on", () => {
   );
 
   it.concurrent(
-    "a repository is added to the workspace and removed again",
-    async ({ world, expect, onTestFinished }) => {
-      const root = await folderOfRepositories(
-        ["engine", "notes"],
-        onTestFinished,
-      );
-      const { core, organizationId } = await connectedFounder(world, root);
+    "a URL becomes a repository in the workspace, and is removed again",
+    async ({ world, expect }) => {
+      const { core, organizationId } = await founderAtWork(world);
       const workspace = await createWorkspace(
         core,
         organizationId,
         "Reporting",
       );
       core.workspaces.open(organizationId, workspace.id);
-      const [engine] = core.getState().repositories;
-      if (!engine) throw new Error("the folder exposed no repositories");
 
-      await core.repositories.add(organizationId, workspace.id, engine);
+      await addRepository(
+        core,
+        organizationId,
+        workspace.id,
+        "https://github.com/acme/engine.git",
+      );
 
-      // Adding imports the repository as a source, and the workspace points at it.
+      // The URL's last segment names it, and the field is cleared to type another.
       const source = core
         .getState()
         .sources.find((candidate) => candidate.name === "engine");
-      if (!source) throw new Error("the repository was not imported");
+      if (!source) throw new Error("the repository was not added");
       expect(currentWorkspace(core.getState())?.sourceIds).toEqual([source.id]);
+      expect(core.getState().repositoryDraft).toBe("");
 
       await core.repositories.remove(organizationId, workspace.id, source.id);
 
@@ -132,42 +95,72 @@ describe("choosing the repositories a workspace works on", () => {
   );
 
   it.concurrent(
-    "the same repository in two workspaces is imported once",
-    async ({ world, expect, onTestFinished }) => {
-      const root = await folderOfRepositories(["engine"], onTestFinished);
-      const { core, organizationId } = await connectedFounder(world, root);
+    "the same URL in two workspaces is one repository",
+    async ({ world, expect }) => {
+      const { core, organizationId } = await founderAtWork(world);
       const reporting = await createWorkspace(
         core,
         organizationId,
         "Reporting",
       );
       const billing = await createWorkspace(core, organizationId, "Billing");
-      const [engine] = core.getState().repositories;
-      if (!engine) throw new Error("the folder exposed no repositories");
+      const remote = "git@github.com:acme/engine.git";
 
-      await core.repositories.add(organizationId, reporting.id, engine);
-      await core.repositories.add(organizationId, billing.id, engine);
+      await addRepository(core, organizationId, reporting.id, remote);
+      await addRepository(core, organizationId, billing.id, remote);
 
       const sources = core.getState().sources;
       expect(sources).toHaveLength(1);
-      const workspaces = core.getState().workspaces;
-      for (const workspace of workspaces)
+      for (const workspace of core.getState().workspaces)
         expect(workspace.sourceIds).toEqual([sources[0]?.id]);
       expect(core.getState().error).toBeNull();
     },
   );
 
   it.concurrent(
-    "connecting a folder that does not exist is a failure the page can show",
+    "two repositories whose URLs end the same way both keep a name",
     async ({ world, expect }) => {
-      const founder = await world.founder("ada");
-      const { core } = visit(world, "/sign-in");
-      await signIn(core, founder.credentials);
+      const { core, organizationId } = await founderAtWork(world);
+      const workspace = await createWorkspace(core, organizationId, "Platform");
+      core.workspaces.open(organizationId, workspace.id);
 
-      core.connections.changeDraft({ rootPath: "/no/such/folder/anywhere" });
-      await core.connections.connectLocal(founder.organization.id);
+      await addRepository(
+        core,
+        organizationId,
+        workspace.id,
+        "https://github.com/acme/api.git",
+      );
+      await addRepository(
+        core,
+        organizationId,
+        workspace.id,
+        "https://github.com/other/api.git",
+      );
 
-      expect(core.getState().connections).toEqual([]);
+      expect(
+        core
+          .getState()
+          .sources.map((one) => one.name)
+          .sort(),
+      ).toEqual(["api", "api-2"]);
+      expect(currentWorkspace(core.getState())?.sourceIds).toHaveLength(2);
+    },
+  );
+
+  it.concurrent(
+    "something that is not a git URL is a failure the page can show",
+    async ({ world, expect }) => {
+      const { core, organizationId } = await founderAtWork(world);
+      const workspace = await createWorkspace(core, organizationId, "Platform");
+
+      await addRepository(
+        core,
+        organizationId,
+        workspace.id,
+        "/Users/ada/projects/engine",
+      );
+
+      expect(core.getState().sources).toEqual([]);
       expect(core.getState().error?.code).toBe("VALIDATION_FAILED");
     },
   );
@@ -182,23 +175,8 @@ describe("choosing the repositories a workspace works on", () => {
 
       await core.repositories.load(stranger.organization.id);
 
-      expect(core.getState().repositories).toEqual([]);
+      expect(core.getState().sources).toEqual([]);
       expect(core.getState().error?.code).toBe("FORBIDDEN");
-    },
-  );
-
-  it.concurrent(
-    "disconnecting takes the repositories with it",
-    async ({ world, expect, onTestFinished }) => {
-      const root = await folderOfRepositories(["engine"], onTestFinished);
-      const { core, organizationId } = await connectedFounder(world, root);
-      const connection = core.getState().connections[0];
-      if (!connection) throw new Error("the folder was not connected");
-
-      await core.connections.disconnect(organizationId, connection.id);
-
-      expect(core.getState().connections).toEqual([]);
-      expect(core.getState().repositories).toEqual([]);
     },
   );
 });

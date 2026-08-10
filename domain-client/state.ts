@@ -1,9 +1,7 @@
 import type {
-  Connection,
   DataEntry,
   Membership,
   Organization,
-  RemoteRepository,
   Secret,
   Source,
   WorkSession,
@@ -25,9 +23,7 @@ export type AuthState =
 export type OrganizationSlices = {
   currentOrganizationId: string | null;
   members: Membership[];
-  connections: Connection[];
-  /** What the connections expose right now — not stored, re-read on demand. */
-  repositories: RemoteRepository[];
+  /** Repositories are `git` sources; there is no separate collection. */
   sources: Source[];
   workspaces: Workspace[];
   workSessions: WorkSession[];
@@ -45,8 +41,6 @@ export type ClientState = OrganizationSlices & {
 export const emptyOrganizationSlices: OrganizationSlices = {
   currentOrganizationId: null,
   members: [],
-  connections: [],
-  repositories: [],
   sources: [],
   workspaces: [],
   workSessions: [],

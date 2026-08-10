@@ -53,20 +53,26 @@ word is **repository**; the server stores them as `kind: "git"`
 [sources](client/actions/sources.md) and a session snapshots that list, but the
 app never shows the word "source".
 
-Two steps, on two pages:
-
-1. **Connect** ([ConnectionPanel](../app/ui/connection-panel.tsx), on the
-   organization page) points the organization at a
-   [connection](client/actions/connections.md) — today a folder on this
-   machine. It is an explicit button, separate from signing in, because the
-   connection belongs to the organization and outlives whoever set it up.
-2. **Pick** (on the workspace page) adds one of the
-   [repositories](client/actions/repositories.md) that connection exposes.
+One step, on one page: paste a git URL into the workspace page's field. Nothing
+is connected first — a repository is a definition, not something discovered on a
+machine (see [sessions.md](./sessions.md)).
 
 `core.repositories.add` ([repository-actions.ts](../app/client/repository-actions.ts))
-does both halves of adding: it imports the repository as a source, then
-rewrites the workspace's list. Attaching and detaching are a full
-`workspaces.update`, since the server takes a replacement rather than a patch.
+does both halves of adding: it defines the repository as a source, then rewrites
+the workspace's list. Attaching and detaching are a full `workspaces.update`,
+since the server takes a replacement rather than a patch. The URL being typed is
+`state.repositoryDraft` — a store slice, not `useState`, so the whole flow
+(type → submit → error or a cleared field) is testable without rendering.
+
+## Sessions
+
+**Create session** on the workspace page starts a
+[work session](client/actions/work-sessions.md), which a worker materializes
+into a git project. The page shows _Preparing…_ until it is `ready` and then the
+project's location, polling `workSessions.refreshPending` while any session is
+still being prepared — the decision about what to poll lives in the core
+([work-session-actions.ts](../app/client/work-session-actions.ts)), not in the
+component.
 
 The list is filtered and derived **during render**, never in a selector: a
 `filter` builds a fresh array on every call, and `useSyncExternalStore` reads a

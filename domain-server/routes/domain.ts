@@ -4,19 +4,12 @@ import { z } from "zod";
 
 import { idSchema, keySchema } from "../entities/common.js";
 import {
-  connectionInputSchema,
-  connectionResponseSchema,
-} from "../entities/connection.js";
-import {
   membershipInputSchema,
   membershipResponseSchema,
   organizationCreateSchema,
   organizationResponseSchema,
 } from "../entities/organization.js";
-import {
-  repositoryImportSchema,
-  repositoryResponseSchema,
-} from "../entities/repository.js";
+import { repositoryInputSchema } from "../entities/repository.js";
 import { sourceInputSchema, sourceResponseSchema } from "../entities/source.js";
 import {
   dataInputSchema,
@@ -25,6 +18,7 @@ import {
   secretResponseSchema,
 } from "../entities/value.js";
 import {
+  projectBranchSchema,
   workSessionCreateSchema,
   workSessionResponseSchema,
 } from "../entities/work-session.js";
@@ -36,21 +30,13 @@ import { requireAuthentication } from "../http/auth-middleware.js";
 import type { AppBindings, RuntimeDependencies } from "../http/context.js";
 import { validationHook } from "../http/validation.js";
 import {
-  deleteConnection,
-  listConnections,
-  putConnection,
-} from "../services/connections.js";
-import {
   createOrganization,
   getOrganization,
   listMemberships,
   listOrganizations,
   putMembership,
 } from "../services/organizations.js";
-import {
-  importRepository,
-  listRepositories,
-} from "../services/repositories.js";
+import { addRepository } from "../services/repositories.js";
 import {
   createSource,
   deleteSource,
@@ -70,6 +56,7 @@ import {
   putUserSecret,
 } from "../services/values.js";
 import {
+  branchWorkSessionProject,
   createWorkSession,
   getWorkSession,
   listWorkSessions,
@@ -82,7 +69,6 @@ import {
 } from "../services/workspaces.js";
 
 const organizationParams = z.object({ organizationId: idSchema });
-const connectionParams = organizationParams.extend({ connectionId: idSchema });
 const sourceParams = organizationParams.extend({ sourceId: idSchema });
 const workspaceParams = organizationParams.extend({ workspaceId: idSchema });
 const workSessionParams = organizationParams.extend({
@@ -159,74 +145,13 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
         return context.json(membershipResponseSchema.parse(result), 200);
       },
     )
-    .get(
-      "/organizations/:organizationId/connections",
-      zValidator("param", organizationParams, validationHook),
-      async (context) => {
-        const result = await listConnections(
-          dependencies.db,
-          context.get("user").id,
-          context.req.valid("param").organizationId,
-        );
-        return context.json(
-          z.array(connectionResponseSchema).parse(result),
-          200,
-        );
-      },
-    )
-    .put(
-      "/organizations/:organizationId/connections",
-      zValidator("param", organizationParams, validationHook),
-      zValidator("json", connectionInputSchema, validationHook),
-      async (context) => {
-        const result = await putConnection(
-          dependencies.db,
-          dependencies.gitProviders,
-          context.get("user").id,
-          context.req.valid("param").organizationId,
-          context.req.valid("json"),
-        );
-        return context.json(connectionResponseSchema.parse(result), 200);
-      },
-    )
-    .delete(
-      "/organizations/:organizationId/connections/:connectionId",
-      zValidator("param", connectionParams, validationHook),
-      async (context) => {
-        const params = context.req.valid("param");
-        await deleteConnection(
-          dependencies.db,
-          context.get("user").id,
-          params.organizationId,
-          params.connectionId,
-        );
-        return context.body(null, 204);
-      },
-    )
-    .get(
-      "/organizations/:organizationId/repositories",
-      zValidator("param", organizationParams, validationHook),
-      async (context) => {
-        const result = await listRepositories(
-          dependencies.db,
-          dependencies.gitProviders,
-          context.get("user").id,
-          context.req.valid("param").organizationId,
-        );
-        return context.json(
-          z.array(repositoryResponseSchema).parse(result),
-          200,
-        );
-      },
-    )
     .post(
       "/organizations/:organizationId/repositories",
       zValidator("param", organizationParams, validationHook),
-      zValidator("json", repositoryImportSchema, validationHook),
+      zValidator("json", repositoryInputSchema, validationHook),
       async (context) => {
-        const result = await importRepository(
+        const result = await addRepository(
           dependencies.db,
-          dependencies.gitProviders,
           context.get("user").id,
           context.req.valid("param").organizationId,
           context.req.valid("json"),
@@ -456,6 +381,23 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
           context.get("user").id,
           params.organizationId,
           params.workSessionId,
+        );
+        return context.json(workSessionResponseSchema.parse(result), 200);
+      },
+    )
+    .post(
+      "/organizations/:organizationId/work-sessions/:workSessionId/project/branch",
+      zValidator("param", workSessionParams, validationHook),
+      zValidator("json", projectBranchSchema, validationHook),
+      async (context) => {
+        const params = context.req.valid("param");
+        const result = await branchWorkSessionProject(
+          dependencies.db,
+          dependencies.projectBuilder,
+          context.get("user").id,
+          params.organizationId,
+          params.workSessionId,
+          context.req.valid("json").branch,
         );
         return context.json(workSessionResponseSchema.parse(result), 200);
       },

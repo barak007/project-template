@@ -11,7 +11,7 @@ describe("workspace stories", () => {
       await core.sources.create(organization.id, {
         name: "repo",
         kind: "git",
-        config: {},
+        config: { remote: "https://example.test/repo.git" },
       });
       await core.sources.create(organization.id, {
         name: "warehouse",

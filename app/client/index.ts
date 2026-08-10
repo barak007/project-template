@@ -3,23 +3,23 @@ import { createClientCore } from "../../domain-client/index.js";
 import type { Host } from "../../domain-client/index.js";
 
 import { createAttempt } from "./attempt.js";
-import { createConnectionActions } from "./connection-actions.js";
 import type { AppActionContext } from "./context.js";
 import { createAppNavigation } from "./navigation-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
 import { createRepositoryActions } from "./repository-actions.js";
 import { createSessionActions } from "./session-actions.js";
 import { createAppStore } from "./store.js";
+import { createWorkSessionActions } from "./work-session-actions.js";
 import { createWorkspaceActions } from "./workspace-actions.js";
 
 export { ApiError } from "../../domain-client/index.js";
 export type {
   ClientFetch,
-  Connection,
   Host,
   Organization,
-  RemoteRepository,
+  RepositoryInput,
   Source,
+  WorkSession,
   Workspace,
 } from "../../domain-client/index.js";
 export { createMemoryHistory } from "../../domain-client/history.js";
@@ -42,7 +42,6 @@ export type {
   AppError,
   AppOwnState,
   AppState,
-  ConnectionDraft,
   CredentialsDraft,
   NameDraft,
   SignUpDraft,
@@ -77,8 +76,8 @@ export function createAppCore(dependencies: AppCoreDependencies) {
     session: createSessionActions(context),
     organizations: createOrganizationActions(context),
     workspaces: createWorkspaceActions(context),
-    connections: createConnectionActions(context),
     repositories: createRepositoryActions(context),
+    workSessions: createWorkSessionActions(context),
     navigation: context.navigation,
     getState: store.getState,
     subscribe: store.subscribe,

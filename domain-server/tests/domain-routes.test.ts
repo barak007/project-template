@@ -163,7 +163,7 @@ describe("sources", () => {
   const input = {
     name: "repo",
     kind: "git",
-    config: { url: "https://example.test/repo.git" },
+    config: { remote: "https://example.test/repo.git" },
   };
 
   it("allows writers to create and readers to list", async () => {
@@ -489,7 +489,11 @@ describe("work sessions", () => {
       `/api/organizations/${organizationId}/sources`,
       asUser(
         admin,
-        jsonBody({ name: "sessions-repo", kind: "git", config: {} }),
+        jsonBody({
+          name: "sessions-repo",
+          kind: "git",
+          config: { remote: "https://example.test/repo.git" },
+        }),
       ),
     );
     const sourceId = ((await json(source)) as { id: string }).id;

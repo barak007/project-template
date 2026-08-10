@@ -11,7 +11,7 @@ describe("work session stories", () => {
       await core.sources.create(organization.id, {
         name: "repo",
         kind: "git",
-        config: { url: "git://example.test/repo" },
+        config: { remote: "git://example.test/repo" },
       });
       const source = core.getState().sources[0];
       if (!source) throw new Error("Source was not created");

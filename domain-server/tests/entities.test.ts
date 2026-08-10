@@ -17,7 +17,7 @@ describe("entity schemas", () => {
       sourceInputSchema.parse({
         name: "repo",
         kind: "git",
-        config: { url: "https://example.test/repo.git" },
+        config: { remote: "https://example.test/repo.git" },
       }),
     ).toMatchObject({ kind: "git" });
     expect(() =>
@@ -27,6 +27,21 @@ describe("entity schemas", () => {
         config: new Date(),
       }),
     ).toThrow();
+    // A git source is cloned, so its config is checked here rather than at
+    // materialization time — but only a git source's is.
+    expect(() =>
+      sourceInputSchema.parse({ name: "repo", kind: "git", config: {} }),
+    ).toThrow();
+    expect(() =>
+      sourceInputSchema.parse({
+        name: "repo",
+        kind: "git",
+        config: { remote: "/Users/ada/projects/engine" },
+      }),
+    ).toThrow();
+    expect(
+      sourceInputSchema.parse({ name: "db", kind: "database", config: {} }),
+    ).toMatchObject({ kind: "database" });
   });
 
   it("rejects invalid workspace source IDs", () => {

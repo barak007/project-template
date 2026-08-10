@@ -1,6 +1,5 @@
 import { createApi } from "./api.js";
 import { createAuthActions } from "./auth-actions.js";
-import { createConnectionActions } from "./connection-actions.js";
 import {
   createOrganizationDataActions,
   createUserDataActions,
@@ -22,12 +21,10 @@ import { createWorkspaceActions } from "./workspace-actions.js";
 
 export { ApiError } from "./errors.js";
 export type {
-  Connection,
-  ConnectionInput,
   DataEntry,
   Membership,
   Organization,
-  RemoteRepository,
+  RepositoryInput,
   Secret,
   Source,
   WorkSession,
@@ -49,7 +46,6 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     auth: createAuthActions(dependencies.baseUrl, dependencies.host, store),
     organizations: createOrganizationActions(api, store),
     members: createMemberActions(api, store),
-    connections: createConnectionActions(api, store),
     repositories: createRepositoryActions(api, store),
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),

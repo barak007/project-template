@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 
 import type { Database } from "../db/client.js";
+import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 
 import {
   MATERIALIZE_WORK_SESSION_DEAD_LETTER,
@@ -57,13 +58,16 @@ export class QueueRuntime implements JobProducer {
     return id;
   }
 
-  async registerWorkers(db: Database): Promise<void> {
+  async registerWorkers(
+    db: Database,
+    projectBuilder: WorkspaceProjectBuilder,
+  ): Promise<void> {
     await this.boss.work(
       MATERIALIZE_WORK_SESSION_QUEUE,
       { batchSize: 1 },
       async ([job]) => {
         const input = materializeWorkSessionJobSchema.parse(job?.data);
-        await materializeWorkSession(db, input);
+        await materializeWorkSession(db, projectBuilder, input);
       },
     );
   }

@@ -29,11 +29,8 @@ export function reduce(state: AppOwnState, event: AppEvent): AppOwnState {
         ...state,
         workspaceDraft: { ...state.workspaceDraft, ...event.draft },
       };
-    case "connection-draft-changed":
-      return {
-        ...state,
-        connectionDraft: { ...state.connectionDraft, ...event.draft },
-      };
+    case "repository-draft-changed":
+      return { ...state, repositoryDraft: event.remote };
     case "action-started":
       return { ...state, error: null };
     case "action-failed":

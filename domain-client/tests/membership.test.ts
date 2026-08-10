@@ -52,7 +52,7 @@ describe("membership stories", () => {
       await owner.core.sources.create(organization.id, {
         name: "repo",
         kind: "git",
-        config: {},
+        config: { remote: "https://example.test/repo.git" },
       });
       const source = owner.core.getState().sources[0];
       await owner.core.workspaces.create(organization.id, {
@@ -67,7 +67,11 @@ describe("membership stories", () => {
 
       const forbidden = { code: "FORBIDDEN" };
       const app = member.core;
-      const input = { name: "x", kind: "git" as const, config: {} };
+      const input = {
+        name: "x",
+        kind: "git" as const,
+        config: { remote: "https://example.test/repo.git" },
+      };
       await expect(
         app.sources.create(organization.id, input),
       ).rejects.toMatchObject(forbidden);

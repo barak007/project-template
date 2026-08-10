@@ -8,9 +8,10 @@ import { createApp } from "../../app.js";
 import { SecretCipher } from "../../crypto/secrets.js";
 import type { Database } from "../../db/client.js";
 import * as schema from "../../db/schema.js";
-import { createLocalGitProvider } from "../../git/local-provider.js";
 import type { AppBindings, RuntimeDependencies } from "../../http/context.js";
 import type { JobProducer } from "../../jobs/queue.js";
+
+import { recordingProjectBuilder } from "./project-builder.js";
 
 const migrationsFolder = fileURLToPath(
   new URL("../../../drizzle", import.meta.url),
@@ -95,9 +96,7 @@ export function createTestApp(
     } as unknown as RuntimeDependencies["auth"],
     cipher: testCipher,
     jobs,
-    // The real local provider against a real temporary directory: a story
-    // about picking repositories is worth nothing against a fake filesystem.
-    gitProviders: { local: createLocalGitProvider() },
+    projectBuilder: recordingProjectBuilder().projectBuilder,
     reportError: (error) => {
       reported.push(error);
     },

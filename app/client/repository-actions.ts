@@ -2,9 +2,9 @@ import type { AppActionContext } from "./context.js";
 
 /**
  * The repositories a workspace works on. "Repository" is the only word the
- * product has for these: the server imports one as a git source and a work
- * session snapshots that list, but a user picking repositories never meets
- * the concept.
+ * product has for these: the server stores one as a git source and a work
+ * session snapshots that list, but a user adding repositories never meets the
+ * concept.
  */
 export function createRepositoryActions({
   client,
@@ -34,33 +34,28 @@ export function createRepositoryActions({
   };
 
   return {
-    /**
-     * Everything the workspace page shows: where repositories come from, what
-     * those connections expose, and which of them are already imported.
-     */
+    /** Every repository the organization has defined, attached or not. */
     load: (organizationId: string) =>
-      attempt(async () => {
-        await client.connections.load(organizationId);
-        await client.sources.load(organizationId);
-        await client.repositories.load(organizationId);
-      }),
+      attempt(() => client.sources.load(organizationId)),
+    draft: (remote: string) => {
+      store.dispatch({ type: "repository-draft-changed", remote });
+    },
     /**
-     * Importing is idempotent, so adding a repository a second workspace also
-     * uses reuses the same source rather than duplicating it.
+     * Defines the repository if it is new and attaches it to the workspace.
+     * Adding a URL the organization already has reuses that repository rather
+     * than duplicating it, which is what makes this safe to press twice.
      */
-    add: (
-      organizationId: string,
-      workspaceId: string,
-      repository: { connectionId: string; externalId: string },
-    ) =>
+    add: (organizationId: string, workspaceId: string) =>
       attempt(async () => {
-        const source = await client.repositories.importRepository(
-          organizationId,
-          repository,
-        );
+        const remote = store.getState().repositoryDraft.trim();
+        if (remote.length === 0) return;
+        const source = await client.repositories.add(organizationId, {
+          remote,
+        });
         await rewrite(organizationId, workspaceId, (sourceIds) =>
           sourceIds.includes(source.id) ? sourceIds : [...sourceIds, source.id],
         );
+        store.dispatch({ type: "repository-draft-changed", remote: "" });
       }),
     remove: (organizationId: string, workspaceId: string, sourceId: string) =>
       attempt(() =>

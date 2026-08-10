@@ -38,5 +38,25 @@ export function createWorkSessionActions(api: Api, store: ClientStore) {
         workSession: await readJson<WorkSession>(response),
       });
     },
+    /**
+     * Puts every repository in the session's project on one branch — the
+     * command that makes a freshly cloned submodule committable.
+     */
+    branchAll: async (
+      organizationId: string,
+      workSessionId: string,
+      branch: string,
+    ) => {
+      const response = await routes[":workSessionId"].project.branch.$post({
+        param: { organizationId, workSessionId },
+        json: { branch },
+      });
+      if (!response.ok) throw await toApiError(response);
+      store.dispatch({
+        type: "work-session-refreshed",
+        organizationId,
+        workSession: await readJson<WorkSession>(response),
+      });
+    },
   };
 }

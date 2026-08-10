@@ -1,5 +1,8 @@
 import "dotenv/config";
 
+import { homedir } from "node:os";
+import { isAbsolute, join, resolve } from "node:path";
+
 import { z } from "zod";
 
 const environmentSchema = z
@@ -22,6 +25,8 @@ const environmentSchema = z
     LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
     SENTRY_DSN: z.union([z.string().url(), z.literal("")]).optional(),
     SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(10_000),
+    /** Where a local session's git project is built. `~` is what a person types. */
+    WORK_SESSION_PROJECT_ROOT: z.string().trim().min(1).default("~/wwsa"),
   })
   .refine(
     (value) =>
@@ -41,8 +46,16 @@ const environmentSchema = z
       TRUSTED_ORIGINS: (value.TRUSTED_ORIGINS ?? baseUrl)
         .split(",")
         .map((origin) => origin.trim()),
+      WORK_SESSION_PROJECT_ROOT: expandHome(value.WORK_SESSION_PROJECT_ROOT),
     };
   });
+
+/** Every path leaves configuration resolved and absolute. */
+function expandHome(path: string): string {
+  if (path === "~") return homedir();
+  if (path.startsWith("~/")) return join(homedir(), path.slice(2));
+  return isAbsolute(path) ? path : resolve(path);
+}
 
 export type Environment = z.infer<typeof environmentSchema>;
 

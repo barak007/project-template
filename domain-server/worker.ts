@@ -1,7 +1,10 @@
 import { createRuntime } from "./runtime.js";
 
 const runtime = await createRuntime();
-await runtime.queue.registerWorkers(runtime.dependencies.db);
+await runtime.queue.registerWorkers(
+  runtime.dependencies.db,
+  runtime.dependencies.projectBuilder,
+);
 console.info("Worker is accepting jobs");
 
 let shuttingDown = false;

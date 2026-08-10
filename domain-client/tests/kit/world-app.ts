@@ -1,12 +1,12 @@
 import { createApp } from "../../../domain-server/app.js";
 import { createAuth } from "../../../domain-server/auth.js";
 import { loadEnvironment } from "../../../domain-server/config/env.js";
-import { createLocalGitProvider } from "../../../domain-server/git/local-provider.js";
 import {
   createTestDatabase,
   recordingJobs,
   testCipher,
 } from "../../../domain-server/tests/helpers/harness.js";
+import { recordingProjectBuilder } from "../../../domain-server/tests/helpers/project-builder.js";
 
 // The kit only serves and dispatches requests, so this deliberately narrow
 // shape keeps the app's full route-tree type (which makes tsc blow up with
@@ -42,7 +42,7 @@ export async function createWorldApp(baseUrl: string): Promise<WorldApp> {
     auth: createAuth(db, environment),
     cipher: testCipher,
     jobs: recordingJobs().jobs,
-    gitProviders: { local: createLocalGitProvider() },
+    projectBuilder: recordingProjectBuilder().projectBuilder,
     reportError: () => undefined,
     ready: () => Promise.resolve(),
   });
