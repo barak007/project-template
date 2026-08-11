@@ -77,6 +77,14 @@ export type WorkSession = Omit<
   }[];
   dataSnapshot: Record<string, JsonValue>;
 };
+type WorkSessionRoutes = OrganizationRoutes["work-sessions"][":workSessionId"];
+/** One node of a session's file tree, as the server read it. */
+export type ProjectEntry = InferResponseType<
+  WorkSessionRoutes["project"]["files"]["$get"]
+>[number];
+export type ProjectFile = InferResponseType<
+  WorkSessionRoutes["project"]["file"]["$get"]
+>;
 export type Secret = InferResponseType<
   OrganizationRoutes["secrets"]["$get"]
 >[number];

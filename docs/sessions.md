@@ -132,8 +132,9 @@ repository URLs → create session.
 
 - **The organization is created implicitly.** On first sign-in, a personal
   organization named after the user, with an `owner` membership —
-  `createOrganization` already does organization and membership atomically. The
-  concept surfaces only when they invite someone.
+  `createOrganization` already does organization, membership, and a first
+  workspace named after the organization atomically. The concept surfaces only
+  when they invite someone.
 - **Creating a workspace and adding repositories are one screen**, with the
   name pre-filled and editable inline.
 - **The word "source" never appears in the app.** They are repositories.
@@ -147,10 +148,44 @@ repository URLs → create session.
   ("Cloning notes (2 of 3)") and the trail underneath. "Materialize" stays
   internal to [materialize.ts](../domain-server/jobs/materialize.ts).
 
+## Opening a session
+
+**The session view is a page of the app, and the server does the reading.** A
+ready session has its own route
+([session-page.tsx](../app/ui/session-page.tsx)): the project's file tree beside
+the file being read. The tree is fetched a directory at a time and a file is
+fetched when it is opened, both through the API — `project/files` and
+`project/file` on a work session, over the
+[ProjectFiles](../domain-server/git/project-files.ts) port.
+
+The alternative — a local process serving a UI over the folder — was rejected
+because it makes the browser's machine and the project's machine the same
+machine, which is exactly the assumption step 4 and the cloud break. Reading
+through the port instead means a session built anywhere opens from anywhere, and
+a bucket-backed implementation changes nothing above it.
+
+What that costs, and what it buys:
+
+- **A path from a browser is untrusted.** `..`, an absolute path, and a symlink
+  resolving outside the project are all `404`
+  ([local-project-files.ts](../domain-server/git/local-project-files.ts));
+  the check is on the **real** path, because a link inside the project can point
+  anywhere on the machine.
+- **Reading is `resource:read`**, unlike building: a member who may see a session
+  may read the code it opened on, and creating one still needs write.
+- **Text only, and only so much of it.** A file over 512 KB opens truncated and a
+  file with a NUL byte in its head is refused, so a viewer never has to render
+  something no one can read.
+- **`.git` is never listed.** It is machinery, not the work.
+
+Editing is not part of this: the page reads. What a session is for beyond reading
+— committing, pushing — stays under the open question about commands below.
+
 ## Still open
 
-- **What does "open our session view on that folder" mean concretely** — an
-  editor, a local process serving a UI, something else?
+- **Is reading enough for a session view** — editing a file in the browser means
+  writes through the same port, a save model, and a conflict story with whatever
+  else has the clone open.
 - **Which commands beyond `branchAll` does a project need** — commit across
   submodules, push, pull, status? One exists because one was needed; the shape
   of the rest is unknown until a user asks.

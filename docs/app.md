@@ -5,14 +5,15 @@ and a sign-in, and everything else behind the login** — in
 [app/](../app/). It is what an app generated from this template starts as, so
 it stays deliberately small: replace the copy, add pages, keep the shape.
 
-| Path                                           | Route                              | Who sees it |
-| ---------------------------------------------- | ---------------------------------- | ----------- |
-| `/`                                            | home page                          | everyone    |
-| `/sign-up`                                     | create an account                  | everyone    |
-| `/sign-in`                                     | sign in                            | everyone    |
-| `/app`                                         | the user's organizations           | signed in   |
-| `/app/organizations/:id`                       | one organization's workspaces      | signed in   |
-| `/app/organizations/:id/workspaces/:workspace` | one workspace and its repositories | signed in   |
+| Path                                                             | Route                                            | Who sees it |
+| ---------------------------------------------------------------- | ------------------------------------------------ | ----------- |
+| `/`                                                              | home page                                        | everyone    |
+| `/sign-up`                                                       | create an account                                | everyone    |
+| `/sign-in`                                                       | sign in                                          | everyone    |
+| `/app`                                                           | the user's organizations                         | signed in   |
+| `/app/organizations/:id`                                         | one organization's workspaces                    | signed in   |
+| `/app/organizations/:id/workspaces/:workspace`                   | one workspace, its repositories and its sessions | signed in   |
+| `/app/organizations/:id/workspaces/:workspace/sessions/:session` | one session, as an editor over its files         | signed in   |
 
 ## Layout
 
@@ -79,6 +80,15 @@ component.
 The list is filtered and derived **during render**, never in a selector: a
 `filter` builds a fresh array on every call, and `useSyncExternalStore` reads a
 new reference as a changed snapshot.
+
+A ready session has its own page — the file tree of its project beside the file
+being read ([session-page.tsx](../app/ui/session-page.tsx)). Every byte comes
+from the API through [sessionFiles](client/actions/session-files.md): **the app
+never assumes the project is on the machine the browser is running on**, because
+the server that built it may be somewhere else entirely. A folder in the tree is
+one control, so opening and closing is one action (`projectFiles.toggleDirectory`)
+whose branch is decided from state, not by the component; and the tree loads a
+level at a time, so a big repository costs a click rather than a payload.
 
 The two stores are exposed as one tree with one subscription
 ([store.ts](../app/client/store.ts)) — the app's slices layered over the

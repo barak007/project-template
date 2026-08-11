@@ -2,6 +2,7 @@ import type { Auth, AuthSession } from "../auth.js";
 import type { SecretCipher } from "../crypto/secrets.js";
 import type { Database } from "../db/client.js";
 import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
+import type { ProjectFiles } from "../git/project-files.js";
 import type { JobProducer } from "../jobs/queue.js";
 import type { Logger } from "../logging.js";
 import type { ErrorReporter } from "../observability.js";
@@ -12,6 +13,7 @@ export type RuntimeDependencies = {
   cipher: SecretCipher;
   jobs: JobProducer;
   projectBuilder: WorkspaceProjectBuilder;
+  projectFiles: ProjectFiles;
   log: Logger;
   reportError: ErrorReporter;
   ready: () => Promise<void>;

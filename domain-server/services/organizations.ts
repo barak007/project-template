@@ -1,7 +1,11 @@
 import { desc, eq } from "drizzle-orm";
 
 import type { Database } from "../db/client.js";
-import { organizationMembers, organizations } from "../db/schema.js";
+import {
+  organizationMembers,
+  organizations,
+  workspaces,
+} from "../db/schema.js";
 import type { OrganizationCreate } from "../entities/organization.js";
 import { AppError } from "../errors.js";
 
@@ -26,6 +30,11 @@ export async function createOrganization(
     await transaction
       .insert(organizationMembers)
       .values({ organizationId: organization.id, userId, role: "owner" });
+    // Onboarding has no step for "create your first workspace": a new
+    // organization starts with one named after itself, ready for repositories.
+    await transaction
+      .insert(workspaces)
+      .values({ organizationId: organization.id, name: organization.name });
     return organization;
   });
 }

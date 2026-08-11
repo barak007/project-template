@@ -1,4 +1,8 @@
-import type { Organization, Workspace } from "../../domain-client/index.js";
+import type {
+  Organization,
+  WorkSession,
+  Workspace,
+} from "../../domain-client/index.js";
 
 import { requiresAuthentication } from "./router.js";
 import type { Route } from "./router.js";
@@ -24,7 +28,11 @@ export function visibleRoute(state: AppState): Route {
 /** The organization the route names, or none if the route names no organization. */
 export function routeOrganizationId(state: AppState): string | undefined {
   const { route } = state;
-  if (route.kind === "organization" || route.kind === "workspace")
+  if (
+    route.kind === "organization" ||
+    route.kind === "workspace" ||
+    route.kind === "session"
+  )
     return route.organizationId;
   return undefined;
 }
@@ -40,7 +48,16 @@ export function currentOrganization(state: AppState): Organization | undefined {
 
 /** The workspace the route names, once the organization's list has loaded. */
 export function currentWorkspace(state: AppState): Workspace | undefined {
-  if (state.route.kind !== "workspace") return undefined;
-  const { workspaceId } = state.route;
-  return state.workspaces.find((workspace) => workspace.id === workspaceId);
+  const { route } = state;
+  if (route.kind !== "workspace" && route.kind !== "session") return undefined;
+  return state.workspaces.find(
+    (workspace) => workspace.id === route.workspaceId,
+  );
+}
+
+/** The work session the route names, once the organization's list has loaded. */
+export function currentWorkSession(state: AppState): WorkSession | undefined {
+  if (state.route.kind !== "session") return undefined;
+  const { workSessionId } = state.route;
+  return state.workSessions.find((session) => session.id === workSessionId);
 }

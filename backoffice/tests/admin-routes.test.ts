@@ -339,7 +339,7 @@ describe("GET /backoffice/admin/organizations/:organizationId", () => {
         { userId: founder, role: "owner", email: `${founder}@example.test` },
       ],
       sources: [{ name: "repo", kind: "git" }],
-      workspaces: [{ id: workspaceId, name: "main" }],
+      workspaces: [{ id: workspaceId, name: "main" }, { name: "Tenant" }],
       workSessions: [
         {
           workspaceId,

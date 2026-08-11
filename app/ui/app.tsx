@@ -7,6 +7,7 @@ import { AppShell } from "./app-shell.js";
 import { DashboardPage } from "./dashboard-page.js";
 import { HomePage } from "./home-page.js";
 import { OrganizationPage } from "./organization-page.js";
+import { SessionPage } from "./session-page.js";
 import { SignInPage } from "./sign-in-page.js";
 import { SignUpPage } from "./sign-up-page.js";
 import { useAppState } from "./use-app-state.js";
@@ -63,6 +64,19 @@ export function App({ core }: { core: AppCore }) {
               route.kind === "workspace" ? route.organizationId : ""
             }
             workspaceId={route.kind === "workspace" ? route.workspaceId : ""}
+          />
+        </AppShell>
+      );
+    case "session":
+      return (
+        <AppShell core={core}>
+          <SessionPage
+            core={core}
+            organizationId={
+              route.kind === "session" ? route.organizationId : ""
+            }
+            workspaceId={route.kind === "session" ? route.workspaceId : ""}
+            workSessionId={route.kind === "session" ? route.workSessionId : ""}
           />
         </AppShell>
       );

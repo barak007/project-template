@@ -2,6 +2,8 @@ import type {
   DataEntry,
   Membership,
   Organization,
+  ProjectEntry,
+  ProjectFile,
   Secret,
   Source,
   WorkSession,
@@ -50,6 +52,21 @@ export type ClientEvent =
       type: "work-session-refreshed";
       organizationId: string;
       workSession: WorkSession;
+    }
+  | {
+      type: "session-directory-loaded";
+      organizationId: string;
+      workSessionId: string;
+      path: string;
+      entries: ProjectEntry[];
+    }
+  /** Closing a folder: what was read about it is forgotten, not hidden. */
+  | { type: "session-directory-collapsed"; path: string }
+  | {
+      type: "session-file-loaded";
+      organizationId: string;
+      workSessionId: string;
+      file: ProjectFile;
     }
   | {
       type: "organization-secrets-loaded";

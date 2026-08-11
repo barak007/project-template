@@ -13,6 +13,7 @@ import {
   createOrganizationSecretActions,
   createUserSecretActions,
 } from "./secret-actions.js";
+import { createSessionFileActions } from "./session-file-actions.js";
 import { createSourceActions } from "./source-actions.js";
 import { initialState } from "./state.js";
 import { createStore } from "./store.js";
@@ -24,6 +25,8 @@ export type {
   DataEntry,
   Membership,
   Organization,
+  ProjectEntry,
+  ProjectFile,
   RepositoryInput,
   Secret,
   Source,
@@ -32,7 +35,12 @@ export type {
 } from "./api.js";
 export type { ClientEvent } from "./events.js";
 export type { ClientFetch, Host } from "./host.js";
-export type { AuthState, AuthUser, ClientState } from "./state.js";
+export type {
+  AuthState,
+  AuthUser,
+  ClientState,
+  SessionFilesState,
+} from "./state.js";
 
 export type ClientCoreDependencies = {
   baseUrl: string;
@@ -50,6 +58,7 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),
     workSessions: createWorkSessionActions(api, store),
+    sessionFiles: createSessionFileActions(api, store),
     organizationSecrets: createOrganizationSecretActions(api, store),
     userSecrets: createUserSecretActions(api, store),
     organizationData: createOrganizationDataActions(api, store),

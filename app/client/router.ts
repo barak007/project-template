@@ -9,7 +9,13 @@ export type Route =
   | { kind: "sign-up" }
   | { kind: "dashboard" }
   | { kind: "organization"; organizationId: string }
-  | { kind: "workspace"; organizationId: string; workspaceId: string };
+  | { kind: "workspace"; organizationId: string; workspaceId: string }
+  | {
+      kind: "session";
+      organizationId: string;
+      workspaceId: string;
+      workSessionId: string;
+    };
 
 export const defaultRoute: Route = { kind: "home" };
 
@@ -18,7 +24,8 @@ export function requiresAuthentication(route: Route): boolean {
   return (
     route.kind === "dashboard" ||
     route.kind === "organization" ||
-    route.kind === "workspace"
+    route.kind === "workspace" ||
+    route.kind === "session"
   );
 }
 
@@ -35,16 +42,27 @@ export function routeToPath(route: Route): string {
     case "organization":
       return `/app/organizations/${encodeURIComponent(route.organizationId)}`;
     case "workspace":
-      return `/app/organizations/${encodeURIComponent(
-        route.organizationId,
-      )}/workspaces/${encodeURIComponent(route.workspaceId)}`;
+      return workspacePath(route);
+    case "session":
+      return `${workspacePath(route)}/sessions/${encodeURIComponent(
+        route.workSessionId,
+      )}`;
   }
+}
+
+function workspacePath(route: {
+  organizationId: string;
+  workspaceId: string;
+}): string {
+  return `/app/organizations/${encodeURIComponent(
+    route.organizationId,
+  )}/workspaces/${encodeURIComponent(route.workspaceId)}`;
 }
 
 /** Unknown paths land on the home page rather than a dead end. */
 export function pathToRoute(path: string): Route {
   const [pathname = ""] = path.split("?");
-  const [first, second, third, fourth, fifth] = pathname
+  const [first, second, third, fourth, fifth, sixth, seventh] = pathname
     .split("/")
     .filter(Boolean)
     .map(decodeURIComponent);
@@ -53,8 +71,16 @@ export function pathToRoute(path: string): Route {
   if (first === "sign-up") return { kind: "sign-up" };
   if (first === "app") {
     if (second === "organizations" && third !== undefined) {
-      if (fourth === "workspaces" && fifth !== undefined)
+      if (fourth === "workspaces" && fifth !== undefined) {
+        if (sixth === "sessions" && seventh !== undefined)
+          return {
+            kind: "session",
+            organizationId: third,
+            workspaceId: fifth,
+            workSessionId: seventh,
+          };
         return { kind: "workspace", organizationId: third, workspaceId: fifth };
+      }
       return { kind: "organization", organizationId: third };
     }
     return { kind: "dashboard" };

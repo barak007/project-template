@@ -24,6 +24,7 @@ type ClientState = {
 
   workspaces: Workspace[];
   workSessions: WorkSession[];
+  sessionFiles: SessionFilesState; // one session's browsed file tree + open file
   organizationSecrets: Secret[]; // keys + timestamps only, never values
   organizationData: DataEntry[];
 

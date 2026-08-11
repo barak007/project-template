@@ -457,3 +457,78 @@ input:focus-visible {
   color: var(--text);
   font-size: 0.75rem;
 }
+
+/* Code wants the window, not a reading measure. */
+.page.ide {
+  max-width: 90rem;
+}
+
+/* The session workbench: a file tree beside the file being read. Two panes and
+   nothing else, because the tree and the open file are the whole page — the
+   contents of both arrive from the API, not from this machine. */
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(12rem, 18rem) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 48rem) {
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+}
+
+.file-tree,
+.file-view {
+  overflow: auto;
+  max-height: 70vh;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.tree {
+  margin: 0;
+  padding-left: 0.875rem;
+  list-style: none;
+}
+
+.file-tree > .tree {
+  padding-left: 0;
+}
+
+.tree-node {
+  display: block;
+  width: 100%;
+  padding: 0.125rem 0.25rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tree-node:hover {
+  background: var(--bg-muted);
+}
+
+.file-view header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-view pre {
+  margin: 0.75rem 0 0;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  tab-size: 2;
+}

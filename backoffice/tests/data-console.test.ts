@@ -108,7 +108,15 @@ describe("backoffice data console", () => {
 
   it("mutations refresh the loaded page", async () => {
     const backoffice = await signedInBackoffice();
-    await backoffice.data.loadRows("workspaces", defaultTableQuery);
+    // The organization's own workspace shares the table, so this page is
+    // filtered down to the rows this story creates.
+    const ownRows = {
+      ...defaultTableQuery,
+      filters: [
+        { column: "name", op: "ends-with" as const, value: "-workspace" },
+      ],
+    };
+    await backoffice.data.loadRows("workspaces", ownRows);
     expect(backoffice.getState().tableData?.page.total).toBe(0);
 
     await backoffice.data.insertRow("workspaces", {

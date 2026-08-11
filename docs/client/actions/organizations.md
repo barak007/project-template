@@ -17,7 +17,9 @@ Loads every organization the signed-in user belongs to into
 ## `create({ name })`
 
 Creates an organization and appends it to `state.organizations`. The server
-atomically makes the creator its **owner** (see [members](./members.md)).
+atomically makes the creator its **owner** (see [members](./members.md)) and
+gives the organization a first [workspace](./workspaces.md) with the same name,
+so nothing has to be created before repositories can be added.
 
 ## Notes
 

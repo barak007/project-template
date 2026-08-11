@@ -6,6 +6,7 @@ import { createAttempt } from "./attempt.js";
 import type { AppActionContext } from "./context.js";
 import { createAppNavigation } from "./navigation-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
+import { createProjectFileActions } from "./project-file-actions.js";
 import { createRepositoryActions } from "./repository-actions.js";
 import { createSessionActions } from "./session-actions.js";
 import { createAppStore } from "./store.js";
@@ -17,6 +18,8 @@ export type {
   ClientFetch,
   Host,
   Organization,
+  ProjectEntry,
+  ProjectFile,
   RepositoryInput,
   Source,
   WorkSession,
@@ -34,6 +37,7 @@ export {
 export type { Route } from "./router.js";
 export {
   currentOrganization,
+  currentWorkSession,
   currentWorkspace,
   routeOrganizationId,
   visibleRoute,
@@ -78,6 +82,7 @@ export function createAppCore(dependencies: AppCoreDependencies) {
     workspaces: createWorkspaceActions(context),
     repositories: createRepositoryActions(context),
     workSessions: createWorkSessionActions(context),
+    projectFiles: createProjectFileActions(context),
     navigation: context.navigation,
     getState: store.getState,
     subscribe: store.subscribe,

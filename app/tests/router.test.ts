@@ -31,6 +31,12 @@ describe("router", () => {
       { kind: "dashboard" },
       { kind: "organization", organizationId: "org-1" },
       { kind: "workspace", organizationId: "org-1", workspaceId: "ws-1" },
+      {
+        kind: "session",
+        organizationId: "org-1",
+        workspaceId: "ws-1",
+        workSessionId: "session-1",
+      },
     ];
     for (const route of routes)
       expect(pathToRoute(routeToPath(route))).toEqual(route);
@@ -74,6 +80,14 @@ describe("router", () => {
         kind: "workspace",
         organizationId: "x",
         workspaceId: "y",
+      }),
+    ).toBe(true);
+    expect(
+      requiresAuthentication({
+        kind: "session",
+        organizationId: "x",
+        workspaceId: "y",
+        workSessionId: "z",
       }),
     ).toBe(true);
     expect(requiresAuthentication({ kind: "home" })).toBe(false);

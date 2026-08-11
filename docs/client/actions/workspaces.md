@@ -16,7 +16,9 @@ the workspace's sources at that moment.
 ## `load(organizationId)`
 
 Replaces `state.workspaces` (and makes this the
-[current organization](../state.md)).
+[current organization](../state.md)). Newest first, so a brand-new
+organization's own workspace — created with it and named after it, see
+[organizations](./organizations.md) — is the only entry.
 
 ## `create(organizationId, { name, sourceIds? })`
 

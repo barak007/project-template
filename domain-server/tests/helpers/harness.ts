@@ -8,6 +8,7 @@ import { createApp } from "../../app.js";
 import { SecretCipher } from "../../crypto/secrets.js";
 import type { Database } from "../../db/client.js";
 import * as schema from "../../db/schema.js";
+import { createLocalProjectFiles } from "../../git/local-project-files.js";
 import type { AppBindings, RuntimeDependencies } from "../../http/context.js";
 import type { JobProducer } from "../../jobs/queue.js";
 import { silentLogger } from "../../logging.js";
@@ -98,6 +99,9 @@ export function createTestApp(
     cipher: testCipher,
     jobs,
     projectBuilder: recordingProjectBuilder().projectBuilder,
+    // Real: reading files is the filesystem, and a stub of it would test
+    // nothing. Tests that browse a project point a session at a temp directory.
+    projectFiles: createLocalProjectFiles(),
     log: silentLogger,
     reportError: (error) => {
       reported.push(error);

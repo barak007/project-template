@@ -2,6 +2,8 @@ import type {
   DataEntry,
   Membership,
   Organization,
+  ProjectEntry,
+  ProjectFile,
   Secret,
   Source,
   WorkSession,
@@ -20,6 +22,18 @@ export type AuthState =
  * state mirrors a UI showing one organization at a time, so acting on a
  * different organization resets these (see projection.ts).
  */
+/**
+ * One session's project as it has been browsed so far: the directories that
+ * have been opened, keyed by path (`""` is the root), and the file being read.
+ * A tree is expanded a level at a time, so an unopened folder is simply absent
+ * — which is also what "collapsed" means.
+ */
+export type SessionFilesState = {
+  workSessionId: string | null;
+  directories: Record<string, ProjectEntry[]>;
+  openFile: ProjectFile | null;
+};
+
 export type OrganizationSlices = {
   currentOrganizationId: string | null;
   members: Membership[];
@@ -27,8 +41,15 @@ export type OrganizationSlices = {
   sources: Source[];
   workspaces: Workspace[];
   workSessions: WorkSession[];
+  sessionFiles: SessionFilesState;
   organizationSecrets: Secret[];
   organizationData: DataEntry[];
+};
+
+export const emptySessionFiles: SessionFilesState = {
+  workSessionId: null,
+  directories: {},
+  openFile: null,
 };
 
 export type ClientState = OrganizationSlices & {
@@ -44,6 +65,7 @@ export const emptyOrganizationSlices: OrganizationSlices = {
   sources: [],
   workspaces: [],
   workSessions: [],
+  sessionFiles: emptySessionFiles,
   organizationSecrets: [],
   organizationData: [],
 };

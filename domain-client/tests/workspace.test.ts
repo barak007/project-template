@@ -41,10 +41,27 @@ describe("workspace stories", () => {
       });
 
       await core.workspaces.load(organization.id);
-      expect(core.getState().workspaces).toHaveLength(1);
+      expect(core.getState().workspaces.map(({ name }) => name)).toEqual([
+        "everything",
+        organization.name,
+      ]);
 
       await core.workspaces.delete(organization.id, workspace.id);
-      expect(core.getState().workspaces).toHaveLength(0);
+      expect(core.getState().workspaces.map(({ name }) => name)).toEqual([
+        organization.name,
+      ]);
+    },
+  );
+
+  it.concurrent(
+    "a new organization already has a workspace named after it",
+    async ({ world, expect }) => {
+      const { core, organization } = await world.founder("ada");
+
+      await core.workspaces.load(organization.id);
+      expect(core.getState().workspaces).toMatchObject([
+        { name: organization.name, sourceIds: [] },
+      ]);
     },
   );
 });

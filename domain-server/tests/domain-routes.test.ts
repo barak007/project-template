@@ -278,7 +278,10 @@ describe("workspaces", () => {
       asUser(member),
     );
     expect(listed.status).toBe(200);
-    expect(await json(listed)).toMatchObject([{ sourceIds: [sourceId] }]);
+    expect(await json(listed)).toMatchObject([
+      { id: workspaceId, name: "main", sourceIds: [sourceId] },
+      { name: "Acme", sourceIds: [] },
+    ]);
 
     const relinked = await app.request(
       `/api/organizations/${organizationId}/workspaces/${workspaceId}`,

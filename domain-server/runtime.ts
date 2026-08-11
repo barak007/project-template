@@ -5,6 +5,7 @@ import { loadEnvironment } from "./config/env.js";
 import { SecretCipher } from "./crypto/secrets.js";
 import { createDatabase } from "./db/client.js";
 import { createLocalProjectBuilder } from "./git/local-project-builder.js";
+import { createLocalProjectFiles } from "./git/local-project-files.js";
 import { QueueRuntime } from "./jobs/queue.js";
 import { createLogger } from "./logging.js";
 import { configureObservability } from "./observability.js";
@@ -30,6 +31,9 @@ export async function createRuntime() {
       projectBuilder: createLocalProjectBuilder(
         environment.WORK_SESSION_PROJECT_ROOT,
       ),
+      // Sessions are browsed through the API, never off the viewer's own disk,
+      // so this reads wherever the builder wrote — here, this machine.
+      projectFiles: createLocalProjectFiles(),
       log,
       reportError,
       ready: async () => {

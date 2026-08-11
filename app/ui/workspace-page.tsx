@@ -134,7 +134,23 @@ export function WorkspacePage({
       {sessions.map((session) => (
         <article key={session.id} className="session">
           <header>
+            {/* The session's own page is the editor over its files; a session
+                still being prepared has nothing to open yet. */}
             <strong>{statusLabel(session)}</strong>
+            {session.status === "ready" && (
+              <RouteLink
+                core={core}
+                to={{
+                  kind: "session",
+                  organizationId,
+                  workspaceId,
+                  workSessionId: session.id,
+                }}
+                className="link"
+              >
+                Open
+              </RouteLink>
+            )}
             {/* What it is doing right now, which is the whole point of a
                 progress trail: "Preparing…" on its own tells a user nothing. */}
             <span className="muted">{currentStep(session)}</span>
