@@ -27,7 +27,8 @@ Step 4 — the agent, and the cloud — is untouched.
 3. The workspace page has a **Create session** button. Pressing it:
    - snapshots the workspace,
    - **builds the workspace git project** if it does not exist — one submodule
-     per repository — or **reuses** it if it does,
+     per repository, declared and pinned, never cloned — or **reuses and
+     reconciles** it if it does,
    - **clones that project** into a new directory for this session, submodules
      and all, on the session's own branch,
    - records **where both live**, and
@@ -82,10 +83,20 @@ problem while we are local.
 project per workspace, or project per session — are both half right, and the
 answer is both: the **workspace** owns a git project holding its repositories as
 submodules, and a **session** is a `git clone --recurse-submodules` of it into a
-fresh directory. Building per session would fetch every repository from its host
-again on the second session; sharing one directory between sessions would mean
-two sessions editing the same working tree. Cloning locally is fast and needs no
-network, which is the whole reason the shared project exists.
+fresh directory. Sharing one directory between sessions would mean two sessions
+editing the same working tree; the project exists so every session starts from
+one agreed-on structure and one agreed-on commit per repository.
+
+**The project declares, it does not check out.** Nothing is cloned into the
+project: a repository becomes a `.gitmodules` entry plus a gitlink at the commit
+`git ls-remote` says its ref points at, written with `update-index --cacheinfo`,
+which needs no object present. That is what makes a workspace cheap to keep
+correct — adding, removing or re-pointing a repository is a config edit and one
+`ls-remote`, not a clone — and it is why reconcile stages only `.gitmodules`:
+`add --all` would read those gitlinks as deleted directories. The cost is that
+each session fetches the repositories from their hosts rather than copying them
+off disk, which is the price of a project that is always allowed to be wrong for
+free.
 
 Session directories live beside the project (`<workspace>/project` and
 `<workspace>/sessions/<id>`) so everything for one workspace is in one place, and
@@ -95,10 +106,11 @@ own half-finished clone rather than repairing it.
 **A reused project is reconciled, never trusted.** "It exists, skip it" would
 mean a repository added to the workspace today never reaches a session. So
 `ensureWorkspaceProject` enforces the structure the product promises — **one
-submodule per repository, at a directory named after it, pointing at its
-remote** — and corrects anything else: submodules the workspace dropped are
-removed (including `.git/modules`, or re-adding the same name later fails), new
-ones added, changed remotes re-pointed.
+submodule per repository, at a directory named after it, pointing at its remote
+and ref** — and corrects anything else: submodules the workspace dropped are
+removed (including any `.git/modules` entry left by a project built when the
+project still cloned, or re-adding the same name later fails), new ones added,
+changed remotes and refs re-pointed and re-pinned.
 
 **Where a project lives is data, not a path.** `workspaces.project_location` and
 `work_sessions.project_location` are a shape — `{ kind: "local", path }` today,

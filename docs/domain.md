@@ -55,11 +55,16 @@ Statuses: `pending` → `materializing` → `ready`, or `failed` with a `failure
 ## The workspace git project
 
 A workspace owns one git repository whose tree is its repository list made real:
-one submodule per git source, at a directory named after it. A session is a
-`git clone --recurse-submodules` of that project into its own directory, on its
-own branch, with every submodule checked out on a branch rather than detached —
-so the second session on a workspace copies what is already on disk instead of
-fetching every repository from its host again.
+one submodule per git source, at a directory named after it. The project is a
+**declaration, not a checkout** — nothing is cloned into it. Each submodule is a
+`.gitmodules` entry plus a gitlink pinning the commit the source's ref points at,
+both resolved with a single `git ls-remote` per repository, so keeping the
+project correct as repositories come and go costs no clones.
+
+A session is a `git clone --recurse-submodules` of that project into its own
+directory, on its own branch, with every submodule checked out on a branch rather
+than detached — that clone is where the code is actually fetched, each repository
+at the commit the project recorded.
 
 Where projects live is a port, not a path:
 [domain-server/git/project-builder.ts](../domain-server/git/project-builder.ts)
@@ -69,7 +74,7 @@ machine today, a bucket in the cloud. Neither the services nor the routes know
 which.
 
 A project that already exists is **reconciled, not trusted**: submodules the
-workspace no longer lists are removed, new ones added, changed remotes
+workspace no longer lists are removed, new ones added, changed remotes and refs
 re-pointed. Reusing it untouched would mean a repository added today never
 reaching a session.
 

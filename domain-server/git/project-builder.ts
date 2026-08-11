@@ -31,10 +31,14 @@ export type CloneForSessionInput = {
 /**
  * The two halves of opening a session on a workspace.
  *
- * A workspace owns **one** git project holding its repositories as submodules.
- * A session is a **clone** of that project, so the second session on a
- * workspace copies what is already on disk instead of fetching every repository
- * from its host again.
+ * A workspace owns **one** git project declaring its repositories as
+ * submodules. The project holds no code: a submodule records where a repository
+ * lives and which commit it is pinned to, never a checkout of it. That keeps a
+ * workspace cheap to keep correct — adding, removing or re-pointing a
+ * repository is a config edit, not a clone.
+ *
+ * A session is a **clone** of that project with its submodules checked out, so
+ * the code is fetched per session, at the commits the project recorded.
  *
  * A port, not an implementation, because where projects live is what changes
  * between installations — directories on this machine while we run local, a
@@ -44,8 +48,8 @@ export type WorkspaceProjectBuilder = {
   /**
    * The workspace's project, built if it is missing and **reconciled** if it is
    * not: submodules the workspace no longer lists are removed, new ones added,
-   * changed remotes updated. Returning an existing project untouched would mean
-   * a repository added today never reaches a session.
+   * changed remotes and refs updated. Returning an existing project untouched
+   * would mean a repository added today never reaches a session.
    */
   ensureWorkspaceProject: (
     input: EnsureProjectInput,

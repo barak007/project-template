@@ -45,6 +45,19 @@ async function submoduleNames(path: string) {
     .sort();
 }
 
+/** The commit a submodule is pinned to, straight out of the project's index. */
+async function gitlink(path: string, name: string) {
+  const { stdout } = await run("git", ["ls-files", "--stage", name], {
+    cwd: path,
+  });
+  return stdout.trim().split(/\s+/)[1] ?? "";
+}
+
+async function headCommit(repository: string, ref = "HEAD") {
+  const { stdout } = await run("git", ["rev-parse", ref], { cwd: repository });
+  return stdout.trim();
+}
+
 function localPath(location: ProjectLocation) {
   if (location.kind !== "local") throw new Error("expected a local project");
   return location.path;
@@ -73,6 +86,8 @@ describe("createLocalProjectBuilder", () => {
     engine = await repositoryWithOneCommit(root, "engine");
     notes = await repositoryWithOneCommit(root, "notes");
     extra = await repositoryWithOneCommit(root, "extra");
+    // A second ref, so "the workspace changed which branch it wants" is testable.
+    await run("git", [...identity, "branch", "release"], { cwd: engine });
   });
 
   afterAll(async () => {
@@ -97,7 +112,7 @@ describe("createLocalProjectBuilder", () => {
     });
   }
 
-  it("builds the workspace project with one submodule per repository", async () => {
+  it("declares one submodule per repository without cloning any of them", async () => {
     const builder = builderIn("built");
     const { steps, report } = collector();
 
@@ -117,7 +132,16 @@ describe("createLocalProjectBuilder", () => {
     expect(path.endsWith("/project")).toBe(true);
     expect(await submoduleNames(path)).toEqual(["engine", "notes"]);
     expect(steps[0]).toBe("Creating the workspace project");
-    expect(steps).toContain("Cloning engine (1 of 2)");
+    expect(steps).toContain("Adding engine (1 of 2)");
+
+    // The declaration, not a checkout: no repository content on disk, but a
+    // gitlink pinning each one to the commit its ref points at.
+    expect(await readdir(path)).toEqual([".git", ".gitmodules"]);
+    for (const [name, remote] of [
+      ["engine", engine],
+      ["notes", notes],
+    ] as const)
+      expect(await gitlink(path, name)).toBe(await headCommit(remote));
   });
 
   it("reuses the project on a second call and does no git work", async () => {
@@ -188,6 +212,37 @@ describe("createLocalProjectBuilder", () => {
     expect(await submoduleNames(path)).toEqual(["engine"]);
   });
 
+  it("re-pins a repository whose ref changed", async () => {
+    const builder = builderIn("reffed");
+    const workspaceId = "18181818-1818-4818-8818-181818181818";
+    await ensure(builder, workspaceId, [{ name: "engine", remote: engine }]);
+
+    const project = await ensure(builder, workspaceId, [
+      { name: "engine", remote: engine, ref: "release" },
+    ]);
+
+    const path = localPath(project);
+    const { stdout } = await run(
+      "git",
+      ["config", "--file", ".gitmodules", "--get", "submodule.engine.branch"],
+      { cwd: path },
+    );
+    expect(stdout.trim()).toBe("release");
+    expect(await gitlink(path, "engine")).toBe(
+      await headCommit(engine, "release"),
+    );
+  });
+
+  it("fails rather than pinning a ref the repository does not have", async () => {
+    const builder = builderIn("no-such-ref");
+
+    await expect(
+      ensure(builder, "19191919-1919-4919-8919-191919191919", [
+        { name: "engine", remote: engine, ref: "no-such-branch" },
+      ]),
+    ).rejects.toThrow(/no no-such-branch branch/);
+  });
+
   it("clones the project for a session, on the session's branch", async () => {
     const builder = builderIn("cloned");
     const project = await ensure(
@@ -213,6 +268,8 @@ describe("createLocalProjectBuilder", () => {
     expect(path).not.toBe(localPath(project));
     expect(await currentBranch(path)).toBe("session/77777777");
     expect(await submoduleNames(path)).toEqual(["engine", "notes"]);
+    // The code the project only declared is here, checked out, for real.
+    expect(await readdir(join(path, "engine"))).toContain("README.md");
 
     // The claim that justifies submodules: checked out on a branch, not detached,
     // so the first thing a user does — edit a file and commit — works.

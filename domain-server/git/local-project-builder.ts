@@ -11,6 +11,7 @@ import { silentLogger } from "../logging.js";
 import type {
   CloneForSessionInput,
   EnsureProjectInput,
+  ProjectRepository,
   WorkspaceProjectBuilder,
 } from "./project-builder.js";
 
@@ -35,7 +36,7 @@ const identity = [
 const allowLocalClones = ["-c", "protocol.file.allow=always"];
 
 /** What a project's `.gitmodules` says it contains. */
-type Submodule = { name: string; path: string; remote: string };
+type Submodule = { name: string; path: string; remote: string; ref?: string };
 
 /**
  * Builds workspace projects and session clones as directories on the machine
@@ -100,8 +101,9 @@ export function createLocalProjectBuilder(
       await mkdir(join(path, ".."), { recursive: true });
       await input.report("Cloning the workspace project", path);
 
-      // `--recurse-submodules` is what makes a second session cheap: the
-      // submodules come from the project on disk, not from their hosts.
+      // The project holds no code, only the declaration of it, so this is where
+      // the repositories are actually fetched — each at the commit the project
+      // recorded, from its own host.
       await git(log, join(path, ".."), [
         ...allowLocalClones,
         "clone",
@@ -138,10 +140,16 @@ export function createLocalProjectBuilder(
 /**
  * Makes the project's submodules match the workspace exactly. This is the
  * structure the product enforces: **one submodule per repository, at a
- * directory named after it, pointing at its remote.** Anything else — a
- * repository removed from the workspace, a remote that changed, a name reused —
- * is corrected here rather than surfacing later as a session that holds the
- * wrong code.
+ * directory named after it, pointing at its remote and ref.** Anything else — a
+ * repository removed from the workspace, a remote or ref that changed, a name
+ * reused — is corrected here rather than surfacing later as a session that
+ * holds the wrong code.
+ *
+ * The project is a **declaration, not a checkout**: nothing is cloned into it.
+ * A repository is recorded as a `.gitmodules` entry plus the commit its ref
+ * points at right now, both of which come from `ls-remote` — one network round
+ * trip per repository instead of a full clone. The code itself arrives when a
+ * session clones the project.
  */
 async function reconcile(log: Logger, path: string, input: EnsureProjectInput) {
   const present = await readSubmodules(log, path);
@@ -149,19 +157,12 @@ async function reconcile(log: Logger, path: string, input: EnsureProjectInput) {
     input.repositories.map((repository) => [repository.name, repository]),
   );
 
-  const stale = present.filter((submodule) => {
-    // A submodule at the wrong path is as wrong as one with the wrong remote:
-    // the session's folder layout is part of what a user is promised.
-    if (submodule.path !== submodule.name) return true;
-    return wanted.get(submodule.name)?.remote !== submodule.remote;
-  });
+  const stale = present.filter((submodule) => !matches(submodule, wanted));
   const added = input.repositories.filter(
     (repository) =>
       !present.some(
         (submodule) =>
-          submodule.name === repository.name &&
-          submodule.remote === repository.remote &&
-          submodule.path === submodule.name,
+          submodule.name === repository.name && matches(submodule, wanted),
       ),
   );
   if (stale.length === 0 && added.length === 0) {
@@ -173,25 +174,19 @@ async function reconcile(log: Logger, path: string, input: EnsureProjectInput) {
     await input.report(`Removing ${submodule.name}`);
     await removeSubmodule(log, path, submodule);
   }
-  let cloned = 0;
+  let recorded = 0;
   for (const repository of added) {
-    cloned += 1;
+    recorded += 1;
     await input.report(
-      `Cloning ${repository.name} (${String(cloned)} of ${String(added.length)})`,
+      `Adding ${repository.name} (${String(recorded)} of ${String(added.length)})`,
       repository.remote,
     );
-    await git(log, path, [
-      ...allowLocalClones,
-      "submodule",
-      "add",
-      "--force",
-      ...(repository.ref ? ["--branch", repository.ref] : []),
-      repository.remote,
-      repository.name,
-    ]);
+    await addSubmodule(log, path, repository);
   }
 
-  await git(log, path, ["add", "--all"]);
+  // Only `.gitmodules`: `add --all` would read the gitlinks just written as
+  // deleted directories and stage their removal, since the code is never here.
+  await git(log, path, ["add", "--all", "--", ".gitmodules"]);
   await git(log, path, [
     "commit",
     "--allow-empty",
@@ -206,29 +201,125 @@ async function reconcile(log: Logger, path: string, input: EnsureProjectInput) {
 }
 
 /**
- * `git submodule deinit` and `rm` leave the entry in `.git/modules`, which makes
- * re-adding the same name fail. Clearing it is what lets a repository be removed
- * and added back.
+ * Whether what the project records for a submodule is still what the workspace
+ * asks for. A submodule at the wrong path is as wrong as one with the wrong
+ * remote or ref: the session's folder layout and the code in it are both part
+ * of what a user is promised.
+ */
+function matches(
+  submodule: Submodule,
+  wanted: Map<string, ProjectRepository>,
+): boolean {
+  if (submodule.path !== submodule.name) return false;
+  const repository = wanted.get(submodule.name);
+  if (!repository) return false;
+  return (
+    repository.remote === submodule.remote && repository.ref === submodule.ref
+  );
+}
+
+/**
+ * Records a repository as a submodule without cloning it: the `.gitmodules`
+ * entry says where it lives, and the gitlink in the index says which commit.
+ * `update-index` does not need the commit object present, which is exactly why
+ * the project can point at code it has never fetched.
+ */
+async function addSubmodule(
+  log: Logger,
+  path: string,
+  repository: ProjectRepository,
+) {
+  const commit = await resolveCommit(log, path, repository);
+  await gitmodules(log, path, [
+    `submodule.${repository.name}.path`,
+    repository.name,
+  ]);
+  await gitmodules(log, path, [
+    `submodule.${repository.name}.url`,
+    repository.remote,
+  ]);
+  if (repository.ref)
+    await gitmodules(log, path, [
+      `submodule.${repository.name}.branch`,
+      repository.ref,
+    ]);
+  await git(log, path, [
+    "update-index",
+    "--add",
+    "--cacheinfo",
+    `160000,${commit},${repository.name}`,
+  ]);
+}
+
+/**
+ * The commit the repository's ref points at, asked of the host directly. A
+ * remote this machine cannot reach, or a ref that does not exist on it, fails
+ * here — while the caller still knows which repository it was about — rather
+ * than as a session that mysteriously cannot check something out.
+ */
+async function resolveCommit(
+  log: Logger,
+  path: string,
+  repository: ProjectRepository,
+): Promise<string> {
+  const { stdout } = await git(log, path, [
+    "ls-remote",
+    repository.remote,
+    ...(repository.ref ? [repository.ref] : ["HEAD"]),
+  ]);
+  const commit = /^([0-9a-f]{40})\s/.exec(stdout.trim())?.[1];
+  if (!commit) {
+    log.error("remote has no such ref", {
+      remote: repository.remote,
+      ref: repository.ref ?? "HEAD",
+    });
+    throw new AppError(
+      "VALIDATION_FAILED",
+      `${repository.name} has no ${repository.ref ?? "default"} branch`,
+      400,
+    );
+  }
+  return commit;
+}
+
+/**
+ * Drops a submodule from the declaration. The `rm --cached` clears the gitlink
+ * from the index; the directory and `.git/modules` entry only exist in projects
+ * built before the project stopped cloning, and clearing them is what lets such
+ * a repository be removed and added back.
  */
 async function removeSubmodule(
   log: Logger,
   path: string,
   submodule: Submodule,
 ) {
+  await gitmodules(log, path, [
+    "--remove-section",
+    `submodule.${submodule.name}`,
+  ]).catch(() => undefined);
   await git(log, path, [
     "submodule",
     "deinit",
     "--force",
     submodule.path,
   ]).catch(() => undefined);
-  await git(log, path, ["rm", "--force", submodule.path]).catch(
-    () => undefined,
-  );
+  await git(log, path, [
+    "rm",
+    "--cached",
+    "--force",
+    "-r",
+    submodule.path,
+  ]).catch(() => undefined);
   await rm(join(path, submodule.path), { recursive: true, force: true });
   await rm(join(path, ".git", "modules", submodule.name), {
     recursive: true,
     force: true,
   });
+}
+
+/** One `.gitmodules` edit. The file is the project's declaration of itself. */
+function gitmodules(log: Logger, path: string, parameters: string[]) {
+  return git(log, path, ["config", "--file", ".gitmodules", ...parameters]);
 }
 
 async function branchSubmodules(
@@ -264,18 +355,24 @@ async function readSubmodules(log: Logger, path: string): Promise<Submodule[]> {
 
   const paths = new Map<string, string>();
   const remotes = new Map<string, string>();
+  const refs = new Map<string, string>();
+  const fields = { path: paths, url: remotes, branch: refs };
   for (const line of stdout.split("\n")) {
-    const match = /^submodule\.(.+)\.(path|url)=(.*)$/.exec(line.trim());
+    const match = /^submodule\.(.+)\.(path|url|branch)=(.*)$/.exec(line.trim());
     if (!match) continue;
     const [, name, key, value] = match;
-    if (!name || !value) continue;
-    (key === "path" ? paths : remotes).set(name, value);
+    if (!name || !key || !value) continue;
+    fields[key as keyof typeof fields].set(name, value);
   }
-  return [...paths].map(([name, submodulePath]) => ({
-    name,
-    path: submodulePath,
-    remote: remotes.get(name) ?? "",
-  }));
+  return [...paths].map(([name, submodulePath]) => {
+    const ref = refs.get(name);
+    return {
+      name,
+      path: submodulePath,
+      remote: remotes.get(name) ?? "",
+      ...(ref === undefined ? {} : { ref }),
+    };
+  });
 }
 
 async function isRepository(path: string): Promise<boolean> {
