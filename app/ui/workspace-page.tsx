@@ -3,7 +3,9 @@ import { useEffect } from "react";
 import { currentOrganization, currentWorkspace } from "../client/index.js";
 import type { AppCore, WorkSession } from "../client/index.js";
 
+import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { locationOf } from "./project-location.js";
 import { RouteLink } from "./route-link.js";
 import { useAppState } from "./use-app-state.js";
 
@@ -63,16 +65,44 @@ export function WorkspacePage({
         <RouteLink
           core={core}
           to={{ kind: "organization", organizationId }}
-          className="link"
+          className="link entity-chip"
         >
-          ← {organization?.name ?? "Organization"}
+          <EntityIcon entity="organization" />←{" "}
+          {organization?.name ?? "Organization"}
         </RouteLink>
-        <h1>{workspace?.name ?? "Workspace"}</h1>
+        <h1 className="entity-chip">
+          <EntityIcon entity="workspace" />
+          {workspace?.name ?? "Workspace"}
+        </h1>
         <p className="muted">
           A session clones these repositories into one project.
         </p>
       </header>
       <ErrorBanner core={core} />
+
+      <h2>Project</h2>
+      {/* The workspace owns one git project — the template each session clones.
+          It is built by the first session, so before that there is nothing to
+          open, and the link says so rather than leading to an error. */}
+      <div className="project-row">
+        <EntityIcon entity="project" />
+        {workspace?.projectLocation ? (
+          <>
+            <RouteLink
+              core={core}
+              to={{ kind: "workspace-project", organizationId, workspaceId }}
+              className="link"
+            >
+              Browse the workspace project
+            </RouteLink>
+            <code>{locationOf(workspace.projectLocation)}</code>
+          </>
+        ) : (
+          <span className="muted">
+            Built by this workspace&apos;s first session.
+          </span>
+        )}
+      </div>
 
       <h2>Repositories</h2>
       <form
@@ -100,7 +130,10 @@ export function WorkspacePage({
         <ul className="rows">
           {attached.map((source) => (
             <li key={source.id}>
-              <strong>{source.name}</strong>
+              <strong className="entity-chip">
+                <EntityIcon entity="repository" />
+                {source.name}
+              </strong>
               <span className="muted">{remoteOf(source.config)}</span>
               <button
                 className="ghost danger"
@@ -136,7 +169,10 @@ export function WorkspacePage({
           <header>
             {/* The session's own page is the editor over its files; a session
                 still being prepared has nothing to open yet. */}
-            <strong>{statusLabel(session)}</strong>
+            <strong className="entity-chip">
+              <EntityIcon entity="session" />
+              {statusLabel(session)}
+            </strong>
             {session.status === "ready" && (
               <RouteLink
                 core={core}
@@ -178,7 +214,10 @@ export function WorkspacePage({
  * that failed shows why rather than only that it did.
  */
 function currentStep(session: WorkSession): string {
-  if (session.status === "ready") return locationOf(session);
+  if (session.status === "ready")
+    return session.projectLocation === null
+      ? (session.failureCode ?? "")
+      : locationOf(session.projectLocation);
   const last = session.progress.at(-1);
   if (session.status === "failed")
     return last?.detail ?? session.failureCode ?? "";
@@ -201,14 +240,6 @@ function statusLabel(session: WorkSession): string {
     case "failed":
       return "Failed";
   }
-}
-
-function locationOf(session: WorkSession): string {
-  const location = session.projectLocation;
-  if (!location) return session.failureCode ?? "";
-  return location.kind === "local"
-    ? location.path
-    : `${location.bucket}/${location.prefix}`;
 }
 
 function remoteOf(config: unknown): string {

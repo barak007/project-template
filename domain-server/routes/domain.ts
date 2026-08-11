@@ -13,7 +13,7 @@ import {
   projectEntryResponseSchema,
   projectFileResponseSchema,
   projectPathQuerySchema,
-} from "../entities/project-file.js";
+} from "../entities/project.js";
 import { repositoryInputSchema } from "../entities/repository.js";
 import { sourceInputSchema, sourceResponseSchema } from "../entities/source.js";
 import {
@@ -41,6 +41,12 @@ import {
   listOrganizations,
   putMembership,
 } from "../services/organizations.js";
+import {
+  listWorkspaceProjectDirectory,
+  listWorkSessionDirectory,
+  readWorkspaceProjectFile,
+  readWorkSessionFile,
+} from "../services/project-files.js";
 import { addRepository } from "../services/repositories.js";
 import {
   createSource,
@@ -60,10 +66,6 @@ import {
   putUserData,
   putUserSecret,
 } from "../services/values.js";
-import {
-  listWorkSessionDirectory,
-  readWorkSessionFile,
-} from "../services/work-session-files.js";
 import {
   branchWorkSessionProject,
   createWorkSession,
@@ -282,6 +284,45 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
             params.workspaceId,
           );
           return context.body(null, 204);
+        },
+      )
+      // The workspace's own project — the template a session clones — browsed
+      // exactly like a session's copy of it.
+      .get(
+        "/organizations/:organizationId/workspaces/:workspaceId/project/files",
+        zValidator("param", workspaceParams, validationHook),
+        zValidator("query", projectPathQuerySchema, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await listWorkspaceProjectDirectory(
+            dependencies.db,
+            dependencies.projectFiles,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+            context.req.valid("query").path,
+          );
+          return context.json(
+            z.array(projectEntryResponseSchema).parse(result),
+            200,
+          );
+        },
+      )
+      .get(
+        "/organizations/:organizationId/workspaces/:workspaceId/project/file",
+        zValidator("param", workspaceParams, validationHook),
+        zValidator("query", projectPathQuerySchema, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await readWorkspaceProjectFile(
+            dependencies.db,
+            dependencies.projectFiles,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+            context.req.valid("query").path,
+          );
+          return context.json(projectFileResponseSchema.parse(result), 200);
         },
       )
       .get(

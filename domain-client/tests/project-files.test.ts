@@ -3,14 +3,15 @@ import { describe } from "vitest";
 import { it } from "./kit/fixtures.js";
 
 /**
- * Browsing what a session holds. The kit runs no worker, so a session here
- * never gets a project — which is exactly the case a page has to survive. That
- * a ready project is read correctly (and that a path cannot climb out of it) is
- * [work-session-files.test.ts](../../domain-server/tests/work-session-files.test.ts).
+ * Browsing a project — a workspace's own, or a session's clone of it. The kit
+ * runs no worker, so nothing here ever gets a project built, which is exactly
+ * the case a page has to survive. That a real project is read correctly (and
+ * that a path cannot climb out of it) is
+ * [project-files.test.ts](../../domain-server/tests/project-files.test.ts).
  */
-describe("session file stories", () => {
+describe("project file stories", () => {
   it.concurrent(
-    "a session with no project yet cannot be browsed, and nothing is invented",
+    "neither a workspace nor a session can be browsed before its project exists",
     async ({ world, expect }) => {
       const { core, organization } = await world.founder("ada");
       await core.sources.create(organization.id, {
@@ -31,14 +32,28 @@ describe("session file stories", () => {
       if (!session) throw new Error("Session was not created");
 
       await expect(
-        core.sessionFiles.openDirectory(organization.id, session.id),
+        core.projectFiles.openDirectory(organization.id, {
+          kind: "session",
+          id: session.id,
+        }),
       ).rejects.toMatchObject({ name: "ApiError" });
       await expect(
-        core.sessionFiles.openFile(organization.id, session.id, "README.md"),
+        core.projectFiles.openFile(
+          organization.id,
+          { kind: "session", id: session.id },
+          "README.md",
+        ),
+      ).rejects.toMatchObject({ name: "ApiError" });
+      // The workspace's project is built by its first session, so it has none.
+      await expect(
+        core.projectFiles.openDirectory(organization.id, {
+          kind: "workspace",
+          id: workspace.id,
+        }),
       ).rejects.toMatchObject({ name: "ApiError" });
 
-      expect(core.getState().sessionFiles).toEqual({
-        workSessionId: null,
+      expect(core.getState().projectFiles).toEqual({
+        target: null,
         directories: {},
         openFile: null,
       });
@@ -46,7 +61,7 @@ describe("session file stories", () => {
   );
 
   it.concurrent(
-    "a session of another organization is not readable",
+    "a session or workspace of another organization is not readable",
     async ({ world, expect }) => {
       const ada = await world.founder("ada");
       const grace = await world.founder("grace");
@@ -61,7 +76,16 @@ describe("session file stories", () => {
       if (!session) throw new Error("Session was not created");
 
       await expect(
-        ada.core.sessionFiles.openDirectory(ada.organization.id, session.id),
+        ada.core.projectFiles.openDirectory(ada.organization.id, {
+          kind: "session",
+          id: session.id,
+        }),
+      ).rejects.toMatchObject({ name: "ApiError", code: "NOT_FOUND" });
+      await expect(
+        ada.core.projectFiles.openDirectory(ada.organization.id, {
+          kind: "workspace",
+          id: workspace.id,
+        }),
       ).rejects.toMatchObject({ name: "ApiError", code: "NOT_FOUND" });
     },
   );

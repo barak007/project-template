@@ -9,7 +9,7 @@ import type {
   WorkSession,
   Workspace,
 } from "./api.js";
-import type { AuthError, AuthUser } from "./state.js";
+import type { AuthError, AuthUser, ProjectTarget } from "./state.js";
 
 /**
  * Everything that can happen to the client, as facts. Actions call the API
@@ -54,18 +54,18 @@ export type ClientEvent =
       workSession: WorkSession;
     }
   | {
-      type: "session-directory-loaded";
+      type: "project-directory-loaded";
       organizationId: string;
-      workSessionId: string;
+      target: ProjectTarget;
       path: string;
       entries: ProjectEntry[];
     }
   /** Closing a folder: what was read about it is forgotten, not hidden. */
-  | { type: "session-directory-collapsed"; path: string }
+  | { type: "project-directory-collapsed"; path: string }
   | {
-      type: "session-file-loaded";
+      type: "project-file-loaded";
       organizationId: string;
-      workSessionId: string;
+      target: ProjectTarget;
       file: ProjectFile;
     }
   | {

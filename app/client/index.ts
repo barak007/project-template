@@ -20,6 +20,7 @@ export type {
   Organization,
   ProjectEntry,
   ProjectFile,
+  ProjectTarget,
   RepositoryInput,
   Source,
   WorkSession,

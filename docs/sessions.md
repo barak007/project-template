@@ -155,8 +155,17 @@ ready session has its own route
 ([session-page.tsx](../app/ui/session-page.tsx)): the project's file tree beside
 the file being read. The tree is fetched a directory at a time and a file is
 fetched when it is opened, both through the API — `project/files` and
-`project/file` on a work session, over the
+`project/file`, over the
 [ProjectFiles](../domain-server/git/project-files.ts) port.
+
+**The workspace's own project is browsable the same way**, at
+`workspaces/:workspaceId/project/files`, linked from the workspace page. It is
+the template a session clones, so seeing what is in it answers "what will my next
+session contain" without opening one — and since it is `projectLocation` on a
+different row, it is the same read with a different lookup
+([services/project-files.ts](../domain-server/services/project-files.ts)). It is
+read-only on purpose: work happens in a session, and the template is what
+`ensureWorkspaceProject` reconciles.
 
 The alternative — a local process serving a UI over the folder — was rejected
 because it makes the browser's machine and the project's machine the same

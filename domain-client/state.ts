@@ -18,22 +18,30 @@ export type AuthState =
   | { status: "authenticated"; user: AuthUser };
 
 /**
- * Collections scoped to the organization the user is currently working in —
- * state mirrors a UI showing one organization at a time, so acting on a
- * different organization resets these (see projection.ts).
+ * Which git project is being browsed: a **workspace's** own project — the
+ * template its repositories live in as submodules — or a **session's** clone of
+ * it. The two are read through the same actions, so which one it is travels as
+ * a value rather than as two slices.
  */
+export type ProjectTarget = { kind: "workspace" | "session"; id: string };
+
 /**
- * One session's project as it has been browsed so far: the directories that
- * have been opened, keyed by path (`""` is the root), and the file being read.
- * A tree is expanded a level at a time, so an unopened folder is simply absent
- * — which is also what "collapsed" means.
+ * One project as it has been browsed so far: the directories that have been
+ * opened, keyed by path (`""` is the root), and the file being read. A tree is
+ * expanded a level at a time, so an unopened folder is simply absent — which is
+ * also what "collapsed" means.
  */
-export type SessionFilesState = {
-  workSessionId: string | null;
+export type ProjectFilesState = {
+  target: ProjectTarget | null;
   directories: Record<string, ProjectEntry[]>;
   openFile: ProjectFile | null;
 };
 
+/**
+ * Collections scoped to the organization the user is currently working in —
+ * state mirrors a UI showing one organization at a time, so acting on a
+ * different organization resets these (see projection.ts).
+ */
 export type OrganizationSlices = {
   currentOrganizationId: string | null;
   members: Membership[];
@@ -41,13 +49,13 @@ export type OrganizationSlices = {
   sources: Source[];
   workspaces: Workspace[];
   workSessions: WorkSession[];
-  sessionFiles: SessionFilesState;
+  projectFiles: ProjectFilesState;
   organizationSecrets: Secret[];
   organizationData: DataEntry[];
 };
 
-export const emptySessionFiles: SessionFilesState = {
-  workSessionId: null,
+export const emptyProjectFiles: ProjectFilesState = {
+  target: null,
   directories: {},
   openFile: null,
 };
@@ -65,7 +73,7 @@ export const emptyOrganizationSlices: OrganizationSlices = {
   sources: [],
   workspaces: [],
   workSessions: [],
-  sessionFiles: emptySessionFiles,
+  projectFiles: emptyProjectFiles,
   organizationSecrets: [],
   organizationData: [],
 };

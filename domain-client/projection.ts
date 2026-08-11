@@ -1,10 +1,10 @@
 import type { ClientEvent } from "./events.js";
 import {
   emptyOrganizationSlices,
-  emptySessionFiles,
+  emptyProjectFiles,
   initialState,
 } from "./state.js";
-import type { ClientState, SessionFilesState } from "./state.js";
+import type { ClientState, ProjectFilesState, ProjectTarget } from "./state.js";
 import type { Store } from "./store.js";
 
 /** The store every action module dispatches into. */
@@ -33,17 +33,18 @@ function removeByKey<T extends { key: string }>(items: T[], key: string): T[] {
 }
 
 /**
- * The browsed tree of the session an event is about. State holds one session's
- * files at a time, so a fact about another session starts from nothing rather
- * than mixing two projects into one tree.
+ * The browsed tree of the project an event is about. State holds one project's
+ * files at a time, so a fact about another one starts from nothing rather than
+ * mixing two trees together.
  */
-function forSession(
+function forProject(
   state: ClientState,
-  workSessionId: string,
-): SessionFilesState {
-  return state.sessionFiles.workSessionId === workSessionId
-    ? state.sessionFiles
-    : { ...emptySessionFiles, workSessionId };
+  target: ProjectTarget,
+): ProjectFilesState {
+  const current = state.projectFiles.target;
+  return current?.kind === target.kind && current.id === target.id
+    ? state.projectFiles
+    : { ...emptyProjectFiles, target };
 }
 
 /** State shows one organization at a time; another organization's event resets the scoped slices. */
@@ -130,34 +131,34 @@ export function reduce(previous: ClientState, event: ClientEvent): ClientState {
         ...state,
         workSessions: upsertById(state.workSessions, event.workSession),
       };
-    case "session-directory-loaded": {
-      const files = forSession(state, event.workSessionId);
+    case "project-directory-loaded": {
+      const files = forProject(state, event.target);
       return {
         ...state,
-        sessionFiles: {
+        projectFiles: {
           ...files,
           directories: { ...files.directories, [event.path]: event.entries },
         },
       };
     }
-    case "session-directory-collapsed": {
+    case "project-directory-collapsed": {
       const prefix = `${event.path}/`;
       return {
         ...state,
-        sessionFiles: {
-          ...state.sessionFiles,
+        projectFiles: {
+          ...state.projectFiles,
           // Everything below it closes with it, so re-opening reads fresh.
           directories: Object.fromEntries(
-            Object.entries(state.sessionFiles.directories).filter(
+            Object.entries(state.projectFiles.directories).filter(
               ([path]) => path !== event.path && !path.startsWith(prefix),
             ),
           ),
         },
       };
     }
-    case "session-file-loaded": {
-      const files = forSession(state, event.workSessionId);
-      return { ...state, sessionFiles: { ...files, openFile: event.file } };
+    case "project-file-loaded": {
+      const files = forProject(state, event.target);
+      return { ...state, projectFiles: { ...files, openFile: event.file } };
     }
     case "organization-secrets-loaded":
       return { ...state, organizationSecrets: event.secrets };

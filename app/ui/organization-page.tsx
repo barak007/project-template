@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { currentOrganization } from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
+import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
 import { RouteLink } from "./route-link.js";
 import { useAppState } from "./use-app-state.js";
@@ -27,10 +28,17 @@ export function OrganizationPage({
   return (
     <section className="page">
       <header className="page-header">
-        <RouteLink core={core} to={{ kind: "dashboard" }} className="link">
-          ← All organizations
+        <RouteLink
+          core={core}
+          to={{ kind: "dashboard" }}
+          className="link entity-chip"
+        >
+          <EntityIcon entity="organization" />← All organizations
         </RouteLink>
-        <h1>{organization?.name ?? "Organization"}</h1>
+        <h1 className="entity-chip">
+          <EntityIcon entity="organization" />
+          {organization?.name ?? "Organization"}
+        </h1>
         <p className="muted">
           A workspace groups the repositories a session opens together.
         </p>
@@ -52,7 +60,10 @@ export function OrganizationPage({
                 }}
                 className="link"
               >
-                <strong>{workspace.name}</strong>
+                <strong className="entity-chip">
+                  <EntityIcon entity="workspace" />
+                  {workspace.name}
+                </strong>
               </RouteLink>
               <span className="muted">
                 {workspace.sourceIds.length} repositor

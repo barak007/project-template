@@ -1,10 +1,15 @@
+import type { ProjectTarget } from "../../domain-client/index.js";
+
 import type { AppActionContext } from "./context.js";
 
 /**
- * The file tree and the open file of one work session's project — what the
- * session page is. Expanding is a toggle rather than two actions, because a
- * folder in a tree is one control; which of the two it does is state, so the
- * decision belongs here and not in a component.
+ * The file tree and the open file of one git project — a workspace's own project
+ * or a session's clone of it. Both pages are the same two panes over the same
+ * actions, which is why the target is an argument rather than two namespaces.
+ *
+ * Expanding is a toggle rather than two actions, because a folder in a tree is
+ * one control; which of the two it does is state, so the decision belongs here
+ * and not in a component.
  *
  * Everything is read through the API: nothing assumes the project is on the
  * machine the browser is running on.
@@ -15,31 +20,24 @@ export function createProjectFileActions({
   attempt,
 }: AppActionContext) {
   return {
-    openRoot: (organizationId: string, workSessionId: string) =>
-      attempt(() =>
-        client.sessionFiles.openDirectory(organizationId, workSessionId),
-      ),
+    openRoot: (organizationId: string, target: ProjectTarget) =>
+      attempt(() => client.projectFiles.openDirectory(organizationId, target)),
     toggleDirectory: (
       organizationId: string,
-      workSessionId: string,
+      target: ProjectTarget,
       path: string,
     ) =>
       attempt(async () => {
-        const { sessionFiles } = store.getState();
+        const current = store.getState().projectFiles;
         const open =
-          sessionFiles.workSessionId === workSessionId &&
-          path in sessionFiles.directories;
-        if (open) client.sessionFiles.collapseDirectory(path);
+          current.target?.kind === target.kind &&
+          current.target.id === target.id &&
+          path in current.directories;
+        if (open) client.projectFiles.collapseDirectory(path);
         else
-          await client.sessionFiles.openDirectory(
-            organizationId,
-            workSessionId,
-            path,
-          );
+          await client.projectFiles.openDirectory(organizationId, target, path);
       }),
-    openFile: (organizationId: string, workSessionId: string, path: string) =>
-      attempt(() =>
-        client.sessionFiles.openFile(organizationId, workSessionId, path),
-      ),
+    openFile: (organizationId: string, target: ProjectTarget, path: string) =>
+      attempt(() => client.projectFiles.openFile(organizationId, target, path)),
   };
 }

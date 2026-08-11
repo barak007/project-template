@@ -21,7 +21,7 @@ touch [state](../state.md) directly.
 | [sources](./sources.md)             | organization | `load`, `create`, `update`, `delete`             |
 | [workspaces](./workspaces.md)       | organization | `load`, `create`, `update`, `delete`             |
 | [workSessions](./work-sessions.md)  | organization | `load`, `start`, `refresh`, `branchAll`          |
-| [sessionFiles](./session-files.md)  | organization | `openDirectory`, `collapseDirectory`, `openFile` |
+| [projectFiles](./project-files.md)  | organization | `openDirectory`, `collapseDirectory`, `openFile` |
 | [organizationSecrets](./secrets.md) | organization | `load`, `put`, `delete`                          |
 | [userSecrets](./secrets.md)         | user         | `load`, `put`, `delete`                          |
 | [organizationData](./data.md)       | organization | `load`, `put`                                    |

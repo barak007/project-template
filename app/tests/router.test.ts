@@ -32,6 +32,11 @@ describe("router", () => {
       { kind: "organization", organizationId: "org-1" },
       { kind: "workspace", organizationId: "org-1", workspaceId: "ws-1" },
       {
+        kind: "workspace-project",
+        organizationId: "org-1",
+        workspaceId: "ws-1",
+      },
+      {
         kind: "session",
         organizationId: "org-1",
         workspaceId: "ws-1",
@@ -78,6 +83,13 @@ describe("router", () => {
     expect(
       requiresAuthentication({
         kind: "workspace",
+        organizationId: "x",
+        workspaceId: "y",
+      }),
+    ).toBe(true);
+    expect(
+      requiresAuthentication({
+        kind: "workspace-project",
         organizationId: "x",
         workspaceId: "y",
       }),

@@ -43,7 +43,7 @@ Re-fetches one session and upserts it — poll this to observe status
 transitions.
 
 What a ready session actually holds is read through
-[sessionFiles](./session-files.md) — the server does the reading, so a project
+[projectFiles](./project-files.md) — the server does the reading, so a project
 built on another machine browses the same.
 
 ## `branchAll(organizationId, workSessionId, branch)`

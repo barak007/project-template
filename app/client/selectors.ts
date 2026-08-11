@@ -31,6 +31,7 @@ export function routeOrganizationId(state: AppState): string | undefined {
   if (
     route.kind === "organization" ||
     route.kind === "workspace" ||
+    route.kind === "workspace-project" ||
     route.kind === "session"
   )
     return route.organizationId;
@@ -49,7 +50,12 @@ export function currentOrganization(state: AppState): Organization | undefined {
 /** The workspace the route names, once the organization's list has loaded. */
 export function currentWorkspace(state: AppState): Workspace | undefined {
   const { route } = state;
-  if (route.kind !== "workspace" && route.kind !== "session") return undefined;
+  if (
+    route.kind !== "workspace" &&
+    route.kind !== "workspace-project" &&
+    route.kind !== "session"
+  )
+    return undefined;
   return state.workspaces.find(
     (workspace) => workspace.id === route.workspaceId,
   );

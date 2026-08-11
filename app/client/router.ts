@@ -10,6 +10,8 @@ export type Route =
   | { kind: "dashboard" }
   | { kind: "organization"; organizationId: string }
   | { kind: "workspace"; organizationId: string; workspaceId: string }
+  /** The workspace's own git project — the template every session clones. */
+  | { kind: "workspace-project"; organizationId: string; workspaceId: string }
   | {
       kind: "session";
       organizationId: string;
@@ -25,6 +27,7 @@ export function requiresAuthentication(route: Route): boolean {
     route.kind === "dashboard" ||
     route.kind === "organization" ||
     route.kind === "workspace" ||
+    route.kind === "workspace-project" ||
     route.kind === "session"
   );
 }
@@ -43,6 +46,8 @@ export function routeToPath(route: Route): string {
       return `/app/organizations/${encodeURIComponent(route.organizationId)}`;
     case "workspace":
       return workspacePath(route);
+    case "workspace-project":
+      return `${workspacePath(route)}/project`;
     case "session":
       return `${workspacePath(route)}/sessions/${encodeURIComponent(
         route.workSessionId,
@@ -72,6 +77,12 @@ export function pathToRoute(path: string): Route {
   if (first === "app") {
     if (second === "organizations" && third !== undefined) {
       if (fourth === "workspaces" && fifth !== undefined) {
+        if (sixth === "project")
+          return {
+            kind: "workspace-project",
+            organizationId: third,
+            workspaceId: fifth,
+          };
         if (sixth === "sessions" && seventh !== undefined)
           return {
             kind: "session",

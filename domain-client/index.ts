@@ -7,13 +7,13 @@ import {
 import type { Host } from "./host.js";
 import { createMemberActions } from "./member-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
+import { createProjectFileActions } from "./project-file-actions.js";
 import { reduce } from "./projection.js";
 import { createRepositoryActions } from "./repository-actions.js";
 import {
   createOrganizationSecretActions,
   createUserSecretActions,
 } from "./secret-actions.js";
-import { createSessionFileActions } from "./session-file-actions.js";
 import { createSourceActions } from "./source-actions.js";
 import { initialState } from "./state.js";
 import { createStore } from "./store.js";
@@ -39,7 +39,8 @@ export type {
   AuthState,
   AuthUser,
   ClientState,
-  SessionFilesState,
+  ProjectFilesState,
+  ProjectTarget,
 } from "./state.js";
 
 export type ClientCoreDependencies = {
@@ -58,7 +59,7 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),
     workSessions: createWorkSessionActions(api, store),
-    sessionFiles: createSessionFileActions(api, store),
+    projectFiles: createProjectFileActions(api, store),
     organizationSecrets: createOrganizationSecretActions(api, store),
     userSecrets: createUserSecretActions(api, store),
     organizationData: createOrganizationDataActions(api, store),

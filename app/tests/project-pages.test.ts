@@ -6,12 +6,12 @@ import { visibleRoute } from "../client/index.js";
 import { signIn, visit } from "./harness.js";
 
 /**
- * Opening a session: the editor page over the files the session holds. The kit
- * runs no worker, so these stories end where the project would begin — a
+ * The two editor pages — a session's clone and the workspace's own project. The
+ * kit runs no worker, so these stories end where the project would begin: a
  * session the page can only report as preparing, and reads that fail as state
  * rather than as a throw.
  */
-describe("opening a session", () => {
+describe("opening a project", () => {
   it.concurrent(
     "a session URL is a page of its own, kept across signing in",
     async ({ world, expect }) => {
@@ -57,25 +57,57 @@ describe("opening a session", () => {
         workspaceId: workspace.id,
         workSessionId: session.id,
       });
-      await core.projectFiles.openRoot(organizationId, session.id);
+      const target = { kind: "session" as const, id: session.id };
+      await core.projectFiles.openRoot(organizationId, target);
 
       expect(core.getState().error?.code).toBe("VALIDATION_FAILED");
-      expect(core.getState().sessionFiles.directories).toEqual({});
+      expect(core.getState().projectFiles.directories).toEqual({});
 
       // Same for a folder and a file: a page never sees a throw.
-      await core.projectFiles.toggleDirectory(
-        organizationId,
-        session.id,
-        "engine",
-      );
+      await core.projectFiles.toggleDirectory(organizationId, target, "engine");
       expect(core.getState().error?.code).toBe("VALIDATION_FAILED");
       await core.projectFiles.openFile(
         organizationId,
-        session.id,
+        target,
         "engine/README.md",
       );
       expect(core.getState().error?.code).toBe("VALIDATION_FAILED");
-      expect(core.getState().sessionFiles.openFile).toBeNull();
+      expect(core.getState().projectFiles.openFile).toBeNull();
+    },
+  );
+
+  it.concurrent(
+    "the workspace project is its own page, empty until a session builds it",
+    async ({ world, expect }) => {
+      const founder = await world.founder("ada");
+      const organizationId = founder.organization.id;
+      const { core } = visit(world, "/sign-in");
+      await signIn(core, founder.credentials);
+      core.workspaces.changeDraft({ name: "Platform" });
+      await core.workspaces.create(organizationId);
+      const workspace = core.getState().workspaces[0];
+      if (!workspace) throw new Error("the workspace was not created");
+
+      // Nothing has built it, so the page has a location to show only later.
+      expect(workspace.projectLocation).toBeNull();
+
+      core.navigation.navigate({
+        kind: "workspace-project",
+        organizationId,
+        workspaceId: workspace.id,
+      });
+      expect(visibleRoute(core.getState())).toEqual({
+        kind: "workspace-project",
+        organizationId,
+        workspaceId: workspace.id,
+      });
+
+      await core.projectFiles.openRoot(organizationId, {
+        kind: "workspace",
+        id: workspace.id,
+      });
+      expect(core.getState().error?.code).toBe("VALIDATION_FAILED");
+      expect(core.getState().projectFiles.directories).toEqual({});
     },
   );
 });

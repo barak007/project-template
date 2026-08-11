@@ -1,16 +1,9 @@
 import { z } from "zod";
 
 import { jsonValueSchema, timestampsSchema } from "./common.js";
+import { projectLocationSchema } from "./project.js";
 
 export const workSessionCreateSchema = z.object({ workspaceId: z.uuid() });
-export const projectLocationSchema = z.union([
-  z.object({ kind: z.literal("local"), path: z.string() }),
-  z.object({
-    kind: z.literal("s3"),
-    bucket: z.string(),
-    prefix: z.string(),
-  }),
-]);
 export const progressStepSchema = z.object({
   step: z.string(),
   at: z.string(),

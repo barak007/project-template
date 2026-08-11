@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import type { AppCore } from "../client/index.js";
 
+import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
 import { RouteLink } from "./route-link.js";
 import { useAppState } from "./use-app-state.js";
@@ -18,7 +19,10 @@ export function DashboardPage({ core }: { core: AppCore }) {
   return (
     <section className="page">
       <header className="page-header">
-        <h1>Your organizations</h1>
+        <h1 className="entity-chip">
+          <EntityIcon entity="organization" />
+          Your organizations
+        </h1>
         <p className="muted">
           Everything in the app belongs to an organization — data, members and
           access all follow it.
@@ -38,7 +42,10 @@ export function DashboardPage({ core }: { core: AppCore }) {
                 to={{ kind: "organization", organizationId: organization.id }}
                 className="card"
               >
-                <strong>{organization.name}</strong>
+                <strong className="entity-chip">
+                  <EntityIcon entity="organization" />
+                  {organization.name}
+                </strong>
                 <span className="muted">
                   since {new Date(organization.createdAt).toLocaleDateString()}
                 </span>

@@ -81,14 +81,35 @@ The list is filtered and derived **during render**, never in a selector: a
 `filter` builds a fresh array on every call, and `useSyncExternalStore` reads a
 new reference as a changed snapshot.
 
-A ready session has its own page — the file tree of its project beside the file
-being read ([session-page.tsx](../app/ui/session-page.tsx)). Every byte comes
-from the API through [sessionFiles](client/actions/session-files.md): **the app
-never assumes the project is on the machine the browser is running on**, because
-the server that built it may be somewhere else entirely. A folder in the tree is
-one control, so opening and closing is one action (`projectFiles.toggleDirectory`)
-whose branch is decided from state, not by the component; and the tree loads a
-level at a time, so a big repository costs a click rather than a payload.
+## Projects
+
+Two pages are an editor over a git project: a ready **session**
+([session-page.tsx](../app/ui/session-page.tsx)) over its own clone, and the
+**workspace project** ([workspace-project-page.tsx](../app/ui/workspace-project-page.tsx))
+over the template every session clones — linked from the workspace page, and
+empty until the first session builds it. They share
+[workbench.tsx](../app/ui/workbench.tsx): the file tree beside the open file.
+
+Every byte comes from the API through
+[projectFiles](client/actions/project-files.md): **the app never assumes the
+project is on the machine the browser is running on**, because the server that
+built it may be somewhere else entirely. Which project is being read travels as a
+target value, so one set of actions and one state slice serve both pages. A
+folder in the tree is one control, so opening and closing is one action
+(`projectFiles.toggleDirectory`) whose branch is decided from state, not by the
+component; and the tree loads a level at a time, so a big repository costs a
+click rather than a payload.
+
+## Entity identity
+
+Each domain entity has **one colour and one glyph**, defined once:
+`--entity-organization`, `--entity-workspace`, `--entity-project`,
+`--entity-session` and `--entity-repository` in
+[styles.css](../app/ui/styles.css), drawn by
+[entity-icon.tsx](../app/ui/entity-icon.tsx). The icons are inline SVG stroked
+with `currentColor`, so the colour comes from the token on the class and never
+from a component; an organization in a card, in a breadcrumb and in a heading are
+one visual identity rather than three pieces of text.
 
 The two stores are exposed as one tree with one subscription
 ([store.ts](../app/client/store.ts)) — the app's slices layered over the

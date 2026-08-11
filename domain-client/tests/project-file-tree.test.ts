@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { ClientEvent } from "../events.js";
 import { reduce } from "../projection.js";
 import { initialState } from "../state.js";
-import type { ClientState } from "../state.js";
+import type { ClientState, ProjectTarget } from "../state.js";
 
 const organizationId = "org-1";
-const workSessionId = "session-1";
+const session = { kind: "session" as const, id: "session-1" };
 
 function fold(events: ClientEvent[]): ClientState {
   return events.reduce(reduce, initialState);
@@ -15,12 +15,12 @@ function fold(events: ClientEvent[]): ClientState {
 function directoryLoaded(
   path: string,
   names: string[],
-  sessionId = workSessionId,
+  target: ProjectTarget = session,
 ): ClientEvent {
   return {
-    type: "session-directory-loaded",
+    type: "project-directory-loaded",
     organizationId,
-    workSessionId: sessionId,
+    target,
     path,
     entries: names.map((name) => ({
       name,
@@ -33,18 +33,18 @@ function directoryLoaded(
 /**
  * The tree is state, not a component's memory: which folders are open is
  * exactly which ones have been read, so this fold is the whole behaviour of the
- * session page's file tree.
+ * file tree on both project pages.
  */
-describe("a work session's file tree", () => {
+describe("a project's file tree", () => {
   it("keeps each directory that has been opened, keyed by its path", () => {
     const state = fold([
       directoryLoaded("", ["notes", "README.md"]),
       directoryLoaded("notes", ["docs", "index.ts"]),
     ]);
 
-    expect(state.sessionFiles.workSessionId).toBe(workSessionId);
-    expect(Object.keys(state.sessionFiles.directories)).toEqual(["", "notes"]);
-    expect(state.sessionFiles.directories.notes).toEqual([
+    expect(state.projectFiles.target).toEqual(session);
+    expect(Object.keys(state.projectFiles.directories)).toEqual(["", "notes"]);
+    expect(state.projectFiles.directories.notes).toEqual([
       { name: "docs", path: "notes/docs", kind: "directory" },
       { name: "index.ts", path: "notes/index.ts", kind: "file" },
     ]);
@@ -56,31 +56,32 @@ describe("a work session's file tree", () => {
       directoryLoaded("notes", ["docs"]),
       directoryLoaded("notes/docs", ["guide.md"]),
       directoryLoaded("engine", ["src"]),
-      { type: "session-directory-collapsed", path: "notes" },
+      { type: "project-directory-collapsed", path: "notes" },
     ]);
 
-    expect(Object.keys(state.sessionFiles.directories)).toEqual(["", "engine"]);
+    expect(Object.keys(state.projectFiles.directories)).toEqual(["", "engine"]);
   });
 
-  it("holds one session's files, so opening another starts from nothing", () => {
+  it("holds one project's files, so opening another starts from nothing", () => {
     const state = fold([
       directoryLoaded("", ["notes"]),
       directoryLoaded("notes", ["index.ts"]),
       {
-        type: "session-file-loaded",
+        type: "project-file-loaded",
         organizationId,
-        workSessionId,
+        target: session,
         file: {
           path: "notes/index.ts",
           text: "const a = 1;",
           truncated: false,
         },
       },
-      directoryLoaded("", ["engine"], "session-2"),
+      // The workspace's own project, which is a different project entirely.
+      directoryLoaded("", ["engine"], { kind: "workspace", id: "ws-1" }),
     ]);
 
-    expect(state.sessionFiles).toEqual({
-      workSessionId: "session-2",
+    expect(state.projectFiles).toEqual({
+      target: { kind: "workspace", id: "ws-1" },
       directories: {
         "": [{ name: "engine", path: "engine", kind: "directory" }],
       },
@@ -98,8 +99,8 @@ describe("a work session's file tree", () => {
       },
     ]);
 
-    expect(state.sessionFiles).toEqual({
-      workSessionId: null,
+    expect(state.projectFiles).toEqual({
+      target: null,
       directories: {},
       openFile: null,
     });

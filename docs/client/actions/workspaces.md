@@ -25,6 +25,14 @@ organization's own workspace — created with it and named after it, see
 Creates and appends to `state.workspaces`. `sourceIds` defaults to `[]`, max
 100, must be unique, and must reference this organization's sources.
 
+## `projectLocation`
+
+Read-only on every workspace: where the workspace's **own** git project lives —
+the template holding its repositories as submodules, which every session clones.
+`null` until the first session builds it. Browse it with
+[projectFiles](./project-files.md); the value itself is informational, and may
+name a machine the reader has no access to.
+
 ## `update(organizationId, workspaceId, { name, sourceIds? })`
 
 Full replacement — the given `sourceIds` become the workspace's exact source

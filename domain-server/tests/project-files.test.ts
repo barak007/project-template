@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Database } from "../db/client.js";
-import { workSessions } from "../db/schema.js";
+import { workspaces, workSessions } from "../db/schema.js";
 
 import {
   asUser,
@@ -27,6 +27,7 @@ let organizationId = "";
 let otherOrganizationId = "";
 let workSessionId = "";
 let preparingSessionId = "";
+let workspaceId = "";
 let projectPath = "";
 
 async function json(response: Response): Promise<unknown> {
@@ -42,19 +43,27 @@ async function createOrganization(userId: string, name: string) {
   return ((await json(response)) as { id: string }).id;
 }
 
-async function createSession(
+async function createWorkspace(
   userId: string,
   forOrganizationId: string,
-  workspaceName: string,
+  name: string,
 ) {
   const workspace = await app.request(
     `/api/organizations/${forOrganizationId}/workspaces`,
-    asUser(userId, jsonBody({ name: workspaceName })),
+    asUser(userId, jsonBody({ name })),
   );
-  const workspaceId = ((await json(workspace)) as { id: string }).id;
+  expect(workspace.status).toBe(201);
+  return ((await json(workspace)) as { id: string }).id;
+}
+
+async function createSession(
+  userId: string,
+  forOrganizationId: string,
+  forWorkspaceId: string,
+) {
   const session = await app.request(
     `/api/organizations/${forOrganizationId}/work-sessions`,
-    asUser(userId, jsonBody({ workspaceId })),
+    asUser(userId, jsonBody({ workspaceId: forWorkspaceId })),
   );
   expect(session.status).toBe(202);
   return ((await json(session)) as { id: string }).id;
@@ -89,6 +98,28 @@ function fileRequest(userId: string, sessionId: string, path: string) {
   );
 }
 
+function workspaceListRequest(
+  userId: string,
+  forWorkspaceId: string,
+  path: string,
+) {
+  return app.request(
+    `/api/organizations/${organizationId}/workspaces/${forWorkspaceId}/project/files?path=${encodeURIComponent(path)}`,
+    asUser(userId),
+  );
+}
+
+function workspaceFileRequest(
+  userId: string,
+  forWorkspaceId: string,
+  path: string,
+) {
+  return app.request(
+    `/api/organizations/${organizationId}/workspaces/${forWorkspaceId}/project/file?path=${encodeURIComponent(path)}`,
+    asUser(userId),
+  );
+}
+
 beforeAll(async () => {
   ({ db, close } = await createTestDatabase());
   ({ app } = createTestApp(db));
@@ -104,8 +135,9 @@ beforeAll(async () => {
     }),
   );
 
-  workSessionId = await createSession(owner, organizationId, "Platform");
-  preparingSessionId = await createSession(owner, organizationId, "Preparing");
+  workspaceId = await createWorkspace(owner, organizationId, "Platform");
+  workSessionId = await createSession(owner, organizationId, workspaceId);
+  preparingSessionId = await createSession(owner, organizationId, workspaceId);
   projectPath = await writeProject();
   await db
     .update(workSessions)
@@ -183,10 +215,15 @@ describe("browsing a work session's project", () => {
   });
 
   it("hides a session belonging to another organization", async () => {
-    const stranger = await createSession(
+    const theirWorkspace = await createWorkspace(
       outsider,
       otherOrganizationId,
       "Theirs",
+    );
+    const stranger = await createSession(
+      outsider,
+      otherOrganizationId,
+      theirWorkspace,
     );
 
     // Addressed through an organization the caller owns, so this is a 404 about
@@ -198,6 +235,67 @@ describe("browsing a work session's project", () => {
 
   it("forbids someone outside the organization entirely", async () => {
     const response = await listRequest(outsider, workSessionId, "");
+
+    expect(response.status).toBe(403);
+  });
+});
+
+/**
+ * The same reads against the workspace's own project — the template a session
+ * clones — which is a different row saying where the project is and nothing else.
+ */
+describe("browsing a workspace's project", () => {
+  it("is not there until the first session builds it", async () => {
+    const response = await workspaceListRequest(owner, workspaceId, "");
+
+    expect(response.status).toBe(400);
+    expect(await json(response)).toMatchObject({
+      error: { code: "VALIDATION_FAILED" },
+    });
+  });
+
+  it("lists and reads the project once the workspace points at one", async () => {
+    await db
+      .update(workspaces)
+      .set({ projectLocation: { kind: "local", path: projectPath } })
+      .where(eq(workspaces.id, workspaceId));
+
+    const listed = await workspaceListRequest(owner, workspaceId, "notes");
+    expect(listed.status).toBe(200);
+    expect(await json(listed)).toEqual([
+      { name: "docs", path: "notes/docs", kind: "directory" },
+      { name: "index.ts", path: "notes/index.ts", kind: "file" },
+    ]);
+
+    const read = await workspaceFileRequest(member, workspaceId, "README.md");
+    expect(read.status).toBe(200);
+    expect(await json(read)).toMatchObject({ text: "# Session\n" });
+  });
+
+  it("refuses a path that climbs out of the project", async () => {
+    const response = await workspaceFileRequest(
+      owner,
+      workspaceId,
+      "../outside.txt",
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("hides a workspace belonging to another organization", async () => {
+    const theirs = await createWorkspace(
+      outsider,
+      otherOrganizationId,
+      "Theirs too",
+    );
+
+    const response = await workspaceListRequest(owner, theirs, "");
+
+    expect(response.status).toBe(404);
+  });
+
+  it("forbids someone outside the organization entirely", async () => {
+    const response = await workspaceListRequest(outsider, workspaceId, "");
 
     expect(response.status).toBe(403);
   });

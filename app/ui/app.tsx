@@ -12,6 +12,7 @@ import { SignInPage } from "./sign-in-page.js";
 import { SignUpPage } from "./sign-up-page.js";
 import { useAppState } from "./use-app-state.js";
 import { WorkspacePage } from "./workspace-page.js";
+import { WorkspaceProjectPage } from "./workspace-project-page.js";
 
 /**
  * The whole router of the UI: which page the store says to show. The guard
@@ -64,6 +65,20 @@ export function App({ core }: { core: AppCore }) {
               route.kind === "workspace" ? route.organizationId : ""
             }
             workspaceId={route.kind === "workspace" ? route.workspaceId : ""}
+          />
+        </AppShell>
+      );
+    case "workspace-project":
+      return (
+        <AppShell core={core}>
+          <WorkspaceProjectPage
+            core={core}
+            organizationId={
+              route.kind === "workspace-project" ? route.organizationId : ""
+            }
+            workspaceId={
+              route.kind === "workspace-project" ? route.workspaceId : ""
+            }
           />
         </AppShell>
       );
