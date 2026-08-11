@@ -52,7 +52,7 @@ export function SessionPage({
   }, [core, organizationId, preparing]);
 
   return (
-    <section className="page ide">
+    <section className="page">
       <header className="page-header">
         <RouteLink
           core={core}
