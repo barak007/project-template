@@ -76,7 +76,7 @@ export function WorkspacePage({
 
       <h2>Repositories</h2>
       <form
-        className="row-form"
+        className="inline-form"
         onSubmit={(submit) => {
           submit.preventDefault();
           void core.repositories.add(organizationId, workspaceId);
@@ -131,18 +131,47 @@ export function WorkspacePage({
       {attached.length === 0 && (
         <p className="muted">Add a repository first — a session opens these.</p>
       )}
-      {sessions.length > 0 && (
-        <ul className="rows">
-          {sessions.map((session) => (
-            <li key={session.id}>
-              <strong>{statusLabel(session)}</strong>
-              <span className="muted">{locationOf(session)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {sessions.map((session) => (
+        <article key={session.id} className="session">
+          <header>
+            <strong>{statusLabel(session)}</strong>
+            {/* What it is doing right now, which is the whole point of a
+                progress trail: "Preparing…" on its own tells a user nothing. */}
+            <span className="muted">{currentStep(session)}</span>
+          </header>
+          {session.progress.length > 0 && (
+            <ol className="log">
+              {session.progress.map((entry, index) => (
+                <li key={`${entry.at}-${String(index)}`}>
+                  <code>{time(entry.at)}</code> {entry.step}
+                  {entry.detail !== undefined && (
+                    <span className="muted"> {entry.detail}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          )}
+        </article>
+      ))}
     </section>
   );
+}
+
+/**
+ * The last thing that happened, or the outcome once there is one. A session
+ * that failed shows why rather than only that it did.
+ */
+function currentStep(session: WorkSession): string {
+  if (session.status === "ready") return locationOf(session);
+  const last = session.progress.at(-1);
+  if (session.status === "failed")
+    return last?.detail ?? session.failureCode ?? "";
+  return last?.step ?? "Waiting for a worker…";
+}
+
+/** Wall-clock time only: the date is the session's own `createdAt`. */
+function time(at: string): string {
+  return at.slice(11, 19);
 }
 
 /** "Materialize" is internal; a user sees a session being prepared. */

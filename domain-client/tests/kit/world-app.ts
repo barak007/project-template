@@ -1,6 +1,7 @@
 import { createApp } from "../../../domain-server/app.js";
 import { createAuth } from "../../../domain-server/auth.js";
 import { loadEnvironment } from "../../../domain-server/config/env.js";
+import { silentLogger } from "../../../domain-server/logging.js";
 import {
   createTestDatabase,
   recordingJobs,
@@ -43,6 +44,7 @@ export async function createWorldApp(baseUrl: string): Promise<WorldApp> {
     cipher: testCipher,
     jobs: recordingJobs().jobs,
     projectBuilder: recordingProjectBuilder().projectBuilder,
+    log: silentLogger,
     reportError: () => undefined,
     ready: () => Promise.resolve(),
   });

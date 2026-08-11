@@ -103,9 +103,12 @@ describe("QueueRuntime", () => {
     const workSessionId = randomUUID();
     await handler([{ data: { workSessionId } }]);
     // The builder reaches the job through the worker, not a module singleton.
-    expect(materializeWorkSession).toHaveBeenCalledWith(db, projectBuilder, {
-      workSessionId,
-    });
+    expect(materializeWorkSession).toHaveBeenCalledWith(
+      db,
+      projectBuilder,
+      { workSessionId },
+      undefined,
+    );
     await expect(handler([{ data: {} }])).rejects.toThrow();
   });
 

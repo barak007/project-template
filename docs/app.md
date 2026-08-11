@@ -64,13 +64,15 @@ since the server takes a replacement rather than a patch. The URL being typed is
 `state.repositoryDraft` — a store slice, not `useState`, so the whole flow
 (type → submit → error or a cleared field) is testable without rendering.
 
-## Sessions
+## Work sessions
 
 **Create session** on the workspace page starts a
-[work session](client/actions/work-sessions.md), which a worker materializes
-into a git project. The page shows _Preparing…_ until it is `ready` and then the
-project's location, polling `workSessions.refreshPending` while any session is
-still being prepared — the decision about what to poll lives in the core
+[work session](client/actions/work-sessions.md), which a worker prepares by
+cloning the workspace's git project. Each session shows its status, the step it
+is on right now, and the trail of steps taken — `state.workSessions[].progress`,
+so the page never has to say only _Preparing…_ without saying why. It polls
+`workSessions.refreshPending` while any session is unfinished; the decision about
+what to poll lives in the core
 ([work-session-actions.ts](../app/client/work-session-actions.ts)), not in the
 component.
 
@@ -82,7 +84,7 @@ The two stores are exposed as one tree with one subscription
 ([store.ts](../app/client/store.ts)) — the app's slices layered over the
 client core's.
 
-## Sessions
+## Sign-in sessions
 
 Better Auth's cookie outlives the page, so a reload starts anonymous until
 `session.load()` (→ `auth.loadSession()`) has asked the server who this

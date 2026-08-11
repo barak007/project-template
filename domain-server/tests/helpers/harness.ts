@@ -10,6 +10,7 @@ import type { Database } from "../../db/client.js";
 import * as schema from "../../db/schema.js";
 import type { AppBindings, RuntimeDependencies } from "../../http/context.js";
 import type { JobProducer } from "../../jobs/queue.js";
+import { silentLogger } from "../../logging.js";
 
 import { recordingProjectBuilder } from "./project-builder.js";
 
@@ -97,6 +98,7 @@ export function createTestApp(
     cipher: testCipher,
     jobs,
     projectBuilder: recordingProjectBuilder().projectBuilder,
+    log: silentLogger,
     reportError: (error) => {
       reported.push(error);
     },

@@ -13,9 +13,9 @@ The story, the decisions it forced, and the order they get built in. The
 entities it touches are defined in [domain.md](./domain.md) and the access
 rules in [permissions.md](./permissions.md).
 
-Steps 1 to 3 are built. A workspace collects repository URLs, and pressing
-**Create session** snapshots them and builds a git project holding each one as
-a submodule, on this machine
+Steps 1 to 3 are built. A workspace collects repository URLs; pressing **Create
+session** ensures the workspace's git project exists and clones it for the
+session, on this machine
 ([local-project-builder.ts](../domain-server/git/local-project-builder.ts)).
 Step 4 — the agent, and the cloud — is untouched.
 
@@ -25,13 +25,16 @@ Step 4 — the agent, and the cloud — is untouched.
    Nothing is connected, installed, or discovered first.
 2. On a **workspace page** the user collects **which repos** belong together.
 3. The workspace page has a **Create session** button. Pressing it:
-   - snapshots the workspace, then builds a **git project containing the
-     workspace's repos as submodules** — the session's _workspace git project_,
-   - records **where that project lives**, and
-   - offers **commands over the project**, starting with putting every repo on
-     one branch.
-4. **We start local.** The project is a directory on the machine running the
-   server; the cloud is the same port writing to a bucket.
+   - snapshots the workspace,
+   - **builds the workspace git project** if it does not exist — one submodule
+     per repository — or **reuses** it if it does,
+   - **clones that project** into a new directory for this session, submodules
+     and all, on the session's own branch,
+   - records **where both live**, and
+   - offers **commands over the session's project**, starting with putting every
+     repository on one branch.
+4. **We start local.** Both are directories on the machine running the server;
+   the cloud is the same port writing to a bucket.
 
 ## Decisions
 
@@ -75,18 +78,46 @@ asserts on the current branch of each submodule. The remaining cost stands:
 cloning private submodules needs credentials for each, which is the machine's
 problem while we are local.
 
-**The project is per session, not per workspace** — _also reversing an earlier
-decision_. Per workspace was chosen for idempotence, so that pressing the button
-twice did not create two repositories. Per session matches `sourcesSnapshot`,
-which is already per session and already immutable: a session is a frozen
-config, and its project is that config realized. Idempotence comes from the path
-instead — it is derived from the session id, so a retried job rebuilds in place
-([local-project-builder.ts](../domain-server/git/local-project-builder.ts)).
+**One project per workspace, one clone per session.** The two candidates —
+project per workspace, or project per session — are both half right, and the
+answer is both: the **workspace** owns a git project holding its repositories as
+submodules, and a **session** is a `git clone --recurse-submodules` of it into a
+fresh directory. Building per session would fetch every repository from its host
+again on the second session; sharing one directory between sessions would mean
+two sessions editing the same working tree. Cloning locally is fast and needs no
+network, which is the whole reason the shared project exists.
 
-**Where the project lives is data, not a path.** `work_sessions.project_location`
-is a shape — `{ kind: "local", path }` today, `{ kind: "s3", bucket, prefix }`
-when this runs on AWS — because the answer changes per installation while
-everything above the port stays the same.
+Session directories live beside the project (`<workspace>/project` and
+`<workspace>/sessions/<id>`) so everything for one workspace is in one place, and
+the session path is derived from the session id, so a retried job throws away its
+own half-finished clone rather than repairing it.
+
+**A reused project is reconciled, never trusted.** "It exists, skip it" would
+mean a repository added to the workspace today never reaches a session. So
+`ensureWorkspaceProject` enforces the structure the product promises — **one
+submodule per repository, at a directory named after it, pointing at its
+remote** — and corrects anything else: submodules the workspace dropped are
+removed (including `.git/modules`, or re-adding the same name later fails), new
+ones added, changed remotes re-pointed.
+
+**Where a project lives is data, not a path.** `workspaces.project_location` and
+`work_sessions.project_location` are a shape — `{ kind: "local", path }` today,
+`{ kind: "s3", bucket, prefix }` when this runs on AWS — because the answer
+changes per installation while everything above the port stays the same.
+
+**A session says what it is doing, in the database.** `work_sessions.progress`
+is an append-only trail of steps written _while_ the work runs, so "what is
+happening right now" is answerable from the API. A terminal log only helps
+whoever can see the terminal, and the failure it was written for — a session
+stuck on "Preparing…" — is indistinguishable from a slow clone without it. It is
+appended with `jsonb ||` rather than read-modify-write, and a failure to record
+progress never fails the session it describes.
+
+**The worker runs inside `pnpm dev`.** Production keeps two processes
+([server.ts](../domain-server/server.ts) and [worker.ts](../domain-server/worker.ts)),
+but locally the queue had no consumer at all, so every session sat at
+"Preparing…" forever. [dev-app.ts](../domain-server/dev-app.ts) registers the
+worker on the runtime it already owns.
 
 **Local sessions are built by the server.** The server writes the project
 directly, which is valid only because "we start local" means it shares a machine
@@ -109,10 +140,12 @@ repository URLs → create session.
 - **A repository's name is derived, never a form**: the last path segment of the
   URL, with `-2` appended if that name is taken
   ([services/repositories.ts](../domain-server/services/repositories.ts)).
-- **The clone directory is a convention**, `~/wwsa/<workspace>/<session>`, set
-  by `WORK_SESSION_PROJECT_ROOT` and shown but never a blocking prompt.
-- **Statuses read as _Preparing → Ready_.** "Materialize" stays internal to
-  [materialize.ts](../domain-server/jobs/materialize.ts).
+- **The clone directory is a convention**,
+  `~/wwsa/<workspace>-<id>/sessions/<session>`, set by
+  `WORK_SESSION_PROJECT_ROOT` and shown but never a blocking prompt.
+- **Statuses read as _Preparing → Ready_**, with the current step beside them
+  ("Cloning notes (2 of 3)") and the trail underneath. "Materialize" stays
+  internal to [materialize.ts](../domain-server/jobs/materialize.ts).
 
 ## Still open
 
@@ -137,9 +170,10 @@ repository URLs → create session.
 2. ~~**The repository definition**~~ — done: `addRepository`, idempotent on the
    remote, validated as a cloneable URL.
 3. ~~**A real materializer port**~~ — done:
-   [project-builder.ts](../domain-server/git/project-builder.ts) is the port,
-   injected on `RuntimeDependencies`, with the local implementation and the
-   `branchAll` command. Press the button and a real project appears on disk.
+   [project-builder.ts](../domain-server/git/project-builder.ts) is the port
+   (`ensureWorkspaceProject`, `cloneForSession`, `branchAll`), injected on
+   `RuntimeDependencies`, with the local implementation. Press the button and a
+   real project appears on disk.
 4. **The local agent** — device pairing, claim, clone. Larger than 1–3
    together, and it needs a session state beyond today's four: `ready` has to
    mean "built, awaiting a device", with a second transition when the clone

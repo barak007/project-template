@@ -121,6 +121,7 @@ CREATE TABLE "work_sessions" (
 	"data_snapshot" jsonb NOT NULL,
 	"project_branch" text,
 	"project_location" jsonb,
+	"progress" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"failure_code" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -136,6 +137,7 @@ CREATE TABLE "workspaces" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"name" text NOT NULL,
+	"project_location" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

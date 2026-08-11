@@ -3,6 +3,7 @@ import type { SecretCipher } from "../crypto/secrets.js";
 import type { Database } from "../db/client.js";
 import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 import type { JobProducer } from "../jobs/queue.js";
+import type { Logger } from "../logging.js";
 import type { ErrorReporter } from "../observability.js";
 
 export type RuntimeDependencies = {
@@ -11,6 +12,7 @@ export type RuntimeDependencies = {
   cipher: SecretCipher;
   jobs: JobProducer;
   projectBuilder: WorkspaceProjectBuilder;
+  log: Logger;
   reportError: ErrorReporter;
   ready: () => Promise<void>;
 };

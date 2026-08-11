@@ -152,6 +152,10 @@ export const workspaces = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    // The one git project this workspace owns, holding its repositories as
+    // submodules. Null until the first session builds it; every session after
+    // that is a clone of it rather than a fresh set of network clones.
+    projectLocation: jsonb("project_location").$type<ProjectLocation>(),
     ...timestamps,
   },
   (table) => [
@@ -261,6 +265,17 @@ export type ProjectLocation =
   | { kind: "local"; path: string }
   | { kind: "s3"; bucket: string; prefix: string };
 
+/**
+ * One thing that happened while a session was being prepared. Kept on the
+ * session so "what is it doing right now" is answerable from the API — a
+ * terminal log only helps whoever can see the terminal.
+ */
+export type ProgressStep = {
+  step: string;
+  at: string;
+  detail?: string;
+};
+
 export const workSessions = pgTable(
   "work_sessions",
   {
@@ -287,6 +302,10 @@ export const workSessions = pgTable(
     // Both are null until the project is built, which is what `ready` means.
     projectBranch: text("project_branch"),
     projectLocation: jsonb("project_location").$type<ProjectLocation>(),
+    progress: jsonb("progress")
+      .$type<ProgressStep[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     failureCode: text("failure_code"),
     ...timestamps,
   },

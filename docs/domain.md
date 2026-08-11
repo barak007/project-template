@@ -10,8 +10,8 @@ Persistence is defined in [domain-server/db/schema.ts](../src/db/schema.ts) and 
 - **User** — an individual who can belong to many organizations. Users also own personal secrets and data that exist outside any organization.
 - **OrganizationMember** — the membership record joining a user to an organization with one role: `owner`, `admin`, or `member`.
 - **Source** — a definition of a git repository, database, or other external data source (`kind`: `git` | `database` | `other`) plus a JSON `config`. Names are unique within an organization. A `git` source is a remote URL: its `config` is validated as `{ remote, ref? }`, nothing has to exist on any machine for one to be defined, and adding the same remote twice returns the source that already exists. The product calls these **repositories**; the word "source" never reaches the UI.
-- **Workspace** — a named set of sources within an organization, used as the template for a work session. Names are unique within an organization. Every referenced source must belong to the same organization.
-- **WorkSession** — the result of materializing a workspace. Created by copying the workspace's sources and the caller's resolved secrets and data into an immutable snapshot, then materializing asynchronously into a **git project** whose submodules are the snapshot's git sources. `projectLocation` records where that project was built and `projectBranch` which branch its repositories are on; both are null until the session is `ready`.
+- **Workspace** — a named set of sources within an organization, used as the template for a work session. Names are unique within an organization. Every referenced source must belong to the same organization. A workspace also owns **one git project** holding its git sources as submodules (`projectLocation`, null until the first session builds it); every session is a clone of it.
+- **WorkSession** — the result of materializing a workspace. Created by copying the workspace's sources and the caller's resolved secrets and data into an immutable snapshot, then materializing asynchronously into a **clone of the workspace's git project**. `projectLocation` records where that clone lives and `projectBranch` which branch it and its submodules are on; both are null until the session is `ready`. `progress` is an append-only trail of what the worker did, written as it happens.
 - **OrganizationSecret** / **UserSecret** — a key and an encrypted value, at most one per scope and key. Values are encrypted at rest and never returned by the API; reads expose keys and metadata only.
 - **OrganizationData** / **UserData** — a key and a schema-validated JSON value available to work sessions, at most one per scope and key.
 
@@ -44,7 +44,9 @@ Creation is synchronous and durable; materialization is asynchronous.
 1. The caller must hold `resource:write` in the organization, and the workspace must belong to it.
 2. In one transaction, the session records a snapshot of the workspace's sources, the merged data values, and the merged secrets, with status `pending`.
 3. A `work-session.materialize` job is enqueued. If enqueueing fails, the session is marked `failed` with `failureCode: QUEUE_UNAVAILABLE`.
-4. The worker claims the session by moving `pending` → `materializing`, builds the git project, then records its location and moves to `ready`. A session it cannot claim is already handled, and the project path is derived from the session id so a retried build replaces its own half-finished work — both of which make retries idempotent. A build that throws leaves the session `failed` with `failureCode: PROJECT_BUILD_FAILED`; exhausted retries land in a dead-letter queue.
+4. The worker claims the session by moving `pending` → `materializing`, ensures the workspace's project exists and matches the workspace, clones it for the session, then records the location and moves to `ready`. A session it cannot claim is already handled, and the clone path is derived from the session id so a retried build replaces its own half-finished work — both of which make retries idempotent. Each step is appended to `progress` as it happens, so a session in flight can be inspected. A build that throws leaves the session `failed` with `failureCode: PROJECT_BUILD_FAILED` and the reason as the last progress entry; exhausted retries land in a dead-letter queue.
+
+In development the worker runs inside the API process ([dev-app.ts](../domain-server/dev-app.ts)); in production it is its own process ([worker.ts](../domain-server/worker.ts)). Without a consumer the queue silently leaves every session `pending`, which is why dev registers one rather than relying on a second command being run.
 
 Statuses: `pending` → `materializing` → `ready`, or `failed` with a `failureCode`.
 
@@ -52,13 +54,24 @@ Statuses: `pending` → `materializing` → `ready`, or `failed` with a `failure
 
 ## The workspace git project
 
-Materializing a session builds a git repository whose tree is the session's
-snapshot made real: one submodule per git source, every one checked out on a
-named branch rather than detached. Where it is built is a port, not a path:
+A workspace owns one git repository whose tree is its repository list made real:
+one submodule per git source, at a directory named after it. A session is a
+`git clone --recurse-submodules` of that project into its own directory, on its
+own branch, with every submodule checked out on a branch rather than detached —
+so the second session on a workspace copies what is already on disk instead of
+fetching every repository from its host again.
+
+Where projects live is a port, not a path:
 [domain-server/git/project-builder.ts](../domain-server/git/project-builder.ts)
-defines `build` and `branchAll`, and the runtime injects the implementation this
-deployment can use — a directory on this machine today, a bucket in the cloud.
-Neither the services nor the routes know which.
+defines `ensureWorkspaceProject`, `cloneForSession` and `branchAll`, and the
+runtime injects the implementation this deployment can use — directories on this
+machine today, a bucket in the cloud. Neither the services nor the routes know
+which.
+
+A project that already exists is **reconciled, not trusted**: submodules the
+workspace no longer lists are removed, new ones added, changed remotes
+re-pointed. Reusing it untouched would mean a repository added today never
+reaching a session.
 
 `projectLocation` is therefore a shape (`{ kind: "local", path }` or
 `{ kind: "s3", bucket, prefix }`), and a command addressed at a project the

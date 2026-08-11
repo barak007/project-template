@@ -15,8 +15,9 @@ Apps are generated from this boilerplate and inherit whatever you leave here, so
 7. **Layering is one-directional**: routes → services → db. No Drizzle in routes, no Hono `Context` in services.
 8. **Schema changes go through migrations**: edit `domain-server/db/schema.ts`, `pnpm db:generate`, review the SQL, commit it. Never `drizzle-kit push`, never hand-edit a committed migration.
 9. **New environment variables go in [domain-server/config/env.ts](domain-server/config/env.ts) and `.env.example`** with a placeholder, never a real secret. Don't read `process.env` elsewhere.
-10. **Job handlers are idempotent** — retries and concurrent claims are expected; see the claim-by-status-update in [domain-server/jobs/materialize.ts](domain-server/jobs/materialize.ts). Payloads get a Zod schema; producers and workers stay in separate modules.
-11. **Keep `AppType` usable.** `app.ts` exports it for Hono's `hc<AppType>(baseUrl)` client, so routes need types precise enough for consumers.
+10. **Log through the injected `Logger`** ([domain-server/logging.ts](domain-server/logging.ts)), never `console` — it honours `LOG_LEVEL`, takes structured fields rather than interpolated strings, and `child()` stamps a job's identifiers onto every line. Long-running work also reports progress to its caller so the API can answer "what is happening right now", not just the terminal.
+11. **Job handlers are idempotent** — retries and concurrent claims are expected; see the claim-by-status-update in [domain-server/jobs/materialize.ts](domain-server/jobs/materialize.ts). Payloads get a Zod schema; producers and workers stay in separate modules.
+12. **Keep `AppType` usable.** `app.ts` exports it for Hono's `hc<AppType>(baseUrl)` client, so routes need types precise enough for consumers.
 
 ## Headless client
 

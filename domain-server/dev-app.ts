@@ -15,6 +15,15 @@ import { createRuntime } from "./runtime.js";
 // know both the app and the backoffice server, mounting the latter.
 const runtime = await createRuntime();
 
+// Production runs the worker as its own process (worker.ts); in dev it lives
+// here, because a queue nobody consumes leaves every session "preparing"
+// forever and that is not a state anyone should have to debug locally.
+await runtime.queue.registerWorkers(
+  runtime.dependencies.db,
+  runtime.dependencies.projectBuilder,
+  runtime.dependencies.log,
+);
+
 export const port = runtime.environment.PORT;
 export const app = createApp(runtime.dependencies).route(
   "/backoffice",

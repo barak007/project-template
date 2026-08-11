@@ -4,6 +4,7 @@ const runtime = await createRuntime();
 await runtime.queue.registerWorkers(
   runtime.dependencies.db,
   runtime.dependencies.projectBuilder,
+  runtime.dependencies.log,
 );
 console.info("Worker is accepting jobs");
 

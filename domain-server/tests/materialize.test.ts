@@ -17,7 +17,7 @@ describe("materializeWorkSession", () => {
   let workSessionId = "";
   let organizationId = "";
   let workspaceId = "";
-  const { projectBuilder, built } = recordingProjectBuilder();
+  const { projectBuilder, ensured, cloned } = recordingProjectBuilder();
 
   beforeAll(async () => {
     ({ db, close } = await createTestDatabase());
@@ -59,11 +59,31 @@ describe("materializeWorkSession", () => {
     // Where the project landed is what a client needs to open it.
     expect(result?.projectLocation).toEqual({
       kind: "local",
-      path: `/tmp/${workSessionId}`,
+      path: `/tmp/sessions/${workSessionId}`,
     });
     expect(result?.projectBranch).toBe(sessionBranch(workSessionId));
-    expect(built).toHaveLength(1);
-    expect(built[0]?.workspaceName).toBe("main");
+    // The workspace project first, then a clone of it for this session.
+    expect(ensured).toHaveLength(1);
+    expect(ensured[0]?.workspaceName).toBe("main");
+    expect(cloned).toHaveLength(1);
+    expect(cloned[0]?.project).toEqual({
+      kind: "local",
+      path: `/tmp/${workspaceId}/project`,
+    });
+
+    // Where the workspace's project lives is remembered, so the next session
+    // clones it instead of building again.
+    const [workspace] = await db
+      .select()
+      .from(schema.workspaces)
+      .where(eq(schema.workspaces.id, workspaceId));
+    expect(workspace?.projectLocation).toEqual({
+      kind: "local",
+      path: `/tmp/${workspaceId}/project`,
+    });
+
+    // Progress is readable while it runs, not only after it finishes.
+    expect(result?.progress.map(({ step }) => step)).toContain("Session ready");
   });
 
   it("is idempotent for sessions it cannot claim", async () => {
@@ -72,7 +92,8 @@ describe("materializeWorkSession", () => {
     });
     expect(result?.status).toBe("ready");
     // A claim that fails must not rebuild: the project already exists.
-    expect(built).toHaveLength(1);
+    expect(ensured).toHaveLength(1);
+    expect(cloned).toHaveLength(1);
   });
 
   it("builds only the git sources the snapshot can be cloned from", async () => {
@@ -105,7 +126,7 @@ describe("materializeWorkSession", () => {
     });
 
     expect(result?.status).toBe("ready");
-    expect(built.at(-1)?.repositories).toEqual([
+    expect(ensured.at(-1)?.repositories).toEqual([
       {
         name: "engine",
         remote: "https://example.test/engine.git",
@@ -143,7 +164,8 @@ describe("materializeWorkSession", () => {
       })
       .returning();
     const failing = {
-      build: () => Promise.reject(new Error("git exploded")),
+      ensureWorkspaceProject: () => Promise.reject(new Error("git exploded")),
+      cloneForSession: () => Promise.reject(new Error("unreachable")),
       branchAll: () => Promise.resolve(),
     };
 
@@ -158,5 +180,7 @@ describe("materializeWorkSession", () => {
     expect(row?.status).toBe("failed");
     expect(row?.failureCode).toBe("PROJECT_BUILD_FAILED");
     expect(row?.projectLocation).toBeNull();
+    // Why it failed is on the session, so a user is not left with only "Failed".
+    expect(row?.progress.at(-1)).toMatchObject({ step: "Failed" });
   });
 });

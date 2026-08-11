@@ -11,6 +11,11 @@ export const projectLocationSchema = z.union([
     prefix: z.string(),
   }),
 ]);
+export const progressStepSchema = z.object({
+  step: z.string(),
+  at: z.string(),
+  detail: z.string().optional(),
+});
 export const projectBranchSchema = z.object({
   branch: z
     .string()
@@ -46,6 +51,7 @@ export const workSessionResponseSchema = z
     secretKeys: z.array(z.string()),
     projectBranch: z.string().nullable(),
     projectLocation: projectLocationSchema.nullable(),
+    progress: z.array(progressStepSchema),
     failureCode: z.string().nullable(),
   })
   .extend(timestampsSchema.shape);

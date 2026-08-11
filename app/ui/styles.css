@@ -412,3 +412,48 @@ input:focus-visible {
   flex: 1;
   max-width: 20rem;
 }
+
+.inline-form input {
+  flex: 1;
+  max-width: 28rem;
+}
+
+/* One session and what it is doing. The trail matters as much as the status:
+   a session that sits on "Preparing…" with no steps is a stuck worker, and
+   that difference should be visible without opening a terminal. */
+.session {
+  margin-top: 0.75rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.session header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.session header .muted {
+  font-size: 0.875rem;
+}
+
+.log {
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  list-style: none;
+}
+
+.log li {
+  padding: 0.1875rem 0;
+  color: var(--text-muted);
+}
+
+.log code {
+  margin-right: 0.5rem;
+  color: var(--text);
+  font-size: 0.75rem;
+}

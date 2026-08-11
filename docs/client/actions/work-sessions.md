@@ -19,9 +19,14 @@ Starting a session snapshots, at that moment:
 
 Materialization is asynchronous: the session is accepted as `"pending"` and a
 worker advances it to `"materializing"`, `"ready"`, or `"failed"`
-(`failureCode` set). What the worker builds is a **git project** — one submodule
-per git source in the snapshot, each checked out on a branch. `projectLocation`
-(where it was built) and `projectBranch` are null until `"ready"`.
+(`failureCode` set). What the worker does is ensure the **workspace's** git
+project exists — one submodule per git source — and then **clone** it for this
+session, on the session's own branch. `projectLocation` (where the clone lives)
+and `projectBranch` are null until `"ready"`.
+
+`progress` is an append-only trail of steps written while the work runs
+(`{ step, at, detail? }`), so a page can show "Cloning notes (2 of 3)" instead of
+only "Preparing…". Poll `refresh` to watch it grow.
 
 ## `load(organizationId)`
 

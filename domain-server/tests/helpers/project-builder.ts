@@ -1,6 +1,7 @@
 import type { ProjectLocation } from "../../db/schema.js";
 import type {
-  BuildProjectInput,
+  CloneForSessionInput,
+  EnsureProjectInput,
   WorkspaceProjectBuilder,
 } from "../../git/project-builder.js";
 
@@ -11,20 +12,34 @@ import type {
  * against real repositories.
  */
 export function recordingProjectBuilder() {
-  const built: BuildProjectInput[] = [];
+  const ensured: EnsureProjectInput[] = [];
+  const cloned: CloneForSessionInput[] = [];
   const branched: { location: ProjectLocation; branch: string }[] = [];
   const projectBuilder: WorkspaceProjectBuilder = {
-    build: (input) => {
-      built.push(input);
-      return Promise.resolve({
+    // Both report, because how a caller persists progress is part of the
+    // contract a stub has to honour — a silent stub would let the job's
+    // progress trail rot untested.
+    ensureWorkspaceProject: async (input) => {
+      ensured.push(input);
+      await input.report("Creating the workspace project");
+      return {
         kind: "local",
-        path: `/tmp/${input.workSessionId}`,
-      });
+        path: `/tmp/${input.workspaceId}/project`,
+      };
+    },
+    cloneForSession: async (input) => {
+      cloned.push(input);
+      await input.report("Cloning the workspace project");
+      await input.report("Session ready");
+      return {
+        kind: "local",
+        path: `/tmp/sessions/${input.workSessionId}`,
+      };
     },
     branchAll: (location, branch) => {
       branched.push({ location, branch });
       return Promise.resolve();
     },
   };
-  return { projectBuilder, built, branched };
+  return { projectBuilder, ensured, cloned, branched };
 }

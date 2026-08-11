@@ -1,5 +1,5 @@
 {
-  "id": "ead40abf-d30a-4fd8-bb99-75c962fed467",
+  "id": "ce910e9f-1ed9-42eb-8610-4cdbd95099d8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1005,6 +1005,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "progress": {
+          "name": "progress",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "failure_code": {
           "name": "failure_code",
           "type": "text",
@@ -1218,6 +1225,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "project_location": {
+          "name": "project_location",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
