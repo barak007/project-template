@@ -67,3 +67,22 @@ export function currentWorkSession(state: AppState): WorkSession | undefined {
   const { workSessionId } = state.route;
   return state.workSessions.find((session) => session.id === workSessionId);
 }
+
+/**
+ * Whether a collection has been read yet. A page that skips this shows "nothing
+ * here yet" for as long as the first request takes, which is the wrong answer
+ * for every account that has something.
+ */
+export function hasLoaded(state: AppState, key: string): boolean {
+  return state.loaded.includes(key);
+}
+
+/** Whether the control with this key is waiting on the server. */
+export function isPending(state: AppState, key: string): boolean {
+  return state.pending.includes(key);
+}
+
+/** Whether this destructive control is armed and waiting for its second press. */
+export function isConfirming(state: AppState, key: string): boolean {
+  return state.confirming === key;
+}

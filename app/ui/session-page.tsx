@@ -1,15 +1,11 @@
 import { useEffect } from "react";
 
-import {
-  currentOrganization,
-  currentWorkSession,
-  currentWorkspace,
-} from "../client/index.js";
+import { currentWorkSession } from "../client/index.js";
 import type { AppCore, WorkSession } from "../client/index.js";
 
-import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
-import { RouteLink } from "./route-link.js";
+import { PageHeader } from "./page-header.js";
+import { StatusPill } from "./status-pill.js";
 import { useAppState } from "./use-app-state.js";
 import { Workbench } from "./workbench.js";
 
@@ -21,16 +17,13 @@ import { Workbench } from "./workbench.js";
 export function SessionPage({
   core,
   organizationId,
-  workspaceId,
   workSessionId,
 }: {
   core: AppCore;
   organizationId: string;
-  workspaceId: string;
+  /** The workspace is in the route already — the breadcrumb reads it there. */
   workSessionId: string;
 }) {
-  const organization = useAppState(core, currentOrganization);
-  const workspace = useAppState(core, currentWorkspace);
   const session = useAppState(core, currentWorkSession);
 
   useEffect(() => {
@@ -52,30 +45,22 @@ export function SessionPage({
   }, [core, organizationId, preparing]);
 
   return (
-    <section className="page">
-      <header className="page-header">
-        <RouteLink
-          core={core}
-          to={{ kind: "workspace", organizationId, workspaceId }}
-          className="link entity-chip"
-        >
-          <EntityIcon entity="workspace" />←{" "}
-          {workspace?.name ?? organization?.name ?? "Workspace"}
-        </RouteLink>
-        <h1 className="entity-chip">
-          <EntityIcon entity="session" />
-          Session
-        </h1>
-        <p className="muted">
-          {session === undefined
-            ? "Loading…"
-            : `${statusLabel(session)}${
-                session.projectBranch === null
-                  ? ""
-                  : ` · ${session.projectBranch}`
-              }`}
-        </p>
-      </header>
+    <section className="page fills">
+      <PageHeader
+        core={core}
+        entity="session"
+        title={session?.projectBranch ?? "Session"}
+        lead={
+          session === undefined ? (
+            "Loading…"
+          ) : (
+            <span className="entity-chip">
+              <StatusPill status={session.status} />
+              {message(session)}
+            </span>
+          )
+        }
+      />
       <ErrorBanner core={core} />
 
       {/* Only a ready session has a project, and until the list has loaded we do
@@ -87,27 +72,23 @@ export function SessionPage({
           target={{ kind: "session", id: workSessionId }}
         />
       ) : (
-        <p className="empty">
-          {session === undefined
-            ? "Loading…"
-            : preparing
-              ? "This session is still being prepared."
-              : (session.failureCode ?? "This session has no project to open.")}
-        </p>
+        <div className="empty">
+          <p>
+            {session === undefined
+              ? "Loading…"
+              : preparing
+                ? "This session is still being prepared."
+                : (session.failureCode ??
+                  "This session has no project to open.")}
+          </p>
+        </div>
       )}
     </section>
   );
 }
 
-/** "Materialize" is internal; a user sees a session being prepared. */
-function statusLabel(session: WorkSession): string {
-  switch (session.status) {
-    case "pending":
-    case "materializing":
-      return "Preparing…";
-    case "ready":
-      return "Ready";
-    case "failed":
-      return "Failed";
-  }
+/** What the status does not already say. */
+function message(session: WorkSession): string {
+  if (session.status === "failed") return session.failureCode ?? "";
+  return session.progress.at(-1)?.step ?? "";
 }

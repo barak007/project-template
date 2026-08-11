@@ -1,14 +1,27 @@
 import { useEffect } from "react";
 
-import { currentOrganization } from "../client/index.js";
+import {
+  actionKeys,
+  confirmKeys,
+  currentOrganization,
+  hasLoaded,
+  isPending,
+  loadKeys,
+} from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
+import { ConfirmButton } from "./confirm-button.js";
+import { CreateForm } from "./create-form.js";
 import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { MembersSection } from "./members-section.js";
+import { PageHeader } from "./page-header.js";
 import { RouteLink } from "./route-link.js";
+import { Section } from "./section.js";
+import { Skeleton } from "./skeleton.js";
 import { useAppState } from "./use-app-state.js";
 
-/** One organization and its workspaces — the app's example of scoped work. */
+/** One organization: its workspaces, and who can reach them. */
 export function OrganizationPage({
   core,
   organizationId,
@@ -19,89 +32,114 @@ export function OrganizationPage({
   const organization = useAppState(core, currentOrganization);
   const workspaces = useAppState(core, (state) => state.workspaces);
   const draft = useAppState(core, (state) => state.workspaceDraft);
+  const loaded = useAppState(core, (state) =>
+    hasLoaded(state, loadKeys.workspaces(organizationId)),
+  );
+  const creating = useAppState(core, (state) => state.openForm === "workspace");
+  const pending = useAppState(core, (state) =>
+    isPending(state, actionKeys.createWorkspace),
+  );
 
   useEffect(() => {
     void core.organizations.load();
     void core.workspaces.load(organizationId);
+    void core.members.load(organizationId);
   }, [core, organizationId]);
+
+  const form = (
+    <CreateForm
+      label="Workspace name"
+      placeholder="Reporting"
+      value={draft.name}
+      pending={pending}
+      submitLabel="Create workspace"
+      onChange={(name) => {
+        core.workspaces.changeDraft({ name });
+      }}
+      onSubmit={() => {
+        void core.workspaces.create(organizationId);
+      }}
+      onCancel={() => {
+        core.workspaces.cancelCreating();
+      }}
+    />
+  );
 
   return (
     <section className="page">
-      <header className="page-header">
-        <RouteLink
-          core={core}
-          to={{ kind: "dashboard" }}
-          className="link entity-chip"
-        >
-          <EntityIcon entity="organization" />← All organizations
-        </RouteLink>
-        <h1 className="entity-chip">
-          <EntityIcon entity="organization" />
-          {organization?.name ?? "Organization"}
-        </h1>
-        <p className="muted">
-          A workspace groups the repositories a session opens together.
-        </p>
-      </header>
+      <PageHeader
+        core={core}
+        entity="organization"
+        title={organization?.name ?? "Organization"}
+        lead="A workspace groups the repositories a session opens together."
+        action={
+          workspaces.length > 0 && !creating ? (
+            <button
+              type="button"
+              onClick={() => {
+                core.workspaces.startCreating();
+              }}
+            >
+              New workspace
+            </button>
+          ) : undefined
+        }
+      />
       <ErrorBanner core={core} />
-      <h2>Workspaces</h2>
-      {workspaces.length === 0 ? (
-        <p className="empty">No workspaces yet.</p>
-      ) : (
-        <ul className="rows">
-          {workspaces.map((workspace) => (
-            <li key={workspace.id}>
-              <RouteLink
-                core={core}
-                to={{
-                  kind: "workspace",
-                  organizationId,
-                  workspaceId: workspace.id,
-                }}
-                className="link"
-              >
-                <strong className="entity-chip">
-                  <EntityIcon entity="workspace" />
-                  {workspace.name}
-                </strong>
-              </RouteLink>
-              <span className="muted">
-                {workspace.sourceIds.length} repositor
-                {workspace.sourceIds.length === 1 ? "y" : "ies"}
-              </span>
-              <button
-                className="ghost danger"
-                onClick={() => {
-                  void core.workspaces.delete(organizationId, workspace.id);
-                }}
-              >
-                Delete
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form
-        className="inline-form"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void core.workspaces.create(organizationId);
-        }}
-      >
-        <label>
-          New workspace
-          <input
-            value={draft.name}
-            placeholder="Reporting"
-            onChange={(event) => {
-              core.workspaces.changeDraft({ name: event.target.value });
-            }}
-          />
-        </label>
-        <button type="submit" disabled={draft.name.trim() === ""}>
-          Create
-        </button>
-      </form>
+
+      <Section title="Workspaces">
+        {creating && workspaces.length > 0 ? form : null}
+        {!loaded ? (
+          <Skeleton />
+        ) : workspaces.length === 0 ? (
+          <div className="empty">
+            <p>
+              No workspaces yet. A workspace is the set of repositories a
+              session opens together.
+            </p>
+            {form}
+          </div>
+        ) : (
+          <ul className="rows">
+            {workspaces.map((workspace) => (
+              <li key={workspace.id}>
+                <RouteLink
+                  core={core}
+                  to={{
+                    kind: "workspace",
+                    organizationId,
+                    workspaceId: workspace.id,
+                  }}
+                  className="row-main"
+                >
+                  <strong className="entity-chip">
+                    <EntityIcon entity="workspace" />
+                    {workspace.name}
+                  </strong>
+                  <span className="row-meta">
+                    {workspace.sourceIds.length} repositor
+                    {workspace.sourceIds.length === 1 ? "y" : "ies"}
+                  </span>
+                </RouteLink>
+                <div className="row-actions">
+                  <ConfirmButton
+                    core={core}
+                    confirmKey={confirmKeys.deleteWorkspace(workspace.id)}
+                    actionKey={actionKeys.deleteWorkspace(workspace.id)}
+                    label="Delete"
+                    question={`Delete ${workspace.name} and its sessions?`}
+                    onConfirm={() => {
+                      void core.workspaces.delete(organizationId, workspace.id);
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <MembersSection core={core} organizationId={organizationId} />
     </section>
   );
 }

@@ -13,6 +13,7 @@ it stays deliberately small: replace the copy, add pages, keep the shape.
 | `/app`                                                           | the user's organizations                         | signed in   |
 | `/app/organizations/:id`                                         | one organization's workspaces                    | signed in   |
 | `/app/organizations/:id/workspaces/:workspace`                   | one workspace, its repositories and its sessions | signed in   |
+| `/app/organizations/:id/workspaces/:workspace/project`           | the workspace's own project, as an editor        | signed in   |
 | `/app/organizations/:id/workspaces/:workspace/sessions/:session` | one session, as an editor over its files         | signed in   |
 
 ## Layout
@@ -46,6 +47,48 @@ adds only what a product front end needs on top:
   turns a thrown `ApiError` into `state.error`, because a UI cannot handle a
   throw. An expired session is not a message: it re-resolves the session,
   which shows the sign-in page again.
+- **What the app is doing about it.** Every action passes through `attempt` on
+  the way out as well as in, which is what makes one place enough to know what
+  is in flight and what has been read — see _Saying what is happening_ below.
+
+## Saying what is happening
+
+Four slices exist so that a page never has to guess, and never has to keep
+state of its own. All four are in [state.ts](../app/client/state.ts), read
+through the selectors `hasLoaded`, `isPending` and `isConfirming`, and named
+once in [keys.ts](../app/client/keys.ts) so a page and an action cannot
+disagree about what a control is called.
+
+| Slice        | The question it answers                                                                                                                                                                                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loaded`     | Has this collection been read? An empty list and a list nobody asked for are the same value — without this, the first paint of a full account says "nothing here yet". Read keys are scoped per organization, because switching organizations empties the slices. |
+| `pending`    | Is this control waiting on the server? A pressed button says so and refuses a second press, which is what stops a double click creating two of something.                                                                                                         |
+| `confirming` | Is this destructive control armed? Deleting is two presses on the same row rather than a dialog. One key at a time: arming a second row disarms the first, and navigating, opening a form or starting anything disarms it entirely.                               |
+| `openForm`   | Which create form has been opened? Creating is rare, so its form is never permanent furniture: it is either an empty list's whole content or one disclosure behind the page's primary button.                                                                     |
+
+`attempt` also takes `background: true`, for work the user did not ask for. The
+session poll uses it, so a tick does not wipe the error banner the user is
+reading or flash every button it touches.
+
+## Members and access
+
+Membership is the app's **only** access control. `core.members`
+([member-actions.ts](../app/client/member-actions.ts)) reads and sets it, and
+the list lives on the organization page
+([members-section.tsx](../app/ui/members-section.tsx)) — everyone in it can
+reach everything inside that organization.
+
+A **workspace has no members of its own**: there is no workspace-level
+membership in the domain ([domain.md](./domain.md)), so the workspace page states
+that access follows the organization and links to the list, rather than offering
+a second one to manage.
+
+Two things the API does not have yet, which is why the UI does not pretend to:
+
+- A membership is `{ userId, role }` with **no name or email**, so a row can name
+  a role but not a person.
+- `members.put` takes a `userId`, so someone can be given a role but **cannot be
+  invited by address**. That needs an invitation the server does not model.
 
 ## Repositories
 
@@ -67,11 +110,15 @@ since the server takes a replacement rather than a patch. The URL being typed is
 
 ## Work sessions
 
-**Create session** on the workspace page starts a
+**New session** — the workspace page's one primary action — starts a
 [work session](client/actions/work-sessions.md), which a worker prepares by
-cloning the workspace's git project. Each session shows its status, the step it
-is on right now, and the trail of steps taken — `state.workSessions[].progress`,
-so the page never has to say only _Preparing…_ without saying why. It polls
+cloning the workspace's git project. A session is named in the list by the branch
+it holds (or a short id until it has one), not by its status: three ready sessions
+all titled "Ready" are three rows a user cannot tell apart. The status itself is a
+pill ([status-pill.tsx](../app/ui/status-pill.tsx)) so a list is scanned rather
+than read, and the trail of steps taken — `state.workSessions[].progress` — is
+open while the session is being prepared and closed once it is history, so the
+page never has to say only _Preparing…_ without saying why. It polls
 `workSessions.refreshPending` while any session is unfinished; the decision about
 what to poll lives in the core
 ([work-session-actions.ts](../app/client/work-session-actions.ts)), not in the
@@ -110,6 +157,35 @@ Each domain entity has **one colour and one glyph**, defined once:
 with `currentColor`, so the colour comes from the token on the class and never
 from a component; an organization in a card, in a breadcrumb and in a heading are
 one visual identity rather than three pieces of text.
+
+## The shape of a page
+
+Every page behind the login is the same three parts, so nothing has to be found
+in a different place on each one:
+
+- [page-header.tsx](../app/ui/page-header.tsx) — the breadcrumb, the title, and
+  **the page's one primary action** in a fixed slot. Creating is never something
+  discovered at the bottom of the content.
+- [breadcrumbs.tsx](../app/ui/breadcrumbs.tsx) — the whole trail, derived from
+  the route, so no page has to be told what is above it and every ancestor is one
+  click away rather than only the parent.
+- [section.tsx](../app/ui/section.tsx) — one titled part with its own action.
+  The gap inside a section is smaller than the gap between two, which is what
+  ties a heading to the thing under it.
+
+One list idiom for everything drilled into or acted on: `.rows`, where the whole
+row is the link and its actions sit at the end. A `.empty` state carries the
+action that fills it, because an empty state with nothing to press is a dead end.
+Two button sizes, so the page's one important action is the one that looks it.
+
+The palette is defined twice in [styles.css](../app/ui/styles.css) — once on
+`:root` and once under `prefers-color-scheme: dark` — and **only** the tokens are
+redefined, so no rule below them knows which of the two it is running in.
+
+The shell owns the viewport and `main` is the only thing that scrolls
+([app-shell.tsx](../app/ui/app-shell.tsx)), which lets a page whose subject is a
+file tree (`.page.fills`) fill exactly what is left instead of scrolling inside a
+scrolling page.
 
 The two stores are exposed as one tree with one subscription
 ([store.ts](../app/client/store.ts)) — the app's slices layered over the

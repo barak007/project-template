@@ -3,8 +3,11 @@ import { createClientCore } from "../../domain-client/index.js";
 import type { Host } from "../../domain-client/index.js";
 
 import { createAttempt } from "./attempt.js";
+import { createConfirmationActions } from "./confirmation-actions.js";
 import type { AppActionContext } from "./context.js";
+import { createMemberActions } from "./member-actions.js";
 import { createAppNavigation } from "./navigation-actions.js";
+import { createNoticeActions } from "./notice-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
 import { createProjectFileActions } from "./project-file-actions.js";
 import { createRepositoryActions } from "./repository-actions.js";
@@ -17,6 +20,7 @@ export { ApiError } from "../../domain-client/index.js";
 export type {
   ClientFetch,
   Host,
+  Membership,
   Organization,
   ProjectEntry,
   ProjectFile,
@@ -29,6 +33,7 @@ export type {
 export { createMemoryHistory } from "../../domain-client/history.js";
 export type { History, MemoryHistory } from "../../domain-client/history.js";
 export type { AppEvent } from "./events.js";
+export { actionKeys, confirmKeys, loadKeys } from "./keys.js";
 export {
   defaultRoute,
   pathToRoute,
@@ -40,6 +45,9 @@ export {
   currentOrganization,
   currentWorkSession,
   currentWorkspace,
+  hasLoaded,
+  isConfirming,
+  isPending,
   routeOrganizationId,
   visibleRoute,
 } from "./selectors.js";
@@ -47,6 +55,7 @@ export type {
   AppError,
   AppOwnState,
   AppState,
+  CreateForm,
   CredentialsDraft,
   NameDraft,
   SignUpDraft,
@@ -80,10 +89,13 @@ export function createAppCore(dependencies: AppCoreDependencies) {
   return {
     session: createSessionActions(context),
     organizations: createOrganizationActions(context),
+    members: createMemberActions(context),
     workspaces: createWorkspaceActions(context),
     repositories: createRepositoryActions(context),
     workSessions: createWorkSessionActions(context),
     projectFiles: createProjectFileActions(context),
+    confirmation: createConfirmationActions(context),
+    notices: createNoticeActions(context),
     navigation: context.navigation,
     getState: store.getState,
     subscribe: store.subscribe,

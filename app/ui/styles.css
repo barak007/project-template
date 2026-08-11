@@ -4,6 +4,7 @@
   --bg: #ffffff;
   --bg-muted: #f7f8fa;
   --surface: #ffffff;
+  --surface-raised: #ffffff;
   --border: #e4e6ec;
   --border-strong: #ccd0d8;
   --text: #14171f;
@@ -12,6 +13,7 @@
   --accent-hover: #4338ca;
   --accent-soft: rgba(79, 70, 229, 0.12);
   --danger: #b3261e;
+  --danger-soft: rgba(179, 38, 30, 0.08);
   /* One colour per entity, so the same thing reads the same everywhere. Each is
      legible on --bg and on --surface; the soft variant is for chips only. */
   --entity-organization: #4f46e5;
@@ -24,8 +26,17 @@
   --entity-session-soft: rgba(180, 83, 9, 0.12);
   --entity-repository: #475569;
   --entity-repository-soft: rgba(71, 85, 105, 0.12);
+  /* One colour per session status. A status is scanned, not read: three ready
+     sessions and one failed one should be one glance, not four sentences. */
+  --status-waiting: #a16207;
+  --status-waiting-soft: rgba(161, 98, 7, 0.12);
+  --status-ready: #15803d;
+  --status-ready-soft: rgba(21, 128, 61, 0.12);
+  --status-failed: #b3261e;
+  --status-failed-soft: rgba(179, 38, 30, 0.1);
   --radius: 10px;
   --radius-sm: 6px;
+  --radius-pill: 999px;
   --shadow-sm: 0 1px 2px rgba(16, 20, 30, 0.06);
   --shadow-md: 0 12px 32px rgba(16, 20, 30, 0.1);
   /* Two widths: a reading measure for the public site's prose, and the wider
@@ -33,6 +44,46 @@
   --measure: 60rem;
   --measure-wide: 90rem;
   color-scheme: light;
+}
+
+/* The same tokens in the dark the viewer's system asked for. Only the palette
+   is redefined — every rule below reads through the token, so nothing else in
+   this file knows which of the two it is running in. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1017;
+    --bg-muted: #0d1017;
+    --surface: #161a23;
+    --surface-raised: #1d222d;
+    --border: #262c38;
+    --border-strong: #39414f;
+    --text: #e8eaf0;
+    --text-muted: #9aa3b2;
+    --accent: #8b83f5;
+    --accent-hover: #a29bf8;
+    --accent-soft: rgba(139, 131, 245, 0.16);
+    --danger: #f28b82;
+    --danger-soft: rgba(242, 139, 130, 0.12);
+    --entity-organization: #8b83f5;
+    --entity-organization-soft: rgba(139, 131, 245, 0.16);
+    --entity-workspace: #3fb8a8;
+    --entity-workspace-soft: rgba(63, 184, 168, 0.16);
+    --entity-project: #b18cf5;
+    --entity-project-soft: rgba(177, 140, 245, 0.16);
+    --entity-session: #e0a458;
+    --entity-session-soft: rgba(224, 164, 88, 0.16);
+    --entity-repository: #9aa8bd;
+    --entity-repository-soft: rgba(154, 168, 189, 0.16);
+    --status-waiting: #e0a458;
+    --status-waiting-soft: rgba(224, 164, 88, 0.16);
+    --status-ready: #5ec27a;
+    --status-ready-soft: rgba(94, 194, 122, 0.16);
+    --status-failed: #f28b82;
+    --status-failed-soft: rgba(242, 139, 130, 0.14);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);
+    color-scheme: dark;
+  }
 }
 
 * {
@@ -88,7 +139,9 @@ a {
   color: var(--text-muted);
 }
 
-/* Buttons: one filled treatment, one quiet one. */
+/* Buttons: one filled treatment, one quiet one — at two sizes. A page has one
+   action worth the full size; the ones that live in a row or beside a field are
+   small, so the important one is the one that looks important. */
 button,
 .button {
   display: inline-flex;
@@ -112,7 +165,14 @@ button:hover,
 
 button:disabled {
   background: var(--border-strong);
+  color: var(--surface);
   cursor: not-allowed;
+}
+
+button.small,
+.button.small {
+  padding: 0.3125rem 0.6875rem;
+  font-size: 0.875rem;
 }
 
 button.ghost {
@@ -125,22 +185,140 @@ button.ghost:hover {
   background: var(--bg-muted);
 }
 
+button.ghost:disabled {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
 button.ghost.danger {
   color: var(--danger);
 }
 
+button.ghost.danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+/* A button that is waiting on the server says so in place, rather than looking
+   pressable while nothing appears to happen. */
+button[aria-busy="true"] {
+  cursor: progress;
+}
+
+/* A rejection belonging to the field above it — the sign-in and sign-up forms.
+   Page-level failures are `.banner` below, which is a different thing. */
 .error {
   margin: 0;
   color: var(--danger);
   font-size: 0.9375rem;
 }
 
+/* The failure of the last action, as something that cannot be missed: a surface
+   of its own, and a way to put it away without doing something else first. */
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--danger);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+  color: var(--text);
+  font-size: 0.9375rem;
+}
+
+.banner p {
+  flex: 1;
+  margin: 0;
+}
+
+.banner strong {
+  color: var(--danger);
+}
+
+.banner .banner-dismiss {
+  flex: none;
+  padding: 0 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.banner .banner-dismiss:hover {
+  background: none;
+  color: var(--text);
+}
+
+/* An empty list, carrying the one action that fills it — an empty state with
+   nothing to press is a dead end. */
 .empty {
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2.5rem 2rem;
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius);
   color: var(--text-muted);
   text-align: center;
+}
+
+.empty p {
+  margin: 0;
+}
+
+/* Waiting for the first read of a collection. Deliberately shaped like the rows
+   it will become, so the page does not jump when they arrive. */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.skeleton-row {
+  height: 3.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.skeleton-row:last-child {
+  border-bottom: none;
+}
+
+.skeleton-row::after {
+  content: "";
+  display: block;
+  width: 40%;
+  height: 0.75rem;
+  margin: 1.25rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-muted);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-row:nth-child(2)::after {
+  width: 55%;
+}
+
+.skeleton-row:nth-child(3)::after {
+  width: 30%;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row::after {
+    animation: none;
+  }
 }
 
 /* Public site ---------------------------------------------------------- */
@@ -151,8 +329,7 @@ button.ghost.danger {
   min-height: 100vh;
 }
 
-.site-header,
-.app-header {
+.site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -297,7 +474,8 @@ label {
   font-weight: 500;
 }
 
-input {
+input,
+select {
   padding: 0.55rem 0.75rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
@@ -306,88 +484,245 @@ input {
   font: inherit;
 }
 
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-soft);
   outline: none;
 }
 
+select.small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
 /* Signed-in app -------------------------------------------------------- */
 
+/* The shell owns the viewport and the header; `main` is the only thing that
+   scrolls. A page of files can then fill exactly what is left instead of
+   guessing a viewport fraction, and the header never scrolls away. */
 .app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100dvh;
   background: var(--bg-muted);
 }
 
-/* The app's header sits on the app's measure, so the brand lines up with the
-   left edge of every page below it. */
 .app-header {
-  padding: 1.25rem max(1.5rem, calc((100% - var(--measure-wide)) / 2));
-  background: var(--surface);
-}
-
-.app-identity {
   display: flex;
   align-items: center;
   gap: 1rem;
-  font-size: 0.9375rem;
+  flex: none;
+  padding: 0.875rem max(1.5rem, calc((100% - var(--measure-wide)) / 2));
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
 }
 
+.app-header .brand {
+  flex: none;
+}
+
+.app main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+/* The signed-in identity as a menu rather than a permanent sign-out button:
+   `details` because a disclosure is exactly what this is, and the browser
+   already knows how to open one from the keyboard. */
+.user-menu {
+  position: relative;
+  margin-left: auto;
+  flex: none;
+}
+
+.user-menu > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.25rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.user-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.user-menu > summary:hover {
+  background: var(--bg-muted);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.user-menu-panel {
+  position: absolute;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: max-content;
+  min-width: 13rem;
+  margin-top: 0.5rem;
+  padding: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.user-menu-panel .identity {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.user-menu-panel button {
+  width: 100%;
+}
+
+/* A page: one column of sections, capped at the app's measure. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
+  flex: 1;
+  width: 100%;
   max-width: var(--measure-wide);
   margin: 0 auto;
-  padding: 2.5rem 1.5rem 4rem;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* A page whose subject is a file tree fills what the shell left instead of
+   scrolling inside a scrolling page. */
+.page.fills {
+  min-height: 0;
+  padding-bottom: 1.5rem;
+  overflow: hidden;
 }
 
 .page-header {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-.page-header h1 {
+/* The title, and the page's one primary action opposite it — a predictable
+   place on every page, so creating is never something found at the bottom. */
+.page-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.page-title h1 {
   font-size: 1.75rem;
+}
+
+.page-title > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
 .page-header p {
   margin: 0;
+  color: var(--text-muted);
   font-size: 0.9375rem;
 }
 
-.cards {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+/* Where the user is, and every step of the way back — one row rather than a
+   single link up, so any ancestor is one click from anywhere. */
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.375rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  font-size: 0.875rem;
+  color: var(--text-muted);
 }
 
-.card {
+.breadcrumbs li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.breadcrumbs li + li::before {
+  content: "/";
+  color: var(--border-strong);
+}
+
+.breadcrumbs a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* One titled part of a page, with its own action. The heading belongs to the
+   thing under it, which needs the gap inside a section to be smaller than the
+   gap between them. */
+.section {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  height: 100%;
-  padding: 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  gap: 0.75rem;
+  min-width: 0;
 }
 
-.card:hover {
-  border-color: var(--accent);
+.section.grows {
+  flex: 1;
+  min-height: 0;
 }
 
-.card .muted {
-  font-size: 0.8125rem;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
+.section-header h2 {
+  font-size: 1.0625rem;
+}
+
+.section-header .muted {
+  font-size: 0.875rem;
+}
+
+.section-action {
+  margin-left: auto;
+  flex: none;
+}
+
+/* One list idiom for everything that is drilled into or acted on. Rows scale
+   to any width, which a card grid does not: two cards in a 90rem grid are two
+   cards adrift in white space. */
 .rows {
   display: flex;
   flex-direction: column;
@@ -397,69 +732,210 @@ input:focus-visible {
   border-radius: var(--radius);
   background: var(--surface);
   list-style: none;
+  overflow: hidden;
 }
 
-.rows li {
+.rows > li {
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 0.875rem 1.25rem;
   border-bottom: 1px solid var(--border);
 }
 
-.rows li:last-child {
+.rows > li:last-child {
   border-bottom: none;
 }
 
-.rows li .muted {
+/* The whole row is the link, not the name inside it: a 1.5rem word is a small
+   target for something that fills the window. */
+.row-main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   flex: 1;
-  font-size: 0.875rem;
+  min-width: 0;
+  padding: 0.875rem 1.25rem;
 }
 
-.inline-form {
+a.row-main:hover {
+  background: var(--bg-muted);
+}
+
+.row-main > strong {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.row-main .muted {
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What is true of the row, pushed to the far end: counts, roles, timestamps. */
+.row-meta {
+  margin-left: auto;
+  flex: none;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+  padding-right: 1.25rem;
+}
+
+/* An armed destructive control: the question and both answers in the row. */
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--danger);
+}
+
+/* Creating something: a form that is either an empty list's whole content or
+   one disclosure under the page's primary button — never permanent furniture. */
+.create-form {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
+  flex-wrap: wrap;
   padding: 1.25rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
 }
 
-.inline-form label {
+.create-form label {
   flex: 1;
-  max-width: 20rem;
-}
-
-.inline-form input {
-  flex: 1;
+  min-width: 14rem;
   max-width: 28rem;
 }
 
+.empty .create-form {
+  border: 0;
+  padding: 0;
+  background: none;
+  justify-content: center;
+  text-align: left;
+}
+
+/* Status ---------------------------------------------------------------- */
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.625rem 0.125rem 0.5rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-waiting {
+  background: var(--status-waiting-soft);
+  color: var(--status-waiting);
+}
+
+/* Something is happening elsewhere and this is the only sign of it. */
+.status-waiting::before {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-waiting::before {
+    animation: none;
+  }
+}
+
+.status-ready {
+  background: var(--status-ready-soft);
+  color: var(--status-ready);
+}
+
+.status-failed {
+  background: var(--status-failed-soft);
+  color: var(--status-failed);
+}
+
+/* Sessions -------------------------------------------------------------- */
+
 /* One session and what it is doing. The trail matters as much as the status:
    a session that sits on "Preparing…" with no steps is a stuck worker, and
-   that difference should be visible without opening a terminal. */
+   that difference should be visible without opening a terminal — but once the
+   session is ready it is history, so it closes. */
 .session {
-  margin-top: 0.75rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.session header {
   display: flex;
-  align-items: baseline;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.session header .muted {
+.session:last-child {
+  border-bottom: none;
+}
+
+.session-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.session-head .session-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+
+.session-head code {
+  font-size: 0.8125rem;
+}
+
+.session-head .muted {
   font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.session-head .button,
+.session-head button {
+  margin-left: auto;
+}
+
+.log-toggle {
+  align-self: flex-start;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.log-toggle:hover {
+  color: var(--text);
 }
 
 .log {
-  margin: 0.75rem 0 0;
-  padding: 0.75rem 0 0;
+  margin: 0.25rem 0 0;
+  padding: 0.5rem 0 0;
   border-top: 1px solid var(--border);
   font-size: 0.8125rem;
   list-style: none;
@@ -476,30 +952,53 @@ input:focus-visible {
   font-size: 0.75rem;
 }
 
-/* The session workbench: a file tree beside the file being read. Two panes and
-   nothing else, because the tree and the open file are the whole page — the
-   contents of both arrive from the API, not from this machine. */
-.workbench {
-  display: grid;
-  grid-template-columns: minmax(12rem, 18rem) 1fr;
-  gap: 1rem;
-  align-items: start;
-}
+/* Workbench ------------------------------------------------------------- */
 
-@media (max-width: 48rem) {
-  .workbench {
-    grid-template-columns: 1fr;
-  }
+/* A file tree beside the file being read. Two panes and nothing else, because
+   the tree and the open file are the whole page — the contents of both arrive
+   from the API, not from this machine. */
+.workbench {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .file-tree,
 .file-view {
+  min-height: 0;
   overflow: auto;
-  max-height: 70vh;
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+/* The tree is resized by dragging its own edge — a native affordance, so no
+   splitter to build and none to keep in state. */
+.file-tree {
+  flex: none;
+  width: 18rem;
+  min-width: 12rem;
+  max-width: 40rem;
+  resize: horizontal;
+}
+
+.file-view {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 48rem) {
+  .workbench {
+    flex-direction: column;
+  }
+
+  .file-tree {
+    width: auto;
+    max-height: 14rem;
+    resize: vertical;
+  }
 }
 
 .tree {
@@ -513,7 +1012,9 @@ input:focus-visible {
 }
 
 .tree-node {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
   width: 100%;
   padding: 0.125rem 0.25rem;
   border: 0;
@@ -528,6 +1029,20 @@ input:focus-visible {
 
 .tree-node:hover {
   background: var(--bg-muted);
+}
+
+/* Which file is open, in the list of every file. Colour alone would not say it,
+   so the row is filled as well as tinted. */
+.tree-node[aria-current="true"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.tree-node > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .file-view header {
@@ -580,10 +1095,11 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
+  min-width: 0;
 }
 
 /* A heading that names one entity, and a card of them. */
-.page-header h1 .entity-icon {
+.page-title h1 .entity-icon {
   width: 1em;
   height: 1em;
 }
@@ -591,19 +1107,27 @@ input:focus-visible {
 .tree-caret {
   display: inline-block;
   width: 0.75rem;
+  flex: none;
   color: var(--text-muted);
 }
 
-/* The workspace's project: one row, because there is exactly one. */
+/* One statement about one thing, where a list would be a list of one: the
+   workspace's project, and the organization its access comes from. The left edge
+   carries the entity's colour, so which of the two it is needs no label. */
 .project-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
   padding: 0.875rem 1.25rem;
   border: 1px solid var(--border);
   border-left: 3px solid var(--entity-project);
   border-radius: var(--radius);
   background: var(--surface);
+}
+
+.project-row.for-organization {
+  border-left-color: var(--entity-organization);
 }
 
 .project-row code {

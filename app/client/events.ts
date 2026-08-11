@@ -1,6 +1,7 @@
 import type { Route } from "./router.js";
 import type {
   AppError,
+  CreateForm,
   CredentialsDraft,
   NameDraft,
   SignUpDraft,
@@ -19,5 +20,11 @@ export type AppEvent =
   | { type: "organization-draft-changed"; draft: Partial<NameDraft> }
   | { type: "workspace-draft-changed"; draft: Partial<NameDraft> }
   | { type: "repository-draft-changed"; remote: string }
-  | { type: "action-started" }
-  | { type: "action-failed"; error: AppError };
+  | { type: "create-form-opened"; form: CreateForm }
+  | { type: "create-form-closed" }
+  | { type: "confirmation-asked"; key: string }
+  | { type: "confirmation-cancelled" }
+  | { type: "error-dismissed" }
+  | { type: "action-started"; key?: string }
+  | { type: "action-finished"; key?: string; loaded?: string }
+  | { type: "action-failed"; error: AppError; key?: string; loaded?: string };

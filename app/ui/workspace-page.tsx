@@ -1,12 +1,25 @@
 import { useEffect } from "react";
 
-import { currentOrganization, currentWorkspace } from "../client/index.js";
-import type { AppCore, WorkSession } from "../client/index.js";
+import {
+  actionKeys,
+  confirmKeys,
+  currentWorkspace,
+  hasLoaded,
+  isPending,
+  loadKeys,
+} from "../client/index.js";
+import type { AppCore } from "../client/index.js";
 
+import { ConfirmButton } from "./confirm-button.js";
+import { CreateForm } from "./create-form.js";
 import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { PageHeader } from "./page-header.js";
 import { locationOf } from "./project-location.js";
 import { RouteLink } from "./route-link.js";
+import { Section } from "./section.js";
+import { SessionCard } from "./session-card.js";
+import { Skeleton } from "./skeleton.js";
 import { useAppState } from "./use-app-state.js";
 
 /**
@@ -23,17 +36,31 @@ export function WorkspacePage({
   organizationId: string;
   workspaceId: string;
 }) {
-  const organization = useAppState(core, currentOrganization);
   const workspace = useAppState(core, currentWorkspace);
   const sources = useAppState(core, (state) => state.sources);
   const workSessions = useAppState(core, (state) => state.workSessions);
   const draft = useAppState(core, (state) => state.repositoryDraft);
+  const members = useAppState(core, (state) => state.members.length);
+  const repositoriesLoaded = useAppState(core, (state) =>
+    hasLoaded(state, loadKeys.repositories(organizationId)),
+  );
+  const sessionsLoaded = useAppState(core, (state) =>
+    hasLoaded(state, loadKeys.sessions(organizationId)),
+  );
+  const adding = useAppState(core, (state) => state.openForm === "repository");
+  const addPending = useAppState(core, (state) =>
+    isPending(state, actionKeys.addRepository),
+  );
+  const createPending = useAppState(core, (state) =>
+    isPending(state, actionKeys.createSession(workspaceId)),
+  );
 
   useEffect(() => {
     void core.organizations.load();
     void core.workspaces.load(organizationId);
     void core.repositories.load(organizationId);
     void core.workSessions.load(organizationId);
+    void core.members.load(organizationId);
   }, [core, organizationId]);
 
   // Derived during render, never in a selector: a filter builds a fresh array
@@ -59,187 +86,192 @@ export function WorkspacePage({
     return () => clearInterval(timer);
   }, [core, organizationId, preparing]);
 
+  const addForm = (
+    <CreateForm
+      label="Repository URL"
+      placeholder="https://github.com/owner/repository.git"
+      value={draft}
+      pending={addPending}
+      submitLabel="Add repository"
+      onChange={(remote) => {
+        core.repositories.draft(remote);
+      }}
+      onSubmit={() => {
+        void core.repositories.add(organizationId, workspaceId);
+      }}
+      onCancel={() => {
+        core.repositories.cancelAdding();
+      }}
+    />
+  );
+
   return (
     <section className="page">
-      <header className="page-header">
-        <RouteLink
-          core={core}
-          to={{ kind: "organization", organizationId }}
-          className="link entity-chip"
-        >
-          <EntityIcon entity="organization" />←{" "}
-          {organization?.name ?? "Organization"}
-        </RouteLink>
-        <h1 className="entity-chip">
-          <EntityIcon entity="workspace" />
-          {workspace?.name ?? "Workspace"}
-        </h1>
-        <p className="muted">
-          A session clones these repositories into one project.
-        </p>
-      </header>
+      <PageHeader
+        core={core}
+        entity="workspace"
+        title={workspace?.name ?? "Workspace"}
+        lead="A session clones these repositories into one project."
+        action={
+          // The page's one primary action. Disabled rather than hidden: a user
+          // who cannot see it does not learn what it needs.
+          <button
+            type="button"
+            disabled={attached.length === 0 || createPending}
+            aria-busy={createPending}
+            title={
+              attached.length === 0
+                ? "Add a repository first — a session opens these."
+                : undefined
+            }
+            onClick={() => {
+              void core.workSessions.create(organizationId, workspaceId);
+            }}
+          >
+            {createPending ? "Starting…" : "New session"}
+          </button>
+        }
+      />
       <ErrorBanner core={core} />
 
-      <h2>Project</h2>
       {/* The workspace owns one git project — the template each session clones.
           It is built by the first session, so before that there is nothing to
-          open, and the link says so rather than leading to an error. */}
-      <div className="project-row">
-        <EntityIcon entity="project" />
-        {workspace?.projectLocation ? (
-          <>
-            <RouteLink
-              core={core}
-              to={{ kind: "workspace-project", organizationId, workspaceId }}
-              className="link"
-            >
-              Browse the workspace project
-            </RouteLink>
-            <code>{locationOf(workspace.projectLocation)}</code>
-          </>
-        ) : (
-          <span className="muted">
-            Built by this workspace&apos;s first session.
-          </span>
-        )}
-      </div>
-
-      <h2>Repositories</h2>
-      <form
-        className="inline-form"
-        onSubmit={(submit) => {
-          submit.preventDefault();
-          void core.repositories.add(organizationId, workspaceId);
-        }}
-      >
-        <input
-          aria-label="Repository URL"
-          placeholder="https://github.com/owner/repository.git"
-          value={draft}
-          onChange={(change) => {
-            core.repositories.draft(change.target.value);
-          }}
-        />
-        <button type="submit" disabled={draft.trim().length === 0}>
-          Add
-        </button>
-      </form>
-      {attached.length === 0 ? (
-        <p className="empty">No repositories in this workspace yet.</p>
-      ) : (
-        <ul className="rows">
-          {attached.map((source) => (
-            <li key={source.id}>
-              <strong className="entity-chip">
-                <EntityIcon entity="repository" />
-                {source.name}
-              </strong>
-              <span className="muted">{remoteOf(source.config)}</span>
-              <button
-                className="ghost danger"
-                onClick={() => {
-                  void core.repositories.remove(
-                    organizationId,
-                    workspaceId,
-                    source.id,
-                  );
-                }}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <h2>Sessions</h2>
-      <button
-        disabled={attached.length === 0}
-        onClick={() => {
-          void core.workSessions.create(organizationId, workspaceId);
-        }}
-      >
-        Create session
-      </button>
-      {attached.length === 0 && (
-        <p className="muted">Add a repository first — a session opens these.</p>
-      )}
-      {sessions.map((session) => (
-        <article key={session.id} className="session">
-          <header>
-            {/* The session's own page is the editor over its files; a session
-                still being prepared has nothing to open yet. */}
-            <strong className="entity-chip">
-              <EntityIcon entity="session" />
-              {statusLabel(session)}
-            </strong>
-            {session.status === "ready" && (
+          open, and the row says so rather than leading to an error. */}
+      <Section title="Project">
+        <div className="project-row">
+          <EntityIcon entity="project" />
+          {workspace?.projectLocation ? (
+            <>
               <RouteLink
                 core={core}
-                to={{
-                  kind: "session",
-                  organizationId,
-                  workspaceId,
-                  workSessionId: session.id,
-                }}
+                to={{ kind: "workspace-project", organizationId, workspaceId }}
                 className="link"
               >
-                Open
+                Browse the workspace project
               </RouteLink>
-            )}
-            {/* What it is doing right now, which is the whole point of a
-                progress trail: "Preparing…" on its own tells a user nothing. */}
-            <span className="muted">{currentStep(session)}</span>
-          </header>
-          {session.progress.length > 0 && (
-            <ol className="log">
-              {session.progress.map((entry, index) => (
-                <li key={`${entry.at}-${String(index)}`}>
-                  <code>{time(entry.at)}</code> {entry.step}
-                  {entry.detail !== undefined && (
-                    <span className="muted"> {entry.detail}</span>
-                  )}
-                </li>
-              ))}
-            </ol>
+              <code>{locationOf(workspace.projectLocation)}</code>
+            </>
+          ) : (
+            <span className="muted">
+              Built by this workspace&apos;s first session.
+            </span>
           )}
-        </article>
-      ))}
+        </div>
+      </Section>
+
+      <Section
+        title="Repositories"
+        action={
+          attached.length > 0 && !adding ? (
+            <button
+              type="button"
+              className="ghost small"
+              onClick={() => {
+                core.repositories.startAdding();
+              }}
+            >
+              Add repository
+            </button>
+          ) : undefined
+        }
+      >
+        {adding && attached.length > 0 ? addForm : null}
+        {!repositoriesLoaded ? (
+          <Skeleton rows={2} />
+        ) : attached.length === 0 ? (
+          <div className="empty">
+            <p>
+              No repositories yet. Paste a git URL — nothing has to be connected
+              first.
+            </p>
+            {addForm}
+          </div>
+        ) : (
+          <ul className="rows">
+            {attached.map((source) => (
+              <li key={source.id}>
+                <div className="row-main">
+                  <strong className="entity-chip">
+                    <EntityIcon entity="repository" />
+                    {source.name}
+                  </strong>
+                  <span className="muted">{remoteOf(source.config)}</span>
+                </div>
+                <div className="row-actions">
+                  <ConfirmButton
+                    core={core}
+                    confirmKey={confirmKeys.removeRepository(source.id)}
+                    actionKey={actionKeys.removeRepository(source.id)}
+                    label="Remove"
+                    question={`Remove ${source.name} from this workspace?`}
+                    onConfirm={() => {
+                      void core.repositories.remove(
+                        organizationId,
+                        workspaceId,
+                        source.id,
+                      );
+                    }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section
+        title="Sessions"
+        note={
+          sessionsLoaded && sessions.length > 0
+            ? `${String(sessions.length)} in this workspace`
+            : undefined
+        }
+      >
+        {!sessionsLoaded ? (
+          <Skeleton rows={2} />
+        ) : sessions.length === 0 ? (
+          <div className="empty">
+            <p>
+              {attached.length === 0
+                ? "A session clones this workspace’s repositories. Add one first."
+                : "No sessions yet. Starting one clones every repository above into a project."}
+            </p>
+          </div>
+        ) : (
+          <div className="rows">
+            {sessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                core={core}
+                session={session}
+                organizationId={organizationId}
+                workspaceId={workspaceId}
+              />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* Access is the organization's, not this workspace's: there is no
+          workspace-level membership to manage, and saying so is better than a
+          list that implies there is. */}
+      <Section title="Access">
+        <div className="project-row for-organization">
+          <EntityIcon entity="organization" />
+          <span className="muted">
+            Everyone in this organization can open this workspace.
+          </span>
+          <RouteLink
+            core={core}
+            to={{ kind: "organization", organizationId }}
+            className="link"
+          >
+            {members === 1 ? "1 member" : `${String(members)} members`}
+          </RouteLink>
+        </div>
+      </Section>
     </section>
   );
-}
-
-/**
- * The last thing that happened, or the outcome once there is one. A session
- * that failed shows why rather than only that it did.
- */
-function currentStep(session: WorkSession): string {
-  if (session.status === "ready")
-    return session.projectLocation === null
-      ? (session.failureCode ?? "")
-      : locationOf(session.projectLocation);
-  const last = session.progress.at(-1);
-  if (session.status === "failed")
-    return last?.detail ?? session.failureCode ?? "";
-  return last?.step ?? "Waiting for a worker…";
-}
-
-/** Wall-clock time only: the date is the session's own `createdAt`. */
-function time(at: string): string {
-  return at.slice(11, 19);
-}
-
-/** "Materialize" is internal; a user sees a session being prepared. */
-function statusLabel(session: WorkSession): string {
-  switch (session.status) {
-    case "pending":
-    case "materializing":
-      return "Preparing…";
-    case "ready":
-      return "Ready";
-    case "failed":
-      return "Failed";
-  }
 }
 
 function remoteOf(config: unknown): string {

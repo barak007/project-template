@@ -1,12 +1,11 @@
 import { useEffect } from "react";
 
-import { currentOrganization, currentWorkspace } from "../client/index.js";
+import { currentWorkspace } from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
-import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { PageHeader } from "./page-header.js";
 import { locationOf } from "./project-location.js";
-import { RouteLink } from "./route-link.js";
 import { useAppState } from "./use-app-state.js";
 import { Workbench } from "./workbench.js";
 
@@ -27,7 +26,6 @@ export function WorkspaceProjectPage({
   organizationId: string;
   workspaceId: string;
 }) {
-  const organization = useAppState(core, currentOrganization);
   const workspace = useAppState(core, currentWorkspace);
 
   useEffect(() => {
@@ -38,35 +36,29 @@ export function WorkspaceProjectPage({
   const location = workspace?.projectLocation ?? null;
 
   return (
-    <section className="page">
-      <header className="page-header">
-        <RouteLink
-          core={core}
-          to={{ kind: "workspace", organizationId, workspaceId }}
-          className="link entity-chip"
-        >
-          <EntityIcon entity="workspace" />←{" "}
-          {workspace?.name ?? organization?.name ?? "Workspace"}
-        </RouteLink>
-        <h1 className="entity-chip">
-          <EntityIcon entity="project" />
-          Project
-        </h1>
-        <p className="muted">
-          The template every session in this workspace clones
-          {location === null ? "" : ` · ${locationOf(location)}`}
-        </p>
-      </header>
+    <section className="page fills">
+      <PageHeader
+        core={core}
+        entity="project"
+        title="Project"
+        lead={
+          location === null
+            ? "The template every session in this workspace clones"
+            : `The template every session in this workspace clones · ${locationOf(location)}`
+        }
+      />
       <ErrorBanner core={core} />
 
       {/* Nothing is read until the workspace says it has a project: before its
           first session there is none, and while the list loads we do not know. */}
       {location === null ? (
-        <p className="empty">
-          {workspace === undefined
-            ? "Loading…"
-            : "This project is built by the workspace’s first session."}
-        </p>
+        <div className="empty">
+          <p>
+            {workspace === undefined
+              ? "Loading…"
+              : "This project is built by the workspace’s first session."}
+          </p>
+        </div>
       ) : (
         <Workbench
           core={core}

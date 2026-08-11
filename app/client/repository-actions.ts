@@ -1,4 +1,5 @@
 import type { AppActionContext } from "./context.js";
+import { actionKeys, loadKeys } from "./keys.js";
 
 /**
  * The repositories a workspace works on. "Repository" is the only word the
@@ -36,9 +37,18 @@ export function createRepositoryActions({
   return {
     /** Every repository the organization has defined, attached or not. */
     load: (organizationId: string) =>
-      attempt(() => client.sources.load(organizationId)),
+      attempt(() => client.sources.load(organizationId), {
+        loaded: loadKeys.repositories(organizationId),
+      }),
     draft: (remote: string) => {
       store.dispatch({ type: "repository-draft-changed", remote });
+    },
+    startAdding: () => {
+      store.dispatch({ type: "create-form-opened", form: "repository" });
+    },
+    cancelAdding: () => {
+      store.dispatch({ type: "create-form-closed" });
+      store.dispatch({ type: "repository-draft-changed", remote: "" });
     },
     /**
      * Defines the repository if it is new and attaches it to the workspace.
@@ -46,22 +56,30 @@ export function createRepositoryActions({
      * than duplicating it, which is what makes this safe to press twice.
      */
     add: (organizationId: string, workspaceId: string) =>
-      attempt(async () => {
-        const remote = store.getState().repositoryDraft.trim();
-        if (remote.length === 0) return;
-        const source = await client.repositories.add(organizationId, {
-          remote,
-        });
-        await rewrite(organizationId, workspaceId, (sourceIds) =>
-          sourceIds.includes(source.id) ? sourceIds : [...sourceIds, source.id],
-        );
-        store.dispatch({ type: "repository-draft-changed", remote: "" });
-      }),
+      attempt(
+        async () => {
+          const remote = store.getState().repositoryDraft.trim();
+          if (remote.length === 0) return;
+          const source = await client.repositories.add(organizationId, {
+            remote,
+          });
+          await rewrite(organizationId, workspaceId, (sourceIds) =>
+            sourceIds.includes(source.id)
+              ? sourceIds
+              : [...sourceIds, source.id],
+          );
+          store.dispatch({ type: "repository-draft-changed", remote: "" });
+          store.dispatch({ type: "create-form-closed" });
+        },
+        { key: actionKeys.addRepository },
+      ),
     remove: (organizationId: string, workspaceId: string, sourceId: string) =>
-      attempt(() =>
-        rewrite(organizationId, workspaceId, (sourceIds) =>
-          sourceIds.filter((candidate) => candidate !== sourceId),
-        ),
+      attempt(
+        () =>
+          rewrite(organizationId, workspaceId, (sourceIds) =>
+            sourceIds.filter((candidate) => candidate !== sourceId),
+          ),
+        { key: actionKeys.removeRepository(sourceId) },
       ),
   };
 }

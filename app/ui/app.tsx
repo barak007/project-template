@@ -90,7 +90,6 @@ export function App({ core }: { core: AppCore }) {
             organizationId={
               route.kind === "session" ? route.organizationId : ""
             }
-            workspaceId={route.kind === "session" ? route.workspaceId : ""}
             workSessionId={route.kind === "session" ? route.workSessionId : ""}
           />
         </AppShell>
