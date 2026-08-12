@@ -1,32 +1,15 @@
 import { describe } from "vitest";
 
 import { it } from "./kit/fixtures.js";
-import type { World } from "./kit/world.js";
-
-async function memberOf(world: World, ownerName: string, memberName: string) {
-  const owner = await world.founder(ownerName);
-  const member = await world.signedUpUser(memberName);
-  const memberAuth = member.core.getState().auth;
-  if (memberAuth.status !== "authenticated")
-    throw new Error("Member persona is not signed in");
-  await owner.core.members.put(owner.organization.id, {
-    userId: memberAuth.user.id,
-    role: "member",
-  });
-  return { owner, member, organization: owner.organization };
-}
 
 describe("membership stories", () => {
   it.concurrent(
-    "an owner adds a member and sees the roster, which members may not read",
+    "an owner sees the roster, and so does everyone in it",
     async ({ world, expect }) => {
-      const { owner, member, organization } = await memberOf(
-        world,
-        "owner",
-        "reader",
-      );
+      const owner = await world.founder("owner");
+      const member = await world.invitedMember(owner, "member", "reader");
 
-      await owner.core.members.load(organization.id);
+      await owner.core.members.load(owner.organization.id);
       expect(
         owner.core
           .getState()
@@ -34,21 +17,19 @@ describe("membership stories", () => {
           .sort(),
       ).toEqual(["member", "owner"]);
 
-      // The roster is management-only: plain members cannot list memberships.
-      await expect(
-        member.core.members.load(organization.id),
-      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      // Membership is the only access control there is, so who else is in the
+      // organization is not an owner's secret.
+      await member.core.members.load(owner.organization.id);
+      expect(member.core.getState().members).toHaveLength(2);
     },
   );
 
   it.concurrent(
     "a member can read resources but every mutation is forbidden",
     async ({ world, expect }) => {
-      const { owner, member, organization } = await memberOf(
-        world,
-        "owner",
-        "reader",
-      );
+      const owner = await world.founder("owner");
+      const member = await world.invitedMember(owner, "member", "reader");
+      const organization = owner.organization;
       await owner.core.sources.create(organization.id, {
         name: "repo",
         kind: "git",
@@ -105,12 +86,56 @@ describe("membership stories", () => {
       await expect(
         app.organizationData.put(organization.id, { key: "K", value: 1 }),
       ).rejects.toMatchObject(forbidden);
+      // Managing who is in the organization is the owner's, invitations included.
       await expect(
         app.members.put(organization.id, {
           userId: "someone-else",
           role: "admin",
         }),
       ).rejects.toMatchObject(forbidden);
+      await expect(
+        app.invitations.invite(organization.id, {
+          email: world.uniqueEmail("gate"),
+          role: "member",
+        }),
+      ).rejects.toMatchObject(forbidden);
+      await expect(app.invitations.load(organization.id)).rejects.toMatchObject(
+        forbidden,
+      );
+    },
+  );
+
+  it.concurrent(
+    "a role is changed in place, but nobody is added this way",
+    async ({ world, expect }) => {
+      const owner = await world.founder("owner");
+      const member = await world.invitedMember(owner, "member", "promoted");
+      const joined = member.core.getState().auth;
+      if (joined.status !== "authenticated")
+        throw new Error("The member is not signed in");
+
+      await owner.core.members.put(owner.organization.id, {
+        userId: joined.user.id,
+        role: "admin",
+      });
+      expect(
+        owner.core
+          .getState()
+          .members.find(({ userId }) => userId === joined.user.id)?.role,
+      ).toBe("admin");
+
+      // A user who never accepted anything is not a member, and cannot be made
+      // one by naming them here.
+      const stranger = await world.signedUpUser("stranger");
+      const strangerAuth = stranger.core.getState().auth;
+      if (strangerAuth.status !== "authenticated")
+        throw new Error("The stranger is not signed in");
+      await expect(
+        owner.core.members.put(owner.organization.id, {
+          userId: strangerAuth.user.id,
+          role: "member",
+        }),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     },
   );
 

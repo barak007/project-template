@@ -5,6 +5,7 @@ import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 import type { ProjectFiles } from "../git/project-files.js";
 import type { JobProducer } from "../jobs/queue.js";
 import type { Logger } from "../logging.js";
+import type { Mailer } from "../mail/mailer.js";
 import type { ErrorReporter } from "../observability.js";
 
 export type RuntimeDependencies = {
@@ -12,6 +13,7 @@ export type RuntimeDependencies = {
   auth: Auth;
   cipher: SecretCipher;
   jobs: JobProducer;
+  mailer: Mailer;
   projectBuilder: WorkspaceProjectBuilder;
   projectFiles: ProjectFiles;
   log: Logger;

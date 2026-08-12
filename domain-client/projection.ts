@@ -95,6 +95,35 @@ export function reduce(previous: ClientState, event: ClientEvent): ClientState {
           event.membership,
         ],
       };
+    case "invitations-loaded":
+      return { ...state, invitations: event.invitations };
+    case "invitation-sent":
+    case "invitation-revoked":
+      return {
+        ...state,
+        invitations: upsertById(state.invitations, event.invitation),
+      };
+    case "inbox-loaded":
+      return { ...state, inbox: event.messages };
+    case "invitation-answered":
+      // An answered invitation stays in the inbox, now stating its answer:
+      // "you joined" is the useful thing to read, and a row that vanished on
+      // click would leave nothing to say it worked.
+      return {
+        ...state,
+        inbox: state.inbox.map((message) =>
+          message.invitation.id === event.invitation.id
+            ? {
+                ...message,
+                readAt: message.readAt ?? event.invitation.respondedAt,
+                invitation: {
+                  ...message.invitation,
+                  status: event.invitation.status,
+                },
+              }
+            : message,
+        ),
+      };
     case "repository-added":
       return { ...state, sources: upsertById(state.sources, event.source) };
     case "sources-loaded":

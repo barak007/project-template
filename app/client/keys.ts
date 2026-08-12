@@ -14,6 +14,9 @@ export const loadKeys = {
   repositories: (organizationId: string) => `repositories:${organizationId}`,
   sessions: (organizationId: string) => `sessions:${organizationId}`,
   members: (organizationId: string) => `members:${organizationId}`,
+  invitations: (organizationId: string) => `invitations:${organizationId}`,
+  /** The signed-in user's own inbox: one identity, so no id in the key. */
+  inbox: "inbox",
 } as const;
 
 /** One key per control that can be in flight. */
@@ -25,6 +28,11 @@ export const actionKeys = {
   removeRepository: (sourceId: string) => `repository.remove:${sourceId}`,
   createSession: (workspaceId: string) => `session.create:${workspaceId}`,
   changeRole: (userId: string) => `member.role:${userId}`,
+  invite: "invitation.send",
+  revokeInvitation: (invitationId: string) =>
+    `invitation.revoke:${invitationId}`,
+  answerInvitation: (invitationId: string) =>
+    `invitation.answer:${invitationId}`,
 } as const;
 
 /**
@@ -34,4 +42,6 @@ export const actionKeys = {
 export const confirmKeys = {
   deleteWorkspace: (workspaceId: string) => `workspace.delete:${workspaceId}`,
   removeRepository: (sourceId: string) => `repository.remove:${sourceId}`,
+  revokeInvitation: (invitationId: string) =>
+    `invitation.revoke:${invitationId}`,
 } as const;

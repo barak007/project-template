@@ -40,6 +40,19 @@ export type Membership = InferResponseType<
 export type MembershipInput = InferRequestType<
   OrganizationRoutes["members"]["$put"]
 >["json"];
+export type Invitation = InferResponseType<
+  OrganizationRoutes["invitations"]["$get"]
+>[number];
+export type InvitationInput = InferRequestType<
+  OrganizationRoutes["invitations"]["$post"]
+>["json"];
+/** One row of the signed-in user's inbox; see inbox-actions.ts. */
+export type UserMessage = InferResponseType<
+  Api["api"]["me"]["messages"]["$get"]
+>[number];
+export type InvitationDecision = InferRequestType<
+  Api["api"]["me"]["invitations"][":invitationId"]["response"]["$post"]
+>["json"]["decision"];
 /**
  * JSON payload fields (source config, data values, snapshots) are re-typed
  * with this plain recursion: hc infers them through a mapped recursive type

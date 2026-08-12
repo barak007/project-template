@@ -32,6 +32,9 @@ whole [state](./state.md) tree is a deterministic fold of the event stream.
   it to keep state on one organization at a time (see
   [Client State](./state.md)).
 - `signed-out` resets everything — the only event that does.
+- User-scoped facts carry **no `organizationId`** and so survive a switch:
+  `inbox-loaded` and `invitation-answered` are about the person, not the
+  organization (the invitation may name one they cannot see yet).
 
 ## Adding an event
 

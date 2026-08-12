@@ -34,7 +34,9 @@ describe("the members of an organization", () => {
     "a role is set in place, and the row says so while it is being set",
     async ({ world, expect }) => {
       const founder = await world.founder("ada");
-      const joiner = await world.signedUpUser("grace");
+      // Nobody is added by id any more: the joiner is someone who accepted an
+      // invitation, which is the only way into the list.
+      const joiner = await world.invitedMember(founder, "member", "grace");
       const joinerSession = visit(world, "/sign-in");
       await signIn(joinerSession.core, joiner.credentials);
       const userId = signedInId(joinerSession.core);
@@ -44,11 +46,7 @@ describe("the members of an organization", () => {
       await signIn(core, founder.credentials);
       const organizationId = founder.organization.id;
 
-      const changing = core.members.changeRole(
-        organizationId,
-        userId,
-        "member",
-      );
+      const changing = core.members.changeRole(organizationId, userId, "admin");
       expect(isPending(core.getState(), actionKeys.changeRole(userId))).toBe(
         true,
       );
@@ -62,7 +60,7 @@ describe("the members of an organization", () => {
       expect(
         core.getState().members.find((member) => member.userId === userId)
           ?.role,
-      ).toBe("member");
+      ).toBe("admin");
     },
   );
 

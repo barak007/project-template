@@ -5,6 +5,8 @@ import type { Host } from "../../domain-client/index.js";
 import { createAttempt } from "./attempt.js";
 import { createConfirmationActions } from "./confirmation-actions.js";
 import type { AppActionContext } from "./context.js";
+import { createInboxActions } from "./inbox-actions.js";
+import { createInvitationActions } from "./invitation-actions.js";
 import { createMemberActions } from "./member-actions.js";
 import { createAppNavigation } from "./navigation-actions.js";
 import { createNoticeActions } from "./notice-actions.js";
@@ -20,6 +22,8 @@ export { ApiError } from "../../domain-client/index.js";
 export type {
   ClientFetch,
   Host,
+  Invitation,
+  InvitationDecision,
   Membership,
   Organization,
   ProjectEntry,
@@ -27,6 +31,7 @@ export type {
   ProjectTarget,
   RepositoryInput,
   Source,
+  UserMessage,
   WorkSession,
   Workspace,
 } from "../../domain-client/index.js";
@@ -48,6 +53,7 @@ export {
   hasLoaded,
   isConfirming,
   isPending,
+  managesOrganization,
   routeOrganizationId,
   visibleRoute,
 } from "./selectors.js";
@@ -57,6 +63,7 @@ export type {
   AppState,
   CreateForm,
   CredentialsDraft,
+  InviteDraft,
   NameDraft,
   SignUpDraft,
 } from "./state.js";
@@ -90,6 +97,8 @@ export function createAppCore(dependencies: AppCoreDependencies) {
     session: createSessionActions(context),
     organizations: createOrganizationActions(context),
     members: createMemberActions(context),
+    invitations: createInvitationActions(context),
+    inbox: createInboxActions(context),
     workspaces: createWorkspaceActions(context),
     repositories: createRepositoryActions(context),
     workSessions: createWorkSessionActions(context),

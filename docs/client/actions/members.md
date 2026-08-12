@@ -11,13 +11,19 @@ timestamp: 2026-08-06T00:00:00Z
 
 ## `load(organizationId)`
 
-Loads the roster into `state.members`. **Management-only**: plain members get
-`FORBIDDEN` — the roster is visible to owners, not to each other.
+Loads the roster into `state.members`. Readable by **everyone in the
+organization**: membership is the only access control there is, so who else can
+see this is not an owner's secret. Non-members get `FORBIDDEN`.
 
 ## `put(organizationId, { userId, role })`
 
-Adds a user to the organization or changes their role; upserts into
-`state.members`. Owner-only.
+Changes an existing member's role; replaces their entry in `state.members`.
+Owner-only.
+
+It **cannot add anyone**: a user id that is not already a member is a
+`NOT_FOUND`. Joining is an [invitation](./invitations.md) the invited person
+accepts from their [inbox](./inbox.md), which is the only thing in the system
+that creates a membership.
 
 ## Roles
 

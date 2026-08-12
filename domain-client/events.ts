@@ -1,11 +1,13 @@
 import type {
   DataEntry,
+  Invitation,
   Membership,
   Organization,
   ProjectEntry,
   ProjectFile,
   Secret,
   Source,
+  UserMessage,
   WorkSession,
   Workspace,
 } from "./api.js";
@@ -25,6 +27,20 @@ export type ClientEvent =
   | { type: "organization-created"; organization: Organization }
   | { type: "members-loaded"; organizationId: string; members: Membership[] }
   | { type: "membership-put"; organizationId: string; membership: Membership }
+  | {
+      type: "invitations-loaded";
+      organizationId: string;
+      invitations: Invitation[];
+    }
+  | { type: "invitation-sent"; organizationId: string; invitation: Invitation }
+  | {
+      type: "invitation-revoked";
+      organizationId: string;
+      invitation: Invitation;
+    }
+  /** The signed-in user's own inbox — not scoped to any organization. */
+  | { type: "inbox-loaded"; messages: UserMessage[] }
+  | { type: "invitation-answered"; invitation: Invitation }
   | { type: "repository-added"; organizationId: string; source: Source }
   | { type: "sources-loaded"; organizationId: string; sources: Source[] }
   | { type: "source-created"; organizationId: string; source: Source }

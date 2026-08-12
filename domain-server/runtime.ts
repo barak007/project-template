@@ -8,6 +8,7 @@ import { createLocalProjectBuilder } from "./git/local-project-builder.js";
 import { createLocalProjectFiles } from "./git/local-project-files.js";
 import { QueueRuntime } from "./jobs/queue.js";
 import { createLogger } from "./logging.js";
+import { createLogMailer } from "./mail/mailer.js";
 import { configureObservability } from "./observability.js";
 
 export async function createRuntime() {
@@ -26,6 +27,9 @@ export async function createRuntime() {
       auth: createAuth(db, environment),
       cipher: new SecretCipher(environment.SECRETS_ENCRYPTION_KEY),
       jobs: queue,
+      // Logging because no provider is configured: an invitation still exists
+      // and is still answerable in the app, so this is the honest default.
+      mailer: createLogMailer(log, environment.BETTER_AUTH_URL),
       // Local because the server shares a machine with the person using it; a
       // bucket-backed builder replaces this one without anything above changing.
       projectBuilder: createLocalProjectBuilder(

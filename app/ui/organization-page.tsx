@@ -7,6 +7,7 @@ import {
   hasLoaded,
   isPending,
   loadKeys,
+  managesOrganization,
 } from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
@@ -14,6 +15,7 @@ import { ConfirmButton } from "./confirm-button.js";
 import { CreateForm } from "./create-form.js";
 import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { InvitationsSection } from "./invitations-section.js";
 import { MembersSection } from "./members-section.js";
 import { PageHeader } from "./page-header.js";
 import { RouteLink } from "./route-link.js";
@@ -39,12 +41,20 @@ export function OrganizationPage({
   const pending = useAppState(core, (state) =>
     isPending(state, actionKeys.createWorkspace),
   );
+  const manages = useAppState(core, managesOrganization);
 
   useEffect(() => {
     void core.organizations.load();
     void core.workspaces.load(organizationId);
     void core.members.load(organizationId);
   }, [core, organizationId]);
+
+  // Only an owner may read the invitations, so asking before the members list
+  // says who this user is would be a request the server refuses.
+  useEffect(() => {
+    if (!manages) return;
+    void core.invitations.load(organizationId);
+  }, [core, organizationId, manages]);
 
   const form = (
     <CreateForm
@@ -140,6 +150,12 @@ export function OrganizationPage({
       </Section>
 
       <MembersSection core={core} organizationId={organizationId} />
+
+      {/* Inviting is an owner's action, and a section offering what the server
+          would refuse is worse than no section. */}
+      {manages ? (
+        <InvitationsSection core={core} organizationId={organizationId} />
+      ) : null}
     </section>
   );
 }

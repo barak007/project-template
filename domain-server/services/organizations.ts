@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { Database } from "../db/client.js";
 import {
@@ -77,6 +77,11 @@ export async function getOrganization(
   return organization;
 }
 
+/**
+ * Who is in the organization. Readable by everyone in it: membership is the
+ * only access control the product has, so "who else can see this" is not an
+ * administrator's secret — changing a role still needs `organization:manage`.
+ */
 export async function listMemberships(
   db: Database,
   userId: string,
@@ -86,7 +91,7 @@ export async function listMemberships(
     db,
     userId,
     organizationId,
-    "organization:manage",
+    "organization:read",
   );
   return db
     .select()
@@ -94,7 +99,12 @@ export async function listMemberships(
     .where(eq(organizationMembers.organizationId, organizationId));
 }
 
-export async function putMembership(
+/**
+ * Changes what an existing member may do. It cannot add one: joining an
+ * organization is an invitation the invited person accepts (services/invitations.ts),
+ * so an unknown user id here is a `404` rather than a new membership.
+ */
+export async function changeMemberRole(
   db: Database,
   actorUserId: string,
   organizationId: string,
@@ -107,14 +117,20 @@ export async function putMembership(
     "organization:manage",
   );
   const [membership] = await db
-    .insert(organizationMembers)
-    .values({ organizationId, ...input })
-    .onConflictDoUpdate({
-      target: [organizationMembers.organizationId, organizationMembers.userId],
-      set: { role: input.role },
-    })
+    .update(organizationMembers)
+    .set({ role: input.role })
+    .where(
+      and(
+        eq(organizationMembers.organizationId, organizationId),
+        eq(organizationMembers.userId, input.userId),
+      ),
+    )
     .returning();
   if (!membership)
-    throw new AppError("INTERNAL_ERROR", "Could not save membership", 500);
+    throw new AppError(
+      "NOT_FOUND",
+      "That person is not a member of this organization",
+      404,
+    );
   return membership;
 }

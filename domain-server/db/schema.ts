@@ -88,6 +88,15 @@ export const verification = pgTable(
 );
 
 export const memberRole = pgEnum("member_role", ["owner", "admin", "member"]);
+export const invitationStatus = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "revoked",
+]);
+export const userMessageKind = pgEnum("user_message_kind", [
+  "organization-invitation",
+]);
 export const sourceKind = pgEnum("source_kind", ["git", "database", "other"]);
 export const workSessionStatus = pgEnum("work_session_status", [
   "pending",
@@ -119,6 +128,74 @@ export const organizationMembers = pgTable(
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
     index("organization_members_user_idx").on(table.userId),
+  ],
+);
+
+/**
+ * An offer of membership, addressed to an email rather than to a user: nobody
+ * has to have an account for an invitation to exist. It is also the only way
+ * into an organization — a membership row is written when the invited person
+ * accepts, never by whoever invited them, so access always follows consent.
+ */
+export const organizationInvitations = pgTable(
+  "organization_invitations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    /** Stored lower-cased: an invitation is matched against an address, not a user. */
+    email: text("email").notNull(),
+    role: memberRole("role").notNull(),
+    invitedByUserId: text("invited_by_user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: invitationStatus("status").default("pending").notNull(),
+    respondedAt: timestamp("responded_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (table) => [
+    // One live offer per address per organization; a declined one may be resent.
+    uniqueIndex("organization_invitations_pending_unique")
+      .on(table.organizationId, table.email)
+      .where(sql`${table.status} = 'pending'`),
+    index("organization_invitations_email_idx").on(table.email),
+  ],
+);
+
+/**
+ * The signed-in user's inbox: one row per thing addressed to them personally
+ * rather than to an organization they are in. A message carries no text — what
+ * it says is rendered from the thing it points at, so nothing has to be
+ * rewritten in the database when the wording changes.
+ *
+ * An invitation sent before its recipient had an account has no row here; it
+ * gets one the first time that person reads their inbox (services/user-messages.ts).
+ */
+export const userMessages = pgTable(
+  "user_messages",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: userMessageKind("kind").notNull(),
+    invitationId: uuid("invitation_id").references(
+      () => organizationInvitations.id,
+      { onDelete: "cascade" },
+    ),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("user_messages_user_idx").on(table.userId),
+    // Delivering the same invitation twice is a duplicate, not a second message.
+    uniqueIndex("user_messages_invitation_unique").on(
+      table.userId,
+      table.invitationId,
+    ),
   ],
 );
 
@@ -322,6 +399,7 @@ export const workSessions = pgTable(
 export const schema = {
   account,
   organizationData,
+  organizationInvitations,
   organizationMembers,
   organizationSecrets,
   organizations,
@@ -329,6 +407,7 @@ export const schema = {
   sources,
   user,
   userData,
+  userMessages,
   userSecrets,
   verification,
   workspaceSources,
@@ -337,6 +416,8 @@ export const schema = {
 };
 
 export type Organization = typeof organizations.$inferSelect;
+export type OrganizationInvitation =
+  typeof organizationInvitations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
 export type Source = typeof sources.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;

@@ -69,6 +69,11 @@ export function reduce(state: AppOwnState, event: AppEvent): AppOwnState {
       };
     case "repository-draft-changed":
       return { ...state, repositoryDraft: event.remote };
+    case "invite-draft-changed":
+      return {
+        ...state,
+        inviteDraft: { ...state.inviteDraft, ...event.draft },
+      };
     case "create-form-opened":
       return { ...state, openForm: event.form, confirming: null };
     case "create-form-closed":

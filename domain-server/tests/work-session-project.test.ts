@@ -9,6 +9,7 @@ import {
   createTestApp,
   createTestDatabase,
   createTestUser,
+  joinOrganization,
   jsonBody,
 } from "./helpers/harness.js";
 import { recordingProjectBuilder } from "./helpers/project-builder.js";
@@ -49,14 +50,7 @@ beforeAll(async () => {
 
   organizationId = await createOrganization(owner, "Acme Projects");
   otherOrganizationId = await createOrganization(outsider, "Elsewhere");
-  const membership = await app.request(
-    `/api/organizations/${organizationId}/members`,
-    asUser(owner, {
-      ...jsonBody({ userId: member, role: "member" }),
-      method: "PUT",
-    }),
-  );
-  expect(membership.status).toBe(200);
+  await joinOrganization(db, organizationId, member, "member");
 
   const workspace = await app.request(
     `/api/organizations/${organizationId}/workspaces`,

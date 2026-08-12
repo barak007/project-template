@@ -8,7 +8,9 @@ Persistence is defined in [domain-server/db/schema.ts](../src/db/schema.ts) and 
 
 - **Organization** — a group of users that owns sources, workspaces, and work sessions. Every organization-owned record carries an `organizationId`.
 - **User** — an individual who can belong to many organizations. Users also own personal secrets and data that exist outside any organization.
-- **OrganizationMember** — the membership record joining a user to an organization with one role: `owner`, `admin`, or `member`.
+- **OrganizationMember** — the membership record joining a user to an organization with one role: `owner`, `admin`, or `member`. It is never written directly: it is created when an invited person accepts their invitation, and afterwards only its role can change.
+- **OrganizationInvitation** — an offer of membership addressed to an **email address**, with the role offered and a status (`pending`, `accepted`, `declined`, `revoked`). The address does not need an account. At most one `pending` invitation per address per organization; re-inviting changes the role offered rather than adding a second. Sending one is `organization:manage`; answering one is neither — it belongs to whoever is signed in as that address.
+- **UserMessage** — the delivery record putting something in a user's inbox, today only an invitation. It holds no text: what it says is rendered from the invitation it points at. An invitation written before its recipient had an account gets its message the first time that person reads their inbox.
 - **Source** — a definition of a git repository, database, or other external data source (`kind`: `git` | `database` | `other`) plus a JSON `config`. Names are unique within an organization. A `git` source is a remote URL: its `config` is validated as `{ remote, ref? }`, nothing has to exist on any machine for one to be defined, and adding the same remote twice returns the source that already exists. The product calls these **repositories**; the word "source" never reaches the UI.
 - **Workspace** — a named set of sources within an organization, used as the template for a work session. Names are unique within an organization. Every referenced source must belong to the same organization. A workspace also owns **one git project** holding its git sources as submodules (`projectLocation`, null until the first session builds it); every session is a clone of it.
 - **WorkSession** — the result of materializing a workspace. Created by copying the workspace's sources and the caller's resolved secrets and data into an immutable snapshot, then materializing asynchronously into a **clone of the workspace's git project**. `projectLocation` records where that clone lives and `projectBranch` which branch it and its submodules are on; both are null until the session is `ready`. `progress` is an append-only trail of what the worker did, written as it happens.
@@ -36,6 +38,8 @@ Rules that hold across the domain:
 - A resource id belonging to another organization behaves as if it does not exist.
 - Creating an organization requires authentication but no existing membership; the organization and its creator's `owner` membership are created atomically.
 - A user's own secrets and data are governed by ownership, not membership — they are reachable only by that user.
+- Nobody is added to an organization by anyone else. `organization:manage` may invite an address and revoke an invitation; the membership appears only when the invited person accepts, and an invitation is answerable only by whoever is signed in as the address it names — anyone else gets `404`, not `403`.
+- Mail leaves through the `Mailer` boundary ([domain-server/mail/mailer.ts](../domain-server/mail/mailer.ts)). With no provider configured the default implementation logs the invitation instead of sending it; the invitation still exists and is still answerable in the app, so an installation without mail is not a broken one.
 
 ## Work session lifecycle
 

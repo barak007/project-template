@@ -5,6 +5,8 @@ import {
   createUserDataActions,
 } from "./data-actions.js";
 import type { Host } from "./host.js";
+import { createInboxActions } from "./inbox-actions.js";
+import { createInvitationActions } from "./invitation-actions.js";
 import { createMemberActions } from "./member-actions.js";
 import { createOrganizationActions } from "./organization-actions.js";
 import { createProjectFileActions } from "./project-file-actions.js";
@@ -23,6 +25,9 @@ import { createWorkspaceActions } from "./workspace-actions.js";
 export { ApiError } from "./errors.js";
 export type {
   DataEntry,
+  Invitation,
+  InvitationDecision,
+  InvitationInput,
   Membership,
   Organization,
   ProjectEntry,
@@ -30,6 +35,7 @@ export type {
   RepositoryInput,
   Secret,
   Source,
+  UserMessage,
   WorkSession,
   Workspace,
 } from "./api.js";
@@ -55,6 +61,8 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     auth: createAuthActions(dependencies.baseUrl, dependencies.host, store),
     organizations: createOrganizationActions(api, store),
     members: createMemberActions(api, store),
+    invitations: createInvitationActions(api, store),
+    inbox: createInboxActions(api, store),
     repositories: createRepositoryActions(api, store),
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),

@@ -6,6 +6,7 @@ import { silentLogger } from "../../../domain-server/logging.js";
 import {
   createTestDatabase,
   recordingJobs,
+  recordingMailer,
   testCipher,
 } from "../../../domain-server/tests/helpers/harness.js";
 import { recordingProjectBuilder } from "../../../domain-server/tests/helpers/project-builder.js";
@@ -44,6 +45,9 @@ export async function createWorldApp(baseUrl: string): Promise<WorldApp> {
     auth: createAuth(db, environment),
     cipher: testCipher,
     jobs: recordingJobs().jobs,
+    // Stories exercise the in-app half of an invitation; whether mail left the
+    // building is the server's own test (tests/invitation-routes.test.ts).
+    mailer: recordingMailer().mailer,
     projectBuilder: recordingProjectBuilder().projectBuilder,
     projectFiles: createLocalProjectFiles(),
     log: silentLogger,

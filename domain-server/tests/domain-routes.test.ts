@@ -9,6 +9,7 @@ import {
   createTestApp,
   createTestDatabase,
   createTestUser,
+  joinOrganization,
   jsonBody,
   testCipher,
 } from "./helpers/harness.js";
@@ -44,13 +45,8 @@ beforeAll(async () => {
   for (const [userId, role] of [
     [admin, "admin"],
     [member, "member"],
-  ] as const) {
-    const response = await app.request(
-      `/api/organizations/${organizationId}/members`,
-      asUser(owner, { ...jsonBody({ userId, role }), method: "PUT" }),
-    );
-    expect(response.status).toBe(200);
-  }
+  ] as const)
+    await joinOrganization(db, organizationId, userId, role);
 });
 
 afterAll(async () => {
@@ -104,19 +100,46 @@ describe("organizations", () => {
 });
 
 describe("memberships", () => {
-  it("restricts membership management to owners", async () => {
-    const denied = await app.request(
-      `/api/organizations/${organizationId}/members`,
-      asUser(admin),
-    );
-    expect(denied.status).toBe(403);
-
+  it("lets any member read the roster and outsiders read nothing", async () => {
+    // Who else can see this is not an administrator's secret: membership is the
+    // only access control there is.
     const listed = await app.request(
       `/api/organizations/${organizationId}/members`,
-      asUser(owner),
+      asUser(member),
     );
     expect(listed.status).toBe(200);
     expect(await json(listed)).toHaveLength(3);
+
+    const denied = await app.request(
+      `/api/organizations/${organizationId}/members`,
+      asUser(outsider),
+    );
+    expect(denied.status).toBe(403);
+  });
+
+  it("restricts changing a role to owners", async () => {
+    const denied = await app.request(
+      `/api/organizations/${organizationId}/members`,
+      asUser(admin, {
+        ...jsonBody({ userId: member, role: "admin" }),
+        method: "PUT",
+      }),
+    );
+    expect(denied.status).toBe(403);
+  });
+
+  it("cannot add a member: joining is an invitation, accepted", async () => {
+    const response = await app.request(
+      `/api/organizations/${organizationId}/members`,
+      asUser(owner, {
+        ...jsonBody({ userId: outsider, role: "member" }),
+        method: "PUT",
+      }),
+    );
+    expect(response.status).toBe(404);
+    expect(await json(response)).toMatchObject({
+      error: { code: "NOT_FOUND" },
+    });
   });
 
   it("updates an existing membership in place", async () => {
@@ -145,7 +168,7 @@ describe("memberships", () => {
     expect(response.status).toBe(400);
   });
 
-  it("maps foreign-key violations to a conflict", async () => {
+  it("reports an unknown user as a missing membership", async () => {
     const response = await app.request(
       `/api/organizations/${organizationId}/members`,
       asUser(owner, {
@@ -153,8 +176,7 @@ describe("memberships", () => {
         method: "PUT",
       }),
     );
-    expect(response.status).toBe(409);
-    expect(await json(response)).toMatchObject({ error: { code: "CONFLICT" } });
+    expect(response.status).toBe(404);
   });
 });
 

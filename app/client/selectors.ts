@@ -69,6 +69,20 @@ export function currentWorkSession(state: AppState): WorkSession | undefined {
 }
 
 /**
+ * Whether the signed-in user administers this organization — the only role the
+ * server lets manage members and invitations. Read from the members list rather
+ * than assumed, so a page offers what the API will actually allow: false until
+ * that list has loaded, which is the safe way round.
+ */
+export function managesOrganization(state: AppState): boolean {
+  if (state.auth.status !== "authenticated") return false;
+  const { id } = state.auth.user;
+  return state.members.some(
+    (member) => member.userId === id && member.role === "owner",
+  );
+}
+
+/**
  * Whether a collection has been read yet. A page that skips this shows "nothing
  * here yet" for as long as the first request takes, which is the wrong answer
  * for every account that has something.

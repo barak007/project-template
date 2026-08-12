@@ -1,4 +1,4 @@
-import type { ClientState } from "../../domain-client/index.js";
+import type { ClientState, Membership } from "../../domain-client/index.js";
 
 import { defaultRoute } from "./router.js";
 import type { Route } from "./router.js";
@@ -6,6 +6,8 @@ import type { Route } from "./router.js";
 export type CredentialsDraft = { email: string; password: string };
 export type SignUpDraft = CredentialsDraft & { name: string };
 export type NameDraft = { name: string };
+/** Who to invite, and as what. An invitation is addressed to an email. */
+export type InviteDraft = { email: string; role: Membership["role"] };
 export type AppError = { code: string; message: string };
 
 /**
@@ -13,7 +15,8 @@ export type AppError = { code: string; message: string };
  * permanently on the page: it is either the whole of an empty list's empty
  * state, or one disclosure behind the page's primary button.
  */
-export type CreateForm = "organization" | "workspace" | "repository";
+export type CreateForm =
+  "organization" | "workspace" | "repository" | "invitation";
 
 /**
  * What the app owns on top of the client core's state: where the user is,
@@ -33,6 +36,8 @@ export type AppOwnState = {
   workspaceDraft: NameDraft;
   /** The repository URL being typed on the workspace page. */
   repositoryDraft: string;
+  /** The address being invited on the organization page. */
+  inviteDraft: InviteDraft;
   /**
    * Which collections have finished loading at least once, by key. An empty
    * list and a list nobody has asked for are the same value — without this the
@@ -58,6 +63,7 @@ export type AppOwnState = {
 export type AppState = ClientState & AppOwnState;
 
 export const emptySignInDraft: CredentialsDraft = { email: "", password: "" };
+export const emptyInviteDraft: InviteDraft = { email: "", role: "member" };
 export const emptySignUpDraft: SignUpDraft = {
   name: "",
   email: "",
@@ -72,6 +78,7 @@ export const initialAppOwnState: AppOwnState = {
   organizationDraft: { name: "" },
   workspaceDraft: { name: "" },
   repositoryDraft: "",
+  inviteDraft: emptyInviteDraft,
   loaded: [],
   pending: [],
   confirming: null,

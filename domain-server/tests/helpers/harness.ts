@@ -12,6 +12,7 @@ import { createLocalProjectFiles } from "../../git/local-project-files.js";
 import type { AppBindings, RuntimeDependencies } from "../../http/context.js";
 import type { JobProducer } from "../../jobs/queue.js";
 import { silentLogger } from "../../logging.js";
+import type { InvitationEmail, Mailer } from "../../mail/mailer.js";
 
 import { recordingProjectBuilder } from "./project-builder.js";
 
@@ -36,6 +37,35 @@ export async function createTestUser(db: Database, id: string) {
     .insert(schema.user)
     .values({ id, name: `User ${id}`, email: `${id}@example.test` });
   return id;
+}
+
+/** A mailer that keeps what it was asked to send instead of sending it. */
+export function recordingMailer() {
+  const sent: InvitationEmail[] = [];
+  const mailer: Mailer = {
+    sendInvitation: (invitation) => {
+      sent.push(invitation);
+      return Promise.resolve();
+    },
+  };
+  return { mailer, sent };
+}
+
+/**
+ * Puts a user in an organization directly. The product's way in is an
+ * invitation the invited person accepts — covered in invitation-routes.test.ts
+ * — so a test about anything else states the membership it needs instead of
+ * playing out that exchange first.
+ */
+export async function joinOrganization(
+  db: Database,
+  organizationId: string,
+  userId: string,
+  role: "owner" | "admin" | "member",
+) {
+  await db
+    .insert(schema.organizationMembers)
+    .values({ organizationId, userId, role });
 }
 
 export function recordingJobs() {
@@ -84,6 +114,7 @@ export function createTestApp(
   overrides: Partial<RuntimeDependencies> = {},
 ) {
   const { jobs, enqueued } = recordingJobs();
+  const { mailer, sent } = recordingMailer();
   const reported: unknown[] = [];
   const dependencies: RuntimeDependencies = {
     db,
@@ -98,6 +129,7 @@ export function createTestApp(
     } as unknown as RuntimeDependencies["auth"],
     cipher: testCipher,
     jobs,
+    mailer,
     projectBuilder: recordingProjectBuilder().projectBuilder,
     // Real: reading files is the filesystem, and a stub of it would test
     // nothing. Tests that browse a project point a session at a temp directory.
@@ -109,7 +141,7 @@ export function createTestApp(
     ready: () => Promise.resolve(),
     ...overrides,
   };
-  return { app: createApp(dependencies), enqueued, reported };
+  return { app: createApp(dependencies), enqueued, reported, sentMail: sent };
 }
 
 export function asUser(userId: string, init: RequestInit = {}): RequestInit {

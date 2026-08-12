@@ -6,6 +6,7 @@ import type { AppCore } from "../client/index.js";
 import { CreateForm } from "./create-form.js";
 import { EntityIcon } from "./entity-icon.js";
 import { ErrorBanner } from "./error-banner.js";
+import { InboxSection } from "./inbox-section.js";
 import { PageHeader } from "./page-header.js";
 import { RouteLink } from "./route-link.js";
 import { Skeleton } from "./skeleton.js";
@@ -28,6 +29,9 @@ export function DashboardPage({ core }: { core: AppCore }) {
 
   useEffect(() => {
     void core.organizations.load();
+    // An invitation arrives from an organization the user cannot see yet, so
+    // the dashboard is where it has to surface — nowhere else would.
+    void core.inbox.load();
   }, [core]);
 
   const form = (
@@ -72,6 +76,8 @@ export function DashboardPage({ core }: { core: AppCore }) {
         }
       />
       <ErrorBanner core={core} />
+
+      <InboxSection core={core} />
 
       {creating && organizations.length > 0 ? form : null}
 

@@ -17,6 +17,8 @@ touch [state](../state.md) directly.
 | [auth](./auth.md)                   | —            | `loadSession`, `signUp`, `signIn`, `signOut`     |
 | [organizations](./organizations.md) | user         | `load`, `create`                                 |
 | [members](./members.md)             | organization | `load`, `put`                                    |
+| [invitations](./invitations.md)     | organization | `load`, `invite`, `revoke`                       |
+| [inbox](./inbox.md)                 | user         | `load`, `respond`                                |
 | [repositories](./repositories.md)   | organization | `add`                                            |
 | [sources](./sources.md)             | organization | `load`, `create`, `update`, `delete`             |
 | [workspaces](./workspaces.md)       | organization | `load`, `create`, `update`, `delete`             |
@@ -36,3 +38,5 @@ touch [state](../state.md) directly.
 - Failures follow the [error contract](../errors.md).
 - Authorization is the server's: owners manage everything, admins manage
   resources and secrets, members read (see [members](./members.md)).
+- Joining an organization is an [invitation](./invitations.md) its recipient
+  accepts from their [inbox](./inbox.md) — no action adds a member outright.

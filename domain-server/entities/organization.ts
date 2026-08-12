@@ -15,6 +15,7 @@ export const membershipResponseSchema = z.object({
   role: memberRoleSchema,
   createdAt: z.coerce.date(),
 });
+/** A role change for someone already in the organization; see invitation.ts to add one. */
 export const membershipInputSchema = z.object({
   userId: z.string().min(1),
   role: memberRoleSchema,

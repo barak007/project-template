@@ -24,7 +24,11 @@ Recorded explicitly so they can be overturned before implementation:
    organization-visible by default; it can be restricted to specific teams and
    users.
 3. **Sources and secrets stay organization-scoped.** Teams do not own sources.
-4. **Invitations are out of scope.** Members are still added by user id.
+4. **Invitations already exist and stay as they are.** Joining an organization
+   is an invitation to an email address that its recipient accepts
+   ([domain-server/services/invitations.ts](../domain-server/services/invitations.ts));
+   `organization:manage` covers sending and revoking them. Teams inherit that:
+   no team grant may add someone to the organization.
 5. **Grants are additive.** There is no deny rule and no per-resource
    revocation of an organization role.
 
@@ -57,9 +61,13 @@ Govern the organization itself and its organization-scoped resources.
 | `secret:manage`       |   ✓   |   ✓   |        |
 | `workspace:create`    |   ✓   |   ✓   |   ✓    |
 
-`organization:manage` covers renaming the organization and changing member
-roles. `team:manage` covers creating, renaming, and deleting teams and editing
-their rosters.
+`organization:manage` covers renaming the organization, changing member roles,
+and inviting or revoking invitations. It does **not** cover adding a member
+outright: no role can, because a membership is only ever written by the invited
+person accepting.
+
+`team:manage` covers creating, renaming, and deleting teams and editing their
+rosters.
 
 The existing `resource:read` / `resource:write` pair splits into `source:*` and
 the workspace roles below. `member` gains `workspace:create` — a member may
@@ -136,8 +144,9 @@ Consequences worth stating plainly:
 
 1. **Every organization always has at least one owner.** Demoting or removing
    the last owner fails with `VALIDATION_FAILED`. This closes an existing gap:
-   `putMembership` today lets an owner demote themselves to `member` and orphan
-   the organization.
+   `changeMemberRole` today lets an owner demote themselves to `member` and
+   orphan the organization (the app's own UI refuses to, which is not the same
+   as the API refusing to).
 2. **Grant subjects must belong to the organization.** A team grant requires the
    team to be in the workspace's organization; a user grant requires an
    `organizationMembers` row. Removing someone from the organization removes

@@ -83,12 +83,21 @@ membership in the domain ([domain.md](./domain.md)), so the workspace page state
 that access follows the organization and links to the list, rather than offering
 a second one to manage.
 
-Two things the API does not have yet, which is why the UI does not pretend to:
+Nobody is added to that list directly. Joining is an **invitation**: an owner
+invites an email address from the organization page
+([invitations-section.tsx](../app/ui/invitations-section.tsx)), the invited
+person finds it on their dashboard
+([inbox-section.tsx](../app/ui/inbox-section.tsx)), and accepting is what writes
+the membership. So `core.members` only ever changes an existing member's role —
+see [invitations](client/actions/invitations.md) and [inbox](client/actions/inbox.md).
 
-- A membership is `{ userId, role }` with **no name or email**, so a row can name
-  a role but not a person.
-- `members.put` takes a `userId`, so someone can be given a role but **cannot be
-  invited by address**. That needs an invitation the server does not model.
+- The address does not have to have an account. An invitation to a stranger
+  waits, and is in their inbox the first time they sign in.
+- Only an owner may invite, list or revoke, so the page reads
+  `managesOrganization(state)` off the members list and shows the section only
+  then: a section offering what the server would refuse is worse than no section.
+- A membership is still `{ userId, role }` with **no name or email**, so a member
+  row can name a role but not a person. That needs the API to grow.
 
 ## Repositories
 

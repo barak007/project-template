@@ -4,6 +4,11 @@ import { z } from "zod";
 
 import { idSchema, keySchema } from "../entities/common.js";
 import {
+  invitationCreateSchema,
+  invitationDecisionSchema,
+  invitationResponseSchema,
+} from "../entities/invitation.js";
+import {
   membershipInputSchema,
   membershipResponseSchema,
   organizationCreateSchema,
@@ -16,6 +21,7 @@ import {
 } from "../entities/project.js";
 import { repositoryInputSchema } from "../entities/repository.js";
 import { sourceInputSchema, sourceResponseSchema } from "../entities/source.js";
+import { userMessageResponseSchema } from "../entities/user-message.js";
 import {
   dataInputSchema,
   dataResponseSchema,
@@ -35,11 +41,17 @@ import { requireAuthentication } from "../http/auth-middleware.js";
 import type { AppBindings, RuntimeDependencies } from "../http/context.js";
 import { validationHook } from "../http/validation.js";
 import {
+  inviteMember,
+  listInvitations,
+  respondToInvitation,
+  revokeInvitation,
+} from "../services/invitations.js";
+import {
+  changeMemberRole,
   createOrganization,
   getOrganization,
   listMemberships,
   listOrganizations,
-  putMembership,
 } from "../services/organizations.js";
 import {
   listWorkspaceProjectDirectory,
@@ -54,6 +66,7 @@ import {
   listSources,
   updateSource,
 } from "../services/sources.js";
+import { listUserMessages } from "../services/user-messages.js";
 import {
   deleteOrganizationSecret,
   deleteUserSecret,
@@ -86,7 +99,9 @@ const workSessionParams = organizationParams.extend({
   workSessionId: idSchema,
 });
 const secretParams = organizationParams.extend({ key: keySchema });
+const invitationParams = organizationParams.extend({ invitationId: idSchema });
 const userKeyParams = z.object({ key: keySchema });
+const userInvitationParams = z.object({ invitationId: idSchema });
 
 export function createDomainRoutes(dependencies: RuntimeDependencies) {
   const routes = new Hono<AppBindings>();
@@ -148,13 +163,59 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
         zValidator("param", organizationParams, validationHook),
         zValidator("json", membershipInputSchema, validationHook),
         async (context) => {
-          const result = await putMembership(
+          const result = await changeMemberRole(
             dependencies.db,
             context.get("user").id,
             context.req.valid("param").organizationId,
             context.req.valid("json"),
           );
           return context.json(membershipResponseSchema.parse(result), 200);
+        },
+      )
+      // Joining is an invitation to an address, answered by whoever owns it —
+      // see /me/invitations below for the other half of the exchange.
+      .get(
+        "/organizations/:organizationId/invitations",
+        zValidator("param", organizationParams, validationHook),
+        async (context) => {
+          const result = await listInvitations(
+            dependencies.db,
+            context.get("user").id,
+            context.req.valid("param").organizationId,
+          );
+          return context.json(
+            z.array(invitationResponseSchema).parse(result),
+            200,
+          );
+        },
+      )
+      .post(
+        "/organizations/:organizationId/invitations",
+        zValidator("param", organizationParams, validationHook),
+        zValidator("json", invitationCreateSchema, validationHook),
+        async (context) => {
+          const result = await inviteMember(
+            dependencies.db,
+            dependencies.mailer,
+            context.get("user").id,
+            context.req.valid("param").organizationId,
+            context.req.valid("json"),
+          );
+          return context.json(invitationResponseSchema.parse(result), 201);
+        },
+      )
+      .delete(
+        "/organizations/:organizationId/invitations/:invitationId",
+        zValidator("param", invitationParams, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await revokeInvitation(
+            dependencies.db,
+            context.get("user").id,
+            params.organizationId,
+            params.invitationId,
+          );
+          return context.json(invitationResponseSchema.parse(result), 200);
         },
       )
       .post(
@@ -491,6 +552,35 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
             context.req.valid("json").branch,
           );
           return context.json(workSessionResponseSchema.parse(result), 200);
+        },
+      )
+      // The invited person's side: what is waiting for them, and their answer.
+      // Keyed by their identity and address, so no invitation token travels
+      // anywhere and a forwarded invitation is unusable by anyone else.
+      .get("/me/messages", async (context) => {
+        const user = context.get("user");
+        const result = await listUserMessages(dependencies.db, {
+          id: user.id,
+          email: user.email,
+        });
+        return context.json(
+          z.array(userMessageResponseSchema).parse(result),
+          200,
+        );
+      })
+      .post(
+        "/me/invitations/:invitationId/response",
+        zValidator("param", userInvitationParams, validationHook),
+        zValidator("json", invitationDecisionSchema, validationHook),
+        async (context) => {
+          const user = context.get("user");
+          const result = await respondToInvitation(
+            dependencies.db,
+            { id: user.id, email: user.email },
+            context.req.valid("param").invitationId,
+            context.req.valid("json").decision,
+          );
+          return context.json(invitationResponseSchema.parse(result), 200);
         },
       )
       .get("/me/secrets", async (context) => {

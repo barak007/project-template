@@ -1,11 +1,13 @@
 import type {
   DataEntry,
+  Invitation,
   Membership,
   Organization,
   ProjectEntry,
   ProjectFile,
   Secret,
   Source,
+  UserMessage,
   WorkSession,
   Workspace,
 } from "./api.js";
@@ -45,6 +47,8 @@ export type ProjectFilesState = {
 export type OrganizationSlices = {
   currentOrganizationId: string | null;
   members: Membership[];
+  /** Offers of membership, in every state they have ever reached. */
+  invitations: Invitation[];
   /** Repositories are `git` sources; there is no separate collection. */
   sources: Source[];
   workspaces: Workspace[];
@@ -63,6 +67,12 @@ export const emptyProjectFiles: ProjectFilesState = {
 export type ClientState = OrganizationSlices & {
   auth: AuthState;
   organizations: Organization[];
+  /**
+   * What is waiting for this user personally — today, invitations to
+   * organizations they cannot see yet. Identity-scoped, so switching
+   * organizations does not clear it.
+   */
+  inbox: UserMessage[];
   userSecrets: Secret[];
   userData: DataEntry[];
 };
@@ -70,6 +80,7 @@ export type ClientState = OrganizationSlices & {
 export const emptyOrganizationSlices: OrganizationSlices = {
   currentOrganizationId: null,
   members: [],
+  invitations: [],
   sources: [],
   workspaces: [],
   workSessions: [],
@@ -82,6 +93,7 @@ export const initialState: ClientState = {
   ...emptyOrganizationSlices,
   auth: { status: "anonymous" },
   organizations: [],
+  inbox: [],
   userSecrets: [],
   userData: [],
 };

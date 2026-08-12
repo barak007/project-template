@@ -7,6 +7,7 @@ import {
   createTestApp,
   createTestDatabase,
   createTestUser,
+  joinOrganization,
   jsonBody,
 } from "./helpers/harness.js";
 
@@ -51,14 +52,7 @@ beforeAll(async () => {
 
   organizationId = await createOrganization(owner, "Acme Repositories");
   otherOrganizationId = await createOrganization(outsider, "Elsewhere");
-  const membership = await app.request(
-    `/api/organizations/${organizationId}/members`,
-    asUser(owner, {
-      ...jsonBody({ userId: member, role: "member" }),
-      method: "PUT",
-    }),
-  );
-  expect(membership.status).toBe(200);
+  await joinOrganization(db, organizationId, member, "member");
 });
 
 afterAll(async () => {

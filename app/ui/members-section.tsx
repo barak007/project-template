@@ -13,9 +13,13 @@ const roles: Membership["role"][] = ["owner", "admin", "member"];
  * everything inside the organization — which is why this belongs on the
  * organization's page and nowhere else.
  *
+ * Nobody is added here: joining is an invitation the invited person accepts
+ * ([invitations-section.tsx](./invitations-section.tsx)), so this list only ever
+ * changes what an existing member's role is.
+ *
  * The server's membership is `{ userId, role }` and nothing more, so a row can
- * name a role but not a person: there is no name or email to show, and no way to
- * invite by address. Both need the API to grow, not this component.
+ * name a role but not a person: there is no name or email to show. That needs
+ * the API to grow, not this component.
  */
 export function MembersSection({
   core,

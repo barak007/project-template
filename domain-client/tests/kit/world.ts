@@ -1,5 +1,5 @@
 import { createClientCore } from "../../index.js";
-import type { ClientFetch } from "../../index.js";
+import type { ClientCore, ClientFetch } from "../../index.js";
 
 import { browserFetch } from "./browser-fetch.js";
 import { clientWorldMode, sharedBaseUrlVariable } from "./mode.js";
@@ -83,6 +83,33 @@ export async function createWorld() {
     return { ...persona, organization };
   };
 
+  /**
+   * Persona scenario: someone the founder invited, who accepted. This is the
+   * product's only way into an organization, so a story that needs a colleague
+   * plays the exchange out rather than asserting a membership into existence.
+   */
+  const invitedMember = async (
+    host: { core: ClientCore; organization: { id: string } },
+    role: "owner" | "admin" | "member" = "member",
+    name?: string,
+  ) => {
+    const guest = await signedUpUser(name);
+    await host.core.invitations.invite(host.organization.id, {
+      email: guest.credentials.email,
+      role,
+    });
+    await guest.core.inbox.load();
+    const waiting = guest.core
+      .getState()
+      .inbox.find(
+        (message) => message.invitation.organizationId === host.organization.id,
+      );
+    if (!waiting)
+      throw new Error(`No invitation reached ${guest.credentials.email}`);
+    await guest.core.inbox.respond(waiting.invitation.id, "accept");
+    return { ...guest, invitationId: waiting.invitation.id };
+  };
+
   return {
     baseUrl,
     request,
@@ -91,6 +118,7 @@ export async function createWorld() {
     uniqueEmail,
     signedUpUser,
     founder,
+    invitedMember,
     close,
   };
 }

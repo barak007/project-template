@@ -20,6 +20,7 @@ type ClientState = {
   // Slices scoped to the organization currently being worked on:
   currentOrganizationId: string | null;
   members: Membership[];
+  invitations: Invitation[]; // offers of membership, in every state they reached
   sources: Source[]; // repositories are the `kind: "git"` ones
 
   workspaces: Workspace[];
@@ -29,6 +30,7 @@ type ClientState = {
   organizationData: DataEntry[];
 
   // Scoped to the signed-in user, independent of any organization:
+  inbox: UserMessage[]; // what is addressed to them — today, invitations
   userSecrets: Secret[];
   userData: DataEntry[];
 };
