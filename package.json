@@ -45,7 +45,7 @@
     "zod": "latest"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite": "^0.5.5",
     "@eslint/js": "latest",
     "@types/node": "latest",
     "@types/react": "^19.2.18",
@@ -58,7 +58,7 @@
     "eslint-plugin-import-x": "latest",
     "prettier": "latest",
     "tsx": "latest",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest"
