@@ -10,6 +10,7 @@ import type {
   UserMessage,
   WorkSession,
   Workspace,
+  WorkspaceGrant,
 } from "./api.js";
 import type { AuthError, AuthUser, ProjectTarget } from "./state.js";
 
@@ -54,6 +55,25 @@ export type ClientEvent =
   | { type: "workspace-created"; organizationId: string; workspace: Workspace }
   | { type: "workspace-updated"; organizationId: string; workspace: Workspace }
   | { type: "workspace-deleted"; organizationId: string; workspaceId: string }
+  /** State holds the grants of one workspace at a time — the one last read. */
+  | {
+      type: "workspace-grants-loaded";
+      organizationId: string;
+      workspaceId: string;
+      grants: WorkspaceGrant[];
+    }
+  | {
+      type: "workspace-grant-put";
+      organizationId: string;
+      workspaceId: string;
+      grant: WorkspaceGrant;
+    }
+  | {
+      type: "workspace-grant-removed";
+      organizationId: string;
+      workspaceId: string;
+      userId: string;
+    }
   | {
       type: "work-sessions-loaded";
       organizationId: string;

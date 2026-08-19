@@ -6,7 +6,7 @@ import { workspaces, workSessions } from "../db/schema.js";
 import { AppError } from "../errors.js";
 import type { ProjectFiles } from "../git/project-files.js";
 
-import { requireOrganizationPermission } from "./policy.js";
+import { requireWorkspacePermission } from "./policy.js";
 
 /**
  * Reading a git project this organization owns — either a **workspace's**
@@ -14,8 +14,9 @@ import { requireOrganizationPermission } from "./policy.js";
  * **session's** clone of it. One module because the two differ only in which row
  * says where the project is; everything after that is the same read.
  *
- * Reads only, so `resource:read`: a member who may see a workspace may read the
- * code it works on.
+ * Reads only, so `workspace:read` in both cases — a session's files through the
+ * workspace it came from: whoever may see a workspace may read the code it works
+ * on, and whoever may not see it cannot reach its sessions either.
  */
 export async function listWorkspaceProjectDirectory(
   db: Database,
@@ -95,11 +96,12 @@ async function workspaceProject(
   organizationId: string,
   workspaceId: string,
 ): Promise<ProjectLocation> {
-  await requireOrganizationPermission(
+  await requireWorkspacePermission(
     db,
     userId,
     organizationId,
-    "resource:read",
+    workspaceId,
+    "workspace:read",
   );
   const [row] = await db
     .select({ projectLocation: workspaces.projectLocation })
@@ -131,14 +133,11 @@ async function sessionProject(
   organizationId: string,
   workSessionId: string,
 ): Promise<ProjectLocation> {
-  await requireOrganizationPermission(
-    db,
-    userId,
-    organizationId,
-    "resource:read",
-  );
   const [row] = await db
-    .select({ projectLocation: workSessions.projectLocation })
+    .select({
+      workspaceId: workSessions.workspaceId,
+      projectLocation: workSessions.projectLocation,
+    })
     .from(workSessions)
     .where(
       and(
@@ -148,6 +147,14 @@ async function sessionProject(
     )
     .limit(1);
   if (!row) throw new AppError("NOT_FOUND", "Work session not found", 404);
+  // The permission lives on the workspace the session was opened from.
+  await requireWorkspacePermission(
+    db,
+    userId,
+    organizationId,
+    row.workspaceId,
+    "workspace:read",
+  );
   if (!row.projectLocation)
     throw new AppError(
       "VALIDATION_FAILED",

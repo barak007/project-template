@@ -1,11 +1,21 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 import type { Database } from "../db/client.js";
-import { sources, workspaceSources, workspaces } from "../db/schema.js";
+import {
+  sources,
+  workspaceSources,
+  workspaces,
+  workspaceUserGrants,
+} from "../db/schema.js";
+import type { WorkspaceRole } from "../db/schema.js";
 import type { WorkspaceInput } from "../entities/workspace.js";
 import { AppError } from "../errors.js";
 
-import { requireOrganizationPermission } from "./policy.js";
+import {
+  requireOrganizationPermission,
+  requireWorkspacePermission,
+  resolveWorkspaceRoles,
+} from "./policy.js";
 
 async function validateSources(
   db: Database,
@@ -52,6 +62,11 @@ async function withSourceIds(
   }));
 }
 
+/**
+ * The workspaces of an organization that this user can see, each saying what
+ * they may do with it. A restricted one they hold no grant on is simply absent,
+ * rather than a row that errors when opened.
+ */
 export async function listWorkspaces(
   db: Database,
   userId: string,
@@ -61,14 +76,27 @@ export async function listWorkspaces(
     db,
     userId,
     organizationId,
-    "resource:read",
+    "organization:read",
   );
   const rows = await db
     .select()
     .from(workspaces)
     .where(eq(workspaces.organizationId, organizationId))
     .orderBy(desc(workspaces.createdAt));
-  return withSourceIds(db, rows);
+  const roles = await resolveWorkspaceRoles(
+    db,
+    userId,
+    organizationId,
+    rows.map((row) => row.id),
+  );
+  const withSources = await withSourceIds(
+    db,
+    rows.filter((row) => roles.has(row.id)),
+  );
+  return withSources.flatMap((row) => {
+    const yourRole = roles.get(row.id);
+    return yourRole === undefined ? [] : [{ ...row, yourRole }];
+  });
 }
 
 export async function createWorkspace(
@@ -81,7 +109,7 @@ export async function createWorkspace(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "workspace:create",
   );
   await validateSources(db, organizationId, input.sourceIds);
   return db.transaction(async (transaction) => {
@@ -91,6 +119,11 @@ export async function createWorkspace(
       .returning();
     if (!workspace)
       throw new AppError("INTERNAL_ERROR", "Could not create workspace", 500);
+    // Whoever made it manages it. Without this a member could create a
+    // workspace and then be unable to touch it, which is no gift at all.
+    await transaction
+      .insert(workspaceUserGrants)
+      .values({ workspaceId: workspace.id, userId, role: "manager" });
     if (input.sourceIds.length > 0)
       await transaction.insert(workspaceSources).values(
         input.sourceIds.map((sourceId) => ({
@@ -98,7 +131,12 @@ export async function createWorkspace(
           sourceId,
         })),
       );
-    return { ...workspace, sourceIds: input.sourceIds };
+    // The creator manages it, which is the grant just written.
+    return {
+      ...workspace,
+      sourceIds: input.sourceIds,
+      yourRole: "manager" as WorkspaceRole,
+    };
   });
 }
 
@@ -109,11 +147,12 @@ export async function updateWorkspace(
   workspaceId: string,
   input: WorkspaceInput,
 ) {
-  await requireOrganizationPermission(
+  const yourRole = await requireWorkspacePermission(
     db,
     userId,
     organizationId,
-    "resource:write",
+    workspaceId,
+    "workspace:write",
   );
   await validateSources(db, organizationId, input.sourceIds);
   return db.transaction(async (transaction) => {
@@ -135,7 +174,7 @@ export async function updateWorkspace(
       await transaction
         .insert(workspaceSources)
         .values(input.sourceIds.map((sourceId) => ({ workspaceId, sourceId })));
-    return { ...workspace, sourceIds: input.sourceIds };
+    return { ...workspace, sourceIds: input.sourceIds, yourRole };
   });
 }
 
@@ -145,11 +184,12 @@ export async function deleteWorkspace(
   organizationId: string,
   workspaceId: string,
 ) {
-  await requireOrganizationPermission(
+  await requireWorkspacePermission(
     db,
     userId,
     organizationId,
-    "resource:write",
+    workspaceId,
+    "workspace:manage",
   );
   const [workspace] = await db
     .delete(workspaces)

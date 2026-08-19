@@ -4,7 +4,12 @@ import {
   emptyProjectFiles,
   initialState,
 } from "./state.js";
-import type { ClientState, ProjectFilesState, ProjectTarget } from "./state.js";
+import type {
+  ClientState,
+  ProjectFilesState,
+  ProjectTarget,
+  WorkspaceAccessState,
+} from "./state.js";
 import type { Store } from "./store.js";
 
 /** The store every action module dispatches into. */
@@ -45,6 +50,20 @@ function forProject(
   return current?.kind === target.kind && current.id === target.id
     ? state.projectFiles
     : { ...emptyProjectFiles, target };
+}
+
+/**
+ * The grants of the workspace an event is about. Like the browsed file tree,
+ * state holds one workspace's worth: a fact about another one starts from
+ * nothing rather than mixing two workspaces' access together.
+ */
+function forWorkspace(
+  state: ClientState,
+  workspaceId: string,
+): WorkspaceAccessState {
+  return state.workspaceGrants.workspaceId === workspaceId
+    ? state.workspaceGrants
+    : { workspaceId, grants: [] };
 }
 
 /** State shows one organization at a time; another organization's event resets the scoped slices. */
@@ -148,6 +167,41 @@ export function reduce(previous: ClientState, event: ClientEvent): ClientState {
         ...state,
         workspaces: removeById(state.workspaces, event.workspaceId),
       };
+    case "workspace-grants-loaded":
+      return {
+        ...state,
+        workspaceGrants: {
+          workspaceId: event.workspaceId,
+          grants: event.grants,
+        },
+      };
+    case "workspace-grant-put": {
+      const access = forWorkspace(state, event.workspaceId);
+      return {
+        ...state,
+        workspaceGrants: {
+          ...access,
+          grants: [
+            ...access.grants.filter(
+              (existing) => existing.userId !== event.grant.userId,
+            ),
+            event.grant,
+          ],
+        },
+      };
+    }
+    case "workspace-grant-removed": {
+      const access = forWorkspace(state, event.workspaceId);
+      return {
+        ...state,
+        workspaceGrants: {
+          ...access,
+          grants: access.grants.filter(
+            (existing) => existing.userId !== event.userId,
+          ),
+        },
+      };
+    }
     case "work-sessions-loaded":
       return { ...state, workSessions: event.workSessions };
     case "work-session-started":

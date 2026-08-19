@@ -3,6 +3,7 @@ import type {
   AppError,
   CreateForm,
   CredentialsDraft,
+  GrantDraft,
   InviteDraft,
   NameDraft,
   SignUpDraft,
@@ -22,6 +23,7 @@ export type AppEvent =
   | { type: "workspace-draft-changed"; draft: Partial<NameDraft> }
   | { type: "repository-draft-changed"; remote: string }
   | { type: "invite-draft-changed"; draft: Partial<InviteDraft> }
+  | { type: "grant-draft-changed"; draft: Partial<GrantDraft> }
   | { type: "create-form-opened"; form: CreateForm }
   | { type: "create-form-closed" }
   | { type: "confirmation-asked"; key: string }

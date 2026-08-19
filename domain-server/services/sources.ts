@@ -16,7 +16,7 @@ export async function listSources(
     db,
     userId,
     organizationId,
-    "resource:read",
+    "source:read",
   );
   return db
     .select()
@@ -35,7 +35,7 @@ export async function createSource(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "source:write",
   );
   const [source] = await db
     .insert(sources)
@@ -57,7 +57,7 @@ export async function updateSource(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "source:write",
   );
   const [source] = await db
     .update(sources)
@@ -80,7 +80,7 @@ export async function deleteSource(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "source:write",
   );
   const [source] = await db
     .delete(sources)

@@ -228,10 +228,12 @@ describe("browsing a work session's project", () => {
     expect(response.status).toBe(404);
   });
 
-  it("forbids someone outside the organization entirely", async () => {
+  // A workspace-scoped path answers everyone who cannot see it the same way,
+  // whether they are outside the organization or merely ungranted: 404.
+  it("hides it from someone outside the organization entirely", async () => {
     const response = await listRequest(outsider, workSessionId, "");
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });
 
@@ -289,9 +291,9 @@ describe("browsing a workspace's project", () => {
     expect(response.status).toBe(404);
   });
 
-  it("forbids someone outside the organization entirely", async () => {
+  it("hides it from someone outside the organization entirely", async () => {
     const response = await workspaceListRequest(outsider, workspaceId, "");
 
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
   });
 });

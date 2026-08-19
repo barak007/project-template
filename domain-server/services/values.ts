@@ -149,7 +149,7 @@ export async function listOrganizationData(
     db,
     userId,
     organizationId,
-    "resource:read",
+    "source:read",
   );
   return db
     .select({
@@ -174,7 +174,7 @@ export async function putOrganizationData(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "source:write",
   );
   const [row] = await db
     .insert(organizationData)

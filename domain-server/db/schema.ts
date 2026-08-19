@@ -98,6 +98,22 @@ export const userMessageKind = pgEnum("user_message_kind", [
   "organization-invitation",
 ]);
 export const sourceKind = pgEnum("source_kind", ["git", "database", "other"]);
+/**
+ * What someone may do with one workspace, ordered: each role contains the one
+ * before it. `operator` exists because running a workspace and editing it are
+ * different jobs — a group that opens sessions daily need not be able to change
+ * what the workspace points at.
+ */
+export const workspaceRole = pgEnum("workspace_role", [
+  "viewer",
+  "operator",
+  "editor",
+  "manager",
+]);
+export const workspaceVisibility = pgEnum("workspace_visibility", [
+  "organization",
+  "restricted",
+]);
 export const workSessionStatus = pgEnum("work_session_status", [
   "pending",
   "materializing",
@@ -229,6 +245,14 @@ export const workspaces = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /**
+     * Who the workspace is for. `organization` is every member, which is what a
+     * small organization wants; `restricted` is nobody but its grants (and the
+     * organization's owners and admins, who are managers of everything).
+     */
+    visibility: workspaceVisibility("visibility")
+      .default("organization")
+      .notNull(),
     // The one git project this workspace owns, holding its repositories as
     // submodules. Null until the first session builds it; every session after
     // that is a clone of it rather than a fresh set of network clones.
@@ -254,6 +278,36 @@ export const workspaceSources = pgTable(
       .references(() => sources.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.workspaceId, table.sourceId] })],
+);
+
+/**
+ * One person's access to one workspace, above whatever their organization role
+ * already gives them. A grant only ever adds: there is no deny, and no grant
+ * lowers an organization role — an owner or admin manages every workspace.
+ *
+ * A real foreign key each way, rather than the polymorphic `(subjectKind,
+ * subjectId)` a single grants table would need: a team grant lives in its own
+ * table for the same reason (see docs/permissions.md).
+ */
+export const workspaceUserGrants = pgTable(
+  "workspace_user_grants",
+  {
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: workspaceRole("role").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.workspaceId, table.userId] }),
+    // "Which workspaces can I see" reads by user, not by workspace.
+    index("workspace_user_grants_user_idx").on(table.userId),
+  ],
 );
 
 export const organizationSecrets = pgTable(
@@ -412,6 +466,7 @@ export const schema = {
   verification,
   workspaceSources,
   workspaces,
+  workspaceUserGrants,
   workSessions,
 };
 
@@ -421,4 +476,6 @@ export type OrganizationInvitation =
 export type NewOrganization = typeof organizations.$inferInsert;
 export type Source = typeof sources.$inferSelect;
 export type Workspace = typeof workspaces.$inferSelect;
+export type WorkspaceRole = (typeof workspaceRole.enumValues)[number];
+export type WorkspaceUserGrant = typeof workspaceUserGrants.$inferSelect;
 export type WorkSession = typeof workSessions.$inferSelect;

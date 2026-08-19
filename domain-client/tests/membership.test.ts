@@ -63,9 +63,6 @@ describe("membership stories", () => {
         app.sources.delete(organization.id, source.id),
       ).rejects.toMatchObject(forbidden);
       await expect(
-        app.workspaces.create(organization.id, { name: "w", sourceIds: [] }),
-      ).rejects.toMatchObject(forbidden);
-      await expect(
         app.workspaces.update(organization.id, workspace.id, {
           name: "w",
           sourceIds: [],
@@ -86,6 +83,19 @@ describe("membership stories", () => {
       await expect(
         app.organizationData.put(organization.id, { key: "K", value: 1 }),
       ).rejects.toMatchObject(forbidden);
+      // A member *may* create a workspace, and manages the one they create —
+      // that is the point of per-workspace roles. What they may not do is touch
+      // one somebody else made.
+      await app.workspaces.create(organization.id, {
+        name: `theirs-${organization.id.slice(0, 8)}`,
+        sourceIds: [],
+      });
+      expect(
+        app
+          .getState()
+          .workspaces.find((each) => each.name.startsWith("theirs-"))?.yourRole,
+      ).toBe("manager");
+
       // Managing who is in the organization is the owner's, invitations included.
       await expect(
         app.members.put(organization.id, {
@@ -159,9 +169,11 @@ describe("membership stories", () => {
       await expect(
         app.workSessions.load(organization.id),
       ).rejects.toMatchObject(forbidden);
+      // One session, addressed directly: a workspace-scoped path says "no such
+      // thing" rather than "not allowed", so an outsider learns nothing.
       await expect(
         app.workSessions.refresh(organization.id, organization.id),
-      ).rejects.toMatchObject(forbidden);
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
       await expect(
         app.organizationSecrets.load(organization.id),
       ).rejects.toMatchObject(forbidden);

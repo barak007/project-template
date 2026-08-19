@@ -16,6 +16,7 @@ import { createRepositoryActions } from "./repository-actions.js";
 import { createSessionActions } from "./session-actions.js";
 import { createAppStore } from "./store.js";
 import { createWorkSessionActions } from "./work-session-actions.js";
+import { createWorkspaceAccessActions } from "./workspace-access-actions.js";
 import { createWorkspaceActions } from "./workspace-actions.js";
 
 export { ApiError } from "../../domain-client/index.js";
@@ -34,6 +35,9 @@ export type {
   UserMessage,
   WorkSession,
   Workspace,
+  WorkspaceGrant,
+  WorkspaceRole,
+  WorkspaceVisibility,
 } from "../../domain-client/index.js";
 export { createMemoryHistory } from "../../domain-client/history.js";
 export type { History, MemoryHistory } from "../../domain-client/history.js";
@@ -54,8 +58,11 @@ export {
   isConfirming,
   isPending,
   managesOrganization,
+  managesWorkspace,
+  runsWorkspace,
   routeOrganizationId,
   visibleRoute,
+  workspaceRole,
 } from "./selectors.js";
 export type {
   AppError,
@@ -63,6 +70,7 @@ export type {
   AppState,
   CreateForm,
   CredentialsDraft,
+  GrantDraft,
   InviteDraft,
   NameDraft,
   SignUpDraft,
@@ -100,6 +108,7 @@ export function createAppCore(dependencies: AppCoreDependencies) {
     invitations: createInvitationActions(context),
     inbox: createInboxActions(context),
     workspaces: createWorkspaceActions(context),
+    workspaceAccess: createWorkspaceAccessActions(context),
     repositories: createRepositoryActions(context),
     workSessions: createWorkSessionActions(context),
     projectFiles: createProjectFileActions(context),

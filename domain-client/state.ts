@@ -10,6 +10,7 @@ import type {
   UserMessage,
   WorkSession,
   Workspace,
+  WorkspaceGrant,
 } from "./api.js";
 
 export type AuthUser = { id: string; name: string; email: string };
@@ -52,10 +53,27 @@ export type OrganizationSlices = {
   /** Repositories are `git` sources; there is no separate collection. */
   sources: Source[];
   workspaces: Workspace[];
+  /**
+   * Who may reach the workspace whose access was last read, and how. One
+   * workspace's worth at a time, like projectFiles: a page manages access to the
+   * workspace it is showing.
+   */
+  workspaceGrants: WorkspaceAccessState;
   workSessions: WorkSession[];
   projectFiles: ProjectFilesState;
   organizationSecrets: Secret[];
   organizationData: DataEntry[];
+};
+
+/** Grants belong to a workspace, so the slice says which one they are for. */
+export type WorkspaceAccessState = {
+  workspaceId: string | null;
+  grants: WorkspaceGrant[];
+};
+
+export const emptyWorkspaceAccess: WorkspaceAccessState = {
+  workspaceId: null,
+  grants: [],
 };
 
 export const emptyProjectFiles: ProjectFilesState = {
@@ -83,6 +101,7 @@ export const emptyOrganizationSlices: OrganizationSlices = {
   invitations: [],
   sources: [],
   workspaces: [],
+  workspaceGrants: emptyWorkspaceAccess,
   workSessions: [],
   projectFiles: emptyProjectFiles,
   organizationSecrets: [],

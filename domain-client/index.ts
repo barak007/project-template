@@ -20,6 +20,7 @@ import { createSourceActions } from "./source-actions.js";
 import { initialState } from "./state.js";
 import { createStore } from "./store.js";
 import { createWorkSessionActions } from "./work-session-actions.js";
+import { createWorkspaceAccessActions } from "./workspace-access-actions.js";
 import { createWorkspaceActions } from "./workspace-actions.js";
 
 export { ApiError } from "./errors.js";
@@ -38,6 +39,10 @@ export type {
   UserMessage,
   WorkSession,
   Workspace,
+  WorkspaceGrant,
+  WorkspaceGrantInput,
+  WorkspaceRole,
+  WorkspaceVisibility,
 } from "./api.js";
 export type { ClientEvent } from "./events.js";
 export type { ClientFetch, Host } from "./host.js";
@@ -47,6 +52,7 @@ export type {
   ClientState,
   ProjectFilesState,
   ProjectTarget,
+  WorkspaceAccessState,
 } from "./state.js";
 
 export type ClientCoreDependencies = {
@@ -66,6 +72,7 @@ export function createClientCore(dependencies: ClientCoreDependencies) {
     repositories: createRepositoryActions(api, store),
     sources: createSourceActions(api, store),
     workspaces: createWorkspaceActions(api, store),
+    workspaceAccess: createWorkspaceAccessActions(api, store),
     workSessions: createWorkSessionActions(api, store),
     projectFiles: createProjectFileActions(api, store),
     organizationSecrets: createOrganizationSecretActions(api, store),

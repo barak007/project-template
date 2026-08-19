@@ -14,6 +14,7 @@ export const loadKeys = {
   repositories: (organizationId: string) => `repositories:${organizationId}`,
   sessions: (organizationId: string) => `sessions:${organizationId}`,
   members: (organizationId: string) => `members:${organizationId}`,
+  workspaceGrants: (workspaceId: string) => `grants:${workspaceId}`,
   invitations: (organizationId: string) => `invitations:${organizationId}`,
   /** The signed-in user's own inbox: one identity, so no id in the key. */
   inbox: "inbox",
@@ -28,6 +29,10 @@ export const actionKeys = {
   removeRepository: (sourceId: string) => `repository.remove:${sourceId}`,
   createSession: (workspaceId: string) => `session.create:${workspaceId}`,
   changeRole: (userId: string) => `member.role:${userId}`,
+  setVisibility: (workspaceId: string) => `workspace.visibility:${workspaceId}`,
+  grantAccess: "workspace.grant",
+  changeGrant: (userId: string) => `workspace.grant:${userId}`,
+  removeGrant: (userId: string) => `workspace.grant.remove:${userId}`,
   invite: "invitation.send",
   revokeInvitation: (invitationId: string) =>
     `invitation.revoke:${invitationId}`,
@@ -42,6 +47,7 @@ export const actionKeys = {
 export const confirmKeys = {
   deleteWorkspace: (workspaceId: string) => `workspace.delete:${workspaceId}`,
   removeRepository: (sourceId: string) => `repository.remove:${sourceId}`,
+  removeGrant: (userId: string) => `workspace.grant.remove:${userId}`,
   revokeInvitation: (invitationId: string) =>
     `invitation.revoke:${invitationId}`,
 } as const;

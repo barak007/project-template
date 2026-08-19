@@ -7,6 +7,9 @@ import {
   hasLoaded,
   isPending,
   loadKeys,
+  managesWorkspace,
+  runsWorkspace,
+  workspaceRole,
 } from "../client/index.js";
 import type { AppCore } from "../client/index.js";
 
@@ -21,6 +24,7 @@ import { Section } from "./section.js";
 import { SessionCard } from "./session-card.js";
 import { Skeleton } from "./skeleton.js";
 import { useAppState } from "./use-app-state.js";
+import { WorkspaceAccessSection } from "./workspace-access-section.js";
 
 /**
  * One workspace: the repositories it works on, and the sessions opened from
@@ -37,6 +41,16 @@ export function WorkspacePage({
   workspaceId: string;
 }) {
   const workspace = useAppState(core, currentWorkspace);
+  const manages = useAppState(core, (state) =>
+    managesWorkspace(state, workspaceId),
+  );
+  const runs = useAppState(core, (state) => runsWorkspace(state, workspaceId));
+  // Changing what a workspace points at is the editor's; running sessions on it
+  // is the operator's. A viewer is offered neither rather than refused later.
+  const edits = useAppState(core, (state) => {
+    const role = workspaceRole(state, workspaceId);
+    return role === "editor" || role === "manager";
+  });
   const sources = useAppState(core, (state) => state.sources);
   const workSessions = useAppState(core, (state) => state.workSessions);
   const draft = useAppState(core, (state) => state.repositoryDraft);
@@ -62,6 +76,13 @@ export function WorkspacePage({
     void core.workSessions.load(organizationId);
     void core.members.load(organizationId);
   }, [core, organizationId]);
+
+  // Only a manager may read the grants, and only the workspace list can say
+  // whether this viewer is one — so this waits for it rather than asking blind.
+  useEffect(() => {
+    if (!manages) return;
+    void core.workspaceAccess.load(organizationId, workspaceId);
+  }, [core, organizationId, workspaceId, manages]);
 
   // Derived during render, never in a selector: a filter builds a fresh array
   // every call, which useSyncExternalStore reads as a changed snapshot.
@@ -117,12 +138,14 @@ export function WorkspacePage({
           // who cannot see it does not learn what it needs.
           <button
             type="button"
-            disabled={attached.length === 0 || createPending}
+            disabled={attached.length === 0 || createPending || !runs}
             aria-busy={createPending}
             title={
-              attached.length === 0
-                ? "Add a repository first — a session opens these."
-                : undefined
+              !runs
+                ? "You can look at this workspace, but not open sessions on it."
+                : attached.length === 0
+                  ? "Add a repository first — a session opens these."
+                  : undefined
             }
             onClick={() => {
               void core.workSessions.create(organizationId, workspaceId);
@@ -162,7 +185,7 @@ export function WorkspacePage({
       <Section
         title="Repositories"
         action={
-          attached.length > 0 && !adding ? (
+          edits && attached.length > 0 && !adding ? (
             <button
               type="button"
               className="ghost small"
@@ -175,16 +198,17 @@ export function WorkspacePage({
           ) : undefined
         }
       >
-        {adding && attached.length > 0 ? addForm : null}
+        {edits && adding && attached.length > 0 ? addForm : null}
         {!repositoriesLoaded ? (
           <Skeleton rows={2} />
         ) : attached.length === 0 ? (
           <div className="empty">
             <p>
-              No repositories yet. Paste a git URL — nothing has to be connected
-              first.
+              {edits
+                ? "No repositories yet. Paste a git URL — nothing has to be connected first."
+                : "No repositories yet. Whoever manages this workspace decides what it works on."}
             </p>
-            {addForm}
+            {edits ? addForm : null}
           </div>
         ) : (
           <ul className="rows">
@@ -198,6 +222,7 @@ export function WorkspacePage({
                   <span className="muted">{remoteOf(source.config)}</span>
                 </div>
                 <div className="row-actions">
+                  {!edits ? null : (
                   <ConfirmButton
                     core={core}
                     confirmKey={confirmKeys.removeRepository(source.id)}
@@ -212,6 +237,7 @@ export function WorkspacePage({
                       );
                     }}
                   />
+                  )}
                 </div>
               </li>
             ))}
@@ -252,24 +278,34 @@ export function WorkspacePage({
         )}
       </Section>
 
-      {/* Access is the organization's, not this workspace's: there is no
-          workspace-level membership to manage, and saying so is better than a
-          list that implies there is. */}
-      <Section title="Access">
-        <div className="project-row for-organization">
-          <EntityIcon entity="organization" />
-          <span className="muted">
-            Everyone in this organization can open this workspace.
-          </span>
-          <RouteLink
-            core={core}
-            to={{ kind: "organization", organizationId }}
-            className="link"
-          >
-            {members === 1 ? "1 member" : `${String(members)} members`}
-          </RouteLink>
-        </div>
-      </Section>
+      {/* Managing access is the manager's; everyone else is told what applies
+          rather than shown controls the server would refuse. */}
+      {manages && workspace ? (
+        <WorkspaceAccessSection
+          core={core}
+          organizationId={organizationId}
+          workspaceId={workspaceId}
+          visibility={workspace.visibility}
+        />
+      ) : (
+        <Section title="Access">
+          <div className="project-row for-organization">
+            <EntityIcon entity="organization" />
+            <span className="muted">
+              {workspace?.visibility === "restricted"
+                ? "This workspace is restricted to the people its manager has named."
+                : "Everyone in this organization can open this workspace."}
+            </span>
+            <RouteLink
+              core={core}
+              to={{ kind: "organization", organizationId }}
+              className="link"
+            >
+              {members === 1 ? "1 member" : `${String(members)} members`}
+            </RouteLink>
+          </div>
+        </Section>
+      )}
     </section>
   );
 }

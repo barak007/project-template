@@ -2,6 +2,7 @@ import type {
   Organization,
   WorkSession,
   Workspace,
+  WorkspaceRole,
 } from "../../domain-client/index.js";
 
 import { requiresAuthentication } from "./router.js";
@@ -80,6 +81,34 @@ export function managesOrganization(state: AppState): boolean {
   return state.members.some(
     (member) => member.userId === id && member.role === "owner",
   );
+}
+
+/**
+ * What the signed-in user may do with one workspace. Not re-derived here: the
+ * server resolves it and says so on the workspace itself (`yourRole`), so the UI
+ * offers exactly what the API will allow. Undefined until the list arrives — and
+ * a workspace they cannot see never arrives at all.
+ */
+export function workspaceRole(
+  state: AppState,
+  workspaceId: string,
+): WorkspaceRole | undefined {
+  return state.workspaces.find((workspace) => workspace.id === workspaceId)
+    ?.yourRole;
+}
+
+/** Whether they may change this workspace's access, rename it, or delete it. */
+export function managesWorkspace(
+  state: AppState,
+  workspaceId: string,
+): boolean {
+  return workspaceRole(state, workspaceId) === "manager";
+}
+
+/** Whether they may open a session on it — an operator's whole job. */
+export function runsWorkspace(state: AppState, workspaceId: string): boolean {
+  const role = workspaceRole(state, workspaceId);
+  return role !== undefined && role !== "viewer";
 }
 
 /**

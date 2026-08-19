@@ -16,13 +16,19 @@ import { AppError } from "../errors.js";
 import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 import type { JobProducer } from "../jobs/queue.js";
 
-import { requireOrganizationPermission } from "./policy.js";
+import {
+  requireOrganizationPermission,
+  requireWorkspacePermission,
+  visibleWorkspaceIds,
+} from "./policy.js";
 
 function response(row: typeof workSessions.$inferSelect) {
   const { secretsSnapshot, ...safe } = row;
   return { ...safe, secretKeys: Object.keys(secretsSnapshot).sort() };
 }
 
+/** Only the sessions of workspaces this user can see — a restricted workspace
+ * hides its sessions with it. */
 export async function listWorkSessions(
   db: Database,
   userId: string,
@@ -32,12 +38,19 @@ export async function listWorkSessions(
     db,
     userId,
     organizationId,
-    "resource:read",
+    "organization:read",
   );
+  const visible = await visibleWorkspaceIds(db, userId, organizationId);
+  if (visible.length === 0) return [];
   const rows = await db
     .select()
     .from(workSessions)
-    .where(eq(workSessions.organizationId, organizationId))
+    .where(
+      and(
+        eq(workSessions.organizationId, organizationId),
+        inArray(workSessions.workspaceId, visible),
+      ),
+    )
     .orderBy(desc(workSessions.createdAt));
   return rows.map(response);
 }
@@ -48,12 +61,23 @@ export async function getWorkSession(
   organizationId: string,
   workSessionId: string,
 ) {
-  await requireOrganizationPermission(
-    db,
-    userId,
-    organizationId,
-    "resource:read",
-  );
+  const row = await readableSession(db, userId, organizationId, workSessionId);
+  return response(row);
+}
+
+/**
+ * A session, once its workspace says this user may see it. The session is found
+ * first because the permission lives on the workspace it came from — and every
+ * way of not being allowed to see it ends in the same `404`: another
+ * organization's session, a restricted workspace, or no membership at all.
+ */
+async function readableSession(
+  db: Database,
+  userId: string,
+  organizationId: string,
+  workSessionId: string,
+  permission: "workspace:read" | "session:create" = "workspace:read",
+) {
   const [row] = await db
     .select()
     .from(workSessions)
@@ -65,7 +89,14 @@ export async function getWorkSession(
     )
     .limit(1);
   if (!row) throw new AppError("NOT_FOUND", "Work session not found", 404);
-  return response(row);
+  await requireWorkspacePermission(
+    db,
+    userId,
+    organizationId,
+    row.workspaceId,
+    permission,
+  );
+  return row;
 }
 
 /**
@@ -81,23 +112,15 @@ export async function branchWorkSessionProject(
   workSessionId: string,
   branch: string,
 ) {
-  await requireOrganizationPermission(
+  // Branching is running the session, not editing the workspace: an operator's
+  // whole job is working in a session's clone.
+  const row = await readableSession(
     db,
     userId,
     organizationId,
-    "resource:write",
+    workSessionId,
+    "session:create",
   );
-  const [row] = await db
-    .select()
-    .from(workSessions)
-    .where(
-      and(
-        eq(workSessions.id, workSessionId),
-        eq(workSessions.organizationId, organizationId),
-      ),
-    )
-    .limit(1);
-  if (!row) throw new AppError("NOT_FOUND", "Work session not found", 404);
   if (!row.projectLocation)
     throw new AppError(
       "VALIDATION_FAILED",
@@ -122,11 +145,12 @@ export async function createWorkSession(
   organizationId: string,
   workspaceId: string,
 ) {
-  await requireOrganizationPermission(
+  await requireWorkspacePermission(
     db,
     userId,
     organizationId,
-    "resource:write",
+    workspaceId,
+    "session:create",
   );
   const created = await db.transaction(async (transaction) => {
     const [workspace] = await transaction

@@ -1,4 +1,8 @@
-import type { ClientState, Membership } from "../../domain-client/index.js";
+import type {
+  ClientState,
+  Membership,
+  WorkspaceRole,
+} from "../../domain-client/index.js";
 
 import { defaultRoute } from "./router.js";
 import type { Route } from "./router.js";
@@ -8,6 +12,8 @@ export type SignUpDraft = CredentialsDraft & { name: string };
 export type NameDraft = { name: string };
 /** Who to invite, and as what. An invitation is addressed to an email. */
 export type InviteDraft = { email: string; role: Membership["role"] };
+/** Who to give access to one workspace, and how much. */
+export type GrantDraft = { userId: string; role: WorkspaceRole };
 export type AppError = { code: string; message: string };
 
 /**
@@ -16,7 +22,11 @@ export type AppError = { code: string; message: string };
  * state, or one disclosure behind the page's primary button.
  */
 export type CreateForm =
-  "organization" | "workspace" | "repository" | "invitation";
+  | "organization"
+  | "workspace"
+  | "repository"
+  | "invitation"
+  | "grant";
 
 /**
  * What the app owns on top of the client core's state: where the user is,
@@ -38,6 +48,8 @@ export type AppOwnState = {
   repositoryDraft: string;
   /** The address being invited on the organization page. */
   inviteDraft: InviteDraft;
+  /** Who is being given access on the workspace page. */
+  grantDraft: GrantDraft;
   /**
    * Which collections have finished loading at least once, by key. An empty
    * list and a list nobody has asked for are the same value — without this the
@@ -64,6 +76,7 @@ export type AppState = ClientState & AppOwnState;
 
 export const emptySignInDraft: CredentialsDraft = { email: "", password: "" };
 export const emptyInviteDraft: InviteDraft = { email: "", role: "member" };
+export const emptyGrantDraft: GrantDraft = { userId: "", role: "viewer" };
 export const emptySignUpDraft: SignUpDraft = {
   name: "",
   email: "",
@@ -79,6 +92,7 @@ export const initialAppOwnState: AppOwnState = {
   workspaceDraft: { name: "" },
   repositoryDraft: "",
   inviteDraft: emptyInviteDraft,
+  grantDraft: emptyGrantDraft,
   loaded: [],
   pending: [],
   confirming: null,

@@ -26,7 +26,7 @@ export async function addRepository(
     db,
     userId,
     organizationId,
-    "resource:write",
+    "source:write",
   );
 
   const [existing] = await db

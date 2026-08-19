@@ -4,6 +4,7 @@ import type { Database } from "../db/client.js";
 import {
   organizationMembers,
   organizations,
+  user,
   workspaces,
 } from "../db/schema.js";
 import type { OrganizationCreate } from "../entities/organization.js";
@@ -78,9 +79,10 @@ export async function getOrganization(
 }
 
 /**
- * Who is in the organization. Readable by everyone in it: membership is the
- * only access control the product has, so "who else can see this" is not an
- * administrator's secret — changing a role still needs `organization:manage`.
+ * Who is in the organization, by name. Readable by everyone in it: "who else is
+ * here" is not an administrator's secret, and a colleague has to be nameable for
+ * anyone to grant them a workspace (services/workspace-access.ts). Changing a
+ * role still needs `organization:manage`.
  */
 export async function listMemberships(
   db: Database,
@@ -94,8 +96,16 @@ export async function listMemberships(
     "organization:read",
   );
   return db
-    .select()
+    .select({
+      organizationId: organizationMembers.organizationId,
+      userId: organizationMembers.userId,
+      role: organizationMembers.role,
+      name: user.name,
+      email: user.email,
+      createdAt: organizationMembers.createdAt,
+    })
     .from(organizationMembers)
+    .innerJoin(user, eq(user.id, organizationMembers.userId))
     .where(eq(organizationMembers.organizationId, organizationId));
 }
 
@@ -132,5 +142,10 @@ export async function changeMemberRole(
       "That person is not a member of this organization",
       404,
     );
-  return membership;
+  const [person] = await db
+    .select({ name: user.name, email: user.email })
+    .from(user)
+    .where(eq(user.id, membership.userId))
+    .limit(1);
+  return { ...membership, name: person?.name ?? "", email: person?.email ?? "" };
 }

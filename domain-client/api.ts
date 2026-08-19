@@ -78,6 +78,16 @@ export type Workspace = InferResponseType<
 export type WorkspaceInput = InferRequestType<
   OrganizationRoutes["workspaces"]["$post"]
 >["json"];
+type WorkspaceRoutes = OrganizationRoutes["workspaces"][":workspaceId"];
+/** One person's access to one workspace, named. */
+export type WorkspaceGrant = InferResponseType<
+  WorkspaceRoutes["grants"]["$get"]
+>[number];
+export type WorkspaceGrantInput = InferRequestType<
+  WorkspaceRoutes["grants"]["$put"]
+>["json"];
+export type WorkspaceRole = WorkspaceGrant["role"];
+export type WorkspaceVisibility = Workspace["visibility"];
 export type WorkSession = Omit<
   InferResponseType<OrganizationRoutes["work-sessions"]["$get"]>[number],
   "sourcesSnapshot" | "dataSnapshot"

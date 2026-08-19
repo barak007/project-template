@@ -3,6 +3,8 @@ CREATE TYPE "public"."member_role" AS ENUM('owner', 'admin', 'member');--> state
 CREATE TYPE "public"."source_kind" AS ENUM('git', 'database', 'other');--> statement-breakpoint
 CREATE TYPE "public"."user_message_kind" AS ENUM('organization-invitation');--> statement-breakpoint
 CREATE TYPE "public"."work_session_status" AS ENUM('pending', 'materializing', 'ready', 'failed');--> statement-breakpoint
+CREATE TYPE "public"."workspace_role" AS ENUM('viewer', 'operator', 'editor', 'manager');--> statement-breakpoint
+CREATE TYPE "public"."workspace_visibility" AS ENUM('organization', 'restricted');--> statement-breakpoint
 CREATE TABLE "account" (
 	"id" text PRIMARY KEY NOT NULL,
 	"account_id" text NOT NULL,
@@ -156,10 +158,19 @@ CREATE TABLE "workspace_sources" (
 	CONSTRAINT "workspace_sources_workspace_id_source_id_pk" PRIMARY KEY("workspace_id","source_id")
 );
 --> statement-breakpoint
+CREATE TABLE "workspace_user_grants" (
+	"workspace_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"role" "workspace_role" NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "workspace_user_grants_workspace_id_user_id_pk" PRIMARY KEY("workspace_id","user_id")
+);
+--> statement-breakpoint
 CREATE TABLE "workspaces" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
 	"name" text NOT NULL,
+	"visibility" "workspace_visibility" DEFAULT 'organization' NOT NULL,
 	"project_location" jsonb,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -183,6 +194,8 @@ ALTER TABLE "work_sessions" ADD CONSTRAINT "work_sessions_workspace_id_workspace
 ALTER TABLE "work_sessions" ADD CONSTRAINT "work_sessions_created_by_user_id_user_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_sources" ADD CONSTRAINT "workspace_sources_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspace_sources" ADD CONSTRAINT "workspace_sources_source_id_sources_id_fk" FOREIGN KEY ("source_id") REFERENCES "public"."sources"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workspace_user_grants" ADD CONSTRAINT "workspace_user_grants_workspace_id_workspaces_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "workspace_user_grants" ADD CONSTRAINT "workspace_user_grants_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "account_user_id_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "organization_data_scope_key_unique" ON "organization_data" USING btree ("organization_id","key");--> statement-breakpoint
@@ -201,4 +214,5 @@ CREATE INDEX "work_sessions_organization_idx" ON "work_sessions" USING btree ("o
 CREATE INDEX "work_sessions_workspace_idx" ON "work_sessions" USING btree ("workspace_id");--> statement-breakpoint
 CREATE INDEX "work_sessions_creator_idx" ON "work_sessions" USING btree ("created_by_user_id");--> statement-breakpoint
 CREATE INDEX "work_sessions_pending_idx" ON "work_sessions" USING btree ("status") WHERE "work_sessions"."status" = 'pending';--> statement-breakpoint
+CREATE INDEX "workspace_user_grants_user_idx" ON "workspace_user_grants" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "workspaces_org_name_unique" ON "workspaces" USING btree ("organization_id","name");

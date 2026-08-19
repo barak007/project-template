@@ -34,8 +34,11 @@ import {
   workSessionResponseSchema,
 } from "../entities/work-session.js";
 import {
+  workspaceGrantInputSchema,
+  workspaceGrantResponseSchema,
   workspaceInputSchema,
   workspaceResponseSchema,
+  workspaceVisibilityInputSchema,
 } from "../entities/workspace.js";
 import { requireAuthentication } from "../http/auth-middleware.js";
 import type { AppBindings, RuntimeDependencies } from "../http/context.js";
@@ -86,6 +89,12 @@ import {
   listWorkSessions,
 } from "../services/work-sessions.js";
 import {
+  listGrants,
+  putGrant,
+  removeGrant,
+  setWorkspaceVisibility,
+} from "../services/workspace-access.js";
+import {
   createWorkspace,
   deleteWorkspace,
   listWorkspaces,
@@ -100,6 +109,8 @@ const workSessionParams = organizationParams.extend({
 });
 const secretParams = organizationParams.extend({ key: keySchema });
 const invitationParams = organizationParams.extend({ invitationId: idSchema });
+/** A grant is addressed by the person it is for, and user ids are not uuids. */
+const grantParams = workspaceParams.extend({ userId: z.string().min(1) });
 const userKeyParams = z.object({ key: keySchema });
 const userInvitationParams = z.object({ invitationId: idSchema });
 
@@ -345,6 +356,75 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
             params.workspaceId,
           );
           return context.body(null, 204);
+        },
+      )
+      // Who may reach one workspace. Both levers are `workspace:manage`, which
+      // an organization's owners and admins hold everywhere and a workspace's
+      // own manager holds on theirs.
+      .get(
+        "/organizations/:organizationId/workspaces/:workspaceId/grants",
+        zValidator("param", workspaceParams, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await listGrants(
+            dependencies.db,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+          );
+          return context.json(
+            z.array(workspaceGrantResponseSchema).parse(result),
+            200,
+          );
+        },
+      )
+      .put(
+        "/organizations/:organizationId/workspaces/:workspaceId/grants",
+        zValidator("param", workspaceParams, validationHook),
+        zValidator("json", workspaceGrantInputSchema, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await putGrant(
+            dependencies.db,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+            context.req.valid("json"),
+          );
+          return context.json(workspaceGrantResponseSchema.parse(result), 200);
+        },
+      )
+      .delete(
+        "/organizations/:organizationId/workspaces/:workspaceId/grants/:userId",
+        zValidator("param", grantParams, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          await removeGrant(
+            dependencies.db,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+            params.userId,
+          );
+          return context.body(null, 204);
+        },
+      )
+      .put(
+        "/organizations/:organizationId/workspaces/:workspaceId/visibility",
+        zValidator("param", workspaceParams, validationHook),
+        zValidator("json", workspaceVisibilityInputSchema, validationHook),
+        async (context) => {
+          const params = context.req.valid("param");
+          const result = await setWorkspaceVisibility(
+            dependencies.db,
+            context.get("user").id,
+            params.organizationId,
+            params.workspaceId,
+            context.req.valid("json").visibility,
+          );
+          // The response is the workspace itself, so a client folds it into the
+          // list it already holds instead of re-reading.
+          return context.json(workspaceResponseSchema.parse(result), 200);
         },
       )
       // The workspace's own project — the template a session clones — browsed
