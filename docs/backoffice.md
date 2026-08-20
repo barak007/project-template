@@ -62,6 +62,16 @@ over a store, tested in Node against the real server
 ([backoffice/tests/](../backoffice/tests/)); the React UI in
 [backoffice/ui/](../backoffice/ui/) is a rendering adapter that owns no logic.
 
+The open table page's view — the row query (pagination, sorting, applied
+filters), the per-column filter drafts, and the filters a followed
+foreign-key link arrived with — is the `tableView` state slice
+([backoffice/client/table-view.ts](../backoffice/client/table-view.ts)),
+changed only by events and driven by the `view` actions
+([backoffice/client/table-view-actions.ts](../backoffice/client/table-view-actions.ts)).
+Navigating to another table (or through another link) resets it; page turns
+mirror onto the URL as a `replace`, and that mirrored route looping back
+through navigation leaves the view untouched.
+
 Because the backoffice admin is not an application user, the core does **not**
 compose the application client core — it owns its auth slice
 (`unknown → needs-setup | anonymous → authenticated`) driven by

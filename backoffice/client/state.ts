@@ -4,9 +4,10 @@ import type {
   TableMeta,
   UserDetail,
 } from "./api.js";
-import type { TableQuery } from "./data-actions.js";
 import { defaultRoute } from "./router.js";
 import type { Route } from "./router.js";
+import { tableViewOnNavigate } from "./table-view.js";
+import type { TableQuery, TableViewState } from "./table-view.js";
 
 export type BackofficeError = { code: string; message: string };
 export type BackofficeAuthError = BackofficeError;
@@ -50,6 +51,7 @@ export type AdminState = {
   organizationDetail: OrganizationDetail | null;
   tables: TableMeta[];
   tableData: TableDataState;
+  tableView: TableViewState | null;
 };
 
 export type BackofficeState = AdminState & {
@@ -63,6 +65,7 @@ export const initialAdminState: AdminState = {
   organizationDetail: null,
   tables: [],
   tableData: null,
+  tableView: tableViewOnNavigate(null, defaultRoute),
 };
 
 export const initialBackofficeState: BackofficeState = {

@@ -1,24 +1,11 @@
 import { toApiError } from "../../domain-client/errors.js";
-import type { RowFilter, RowValues } from "../server/entities/data.js";
+import type { RowValues } from "../server/entities/data.js";
 
 import type { Api, RowsPage } from "./api.js";
 import type { BackofficeStore } from "./projection.js";
+import type { TableQuery } from "./table-view.js";
 
 export type { RowFilter, RowValues } from "../server/entities/data.js";
-
-export type TableQuery = {
-  limit: number;
-  offset: number;
-  sort?: string | undefined;
-  dir?: "asc" | "desc" | undefined;
-  filters: RowFilter[];
-};
-
-export const defaultTableQuery: TableQuery = {
-  limit: 50,
-  offset: 0,
-  filters: [],
-};
 
 export function createDataActions(api: Api, store: BackofficeStore) {
   const routes = api.data;

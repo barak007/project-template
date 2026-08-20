@@ -1,21 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
-import {
-  ApiError,
-  buildFilters,
-  FILTER_SYNTAX_HINT,
-  referencesTo,
-  tableQueryFromRoute,
-} from "../client/index.js";
-import type {
-  BackofficeCore,
-  ColumnMeta,
-  FilterDrafts,
-  RowFilter,
-  TableQuery,
-  TableRow,
-} from "../client/index.js";
+import { ApiError, FILTER_SYNTAX_HINT, referencesTo } from "../client/index.js";
+import type { BackofficeCore, ColumnMeta, TableRow } from "../client/index.js";
 
 import { DateRangeFilter } from "./date-range-filter.js";
 import { RowEditor } from "./row-editor.js";
@@ -48,13 +35,17 @@ function rowKey(primaryKey: string[], row: TableRow): TableRow {
 
 type Editor = { mode: "insert" } | { mode: "edit"; row: TableRow };
 
+/**
+ * The generic table console. The view it renders — query, filter drafts, and
+ * the filters the route arrived with — lives in the store as `tableView`
+ * (backoffice/client/table-view.ts), reset by navigation when another table
+ * opens; callers key this component on table + route filters so the local
+ * editor/error state resets with it.
+ */
 export function TablePage({
   core,
   load,
   table,
-  routeFilters,
-  routeLimit,
-  routeOffset,
   heading,
   insertControl,
   rowActions,
@@ -64,11 +55,6 @@ export function TablePage({
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   table: string;
-  /** Filters carried by the route (e.g. a followed foreign-key link). */
-  routeFilters?: RowFilter[] | undefined;
-  /** Pagination carried by the route so reloads keep their page. */
-  routeLimit?: number | undefined;
-  routeOffset?: number | undefined;
   /** Page title when the raw table name is not it (e.g. "Users"). */
   heading?: string | undefined;
   /** Replaces the generic insert editor when creation has side effects. */
@@ -86,96 +72,37 @@ export function TablePage({
   );
   const tables = useBackofficeState(core, (state) => state.tables);
   const tableData = useBackofficeState(core, (state) => state.tableData);
+  const tableView = useBackofficeState(core, (state) => state.tableView);
+  const view = tableView?.table === table ? tableView : null;
 
-  // Pagination rides a ref so the reset effect keys on table/filter changes
-  // alone — the URL mirror below rewrites the route on every page turn, and
-  // that must not wipe drafts or reset the query it just came from.
-  const routePage = useRef({ limit: routeLimit, offset: routeOffset });
-  routePage.current = { limit: routeLimit, offset: routeOffset };
-  const queryFromRoute = (filters: RowFilter[]): TableQuery =>
-    tableQueryFromRoute({ ...routePage.current, filters });
-
-  const [query, setQuery] = useState<TableQuery>(() =>
-    queryFromRoute(routeFilters ?? []),
-  );
-  const [drafts, setDrafts] = useState<FilterDrafts>({});
+  // Editor and error are still component state (their extraction is the next
+  // slice); everything else the page shows comes from the store.
   const [editor, setEditor] = useState<Editor | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Serialized so the effect keys on filter content, not array identity.
-  const routeFiltersKey = JSON.stringify(routeFilters ?? []);
-  const skipApply = useRef(true);
-  const skipReset = useRef(true);
+  const query = view?.query ?? null;
   useEffect(() => {
-    // The lazy useState above already holds the boot route's query.
-    if (skipReset.current) {
-      skipReset.current = false;
-      return;
-    }
-    skipApply.current = true;
-    setQuery(queryFromRoute(JSON.parse(routeFiltersKey) as RowFilter[]));
-    setDrafts({});
-    setEditor(null);
-    setError(null);
-  }, [table, routeFiltersKey]);
+    if (!query) return;
+    void load(() => core.data.loadRows(table, query));
+  }, [core, load, table, query]);
 
-  // The URL mirrors pagination so a reload or shared link lands on the same
-  // page. Replace, not push — turning a page is state, not a navigation step.
+  // Filters apply automatically, debounced, whenever a draft changes. Only
+  // the timing lives here: applyFilters ignores untouched drafts, so the
+  // debounce firing after a view reset can never wipe route filters.
+  const drafts = view?.drafts ?? null;
   useEffect(() => {
-    const filters = JSON.parse(routeFiltersKey) as RowFilter[];
-    core.navigation.replace({
-      kind: "table",
-      table,
-      ...(filters.length > 0 ? { filters } : {}),
-      limit: query.limit,
-      offset: query.offset,
-    });
-  }, [core, table, routeFiltersKey, query.limit, query.offset]);
-
-  // Filters apply automatically, debounced, whenever a draft changes. The
-  // skip flag keeps the reset above (empty drafts) from wiping route filters.
-  // Columns go through a ref so the effect keys on draft edits alone.
-  const columnsRef = useRef<ColumnMeta[]>([]);
-  columnsRef.current = meta?.columns ?? [];
-  useEffect(() => {
-    if (skipApply.current) {
-      skipApply.current = false;
-      return;
-    }
+    if (!drafts || Object.keys(drafts).length === 0) return;
     const timer = setTimeout(() => {
-      setQuery((current) => ({
-        ...current,
-        offset: 0,
-        filters: buildFilters(columnsRef.current, drafts),
-      }));
+      core.view.applyFilters();
     }, 300);
     return () => {
       clearTimeout(timer);
     };
-  }, [drafts]);
+  }, [core, drafts]);
 
-  useEffect(() => {
-    void load(() => core.data.loadRows(table, query));
-  }, [core, load, table, query]);
-
-  if (!meta) return <p>Loading…</p>;
+  if (!meta || !view) return <p>Loading…</p>;
   const columns = meta.columns;
   const page = tableData?.table === table ? tableData.page : null;
-
-  const setDraft = (key: string, value: string) => {
-    setDrafts((current) => ({ ...current, [key]: value }));
-  };
-
-  const toggleSort = (column: ColumnMeta) => {
-    if (column.redacted) return;
-    setQuery((current) => ({
-      ...current,
-      offset: 0,
-      sort: column.key,
-      dir:
-        current.sort === column.key && current.dir === "asc" ? "desc" : "asc",
-    }));
-  };
 
   const run = async (action: () => Promise<void>) => {
     setError(null);
@@ -210,13 +137,6 @@ export function TablePage({
     });
   };
 
-  const clearFilters = () => {
-    setDrafts({});
-    setQuery((current) => ({ ...current, offset: 0, filters: [] }));
-    if (routeFilters && routeFilters.length > 0)
-      core.navigation.navigate({ kind: "table", table });
-  };
-
   // Tables whose foreign keys point here — each row links to its dependents.
   const incoming =
     meta.primaryKey.length === 1 ? referencesTo(tables, table) : [];
@@ -236,26 +156,30 @@ export function TablePage({
   };
 
   const sortMarker = (column: ColumnMeta) =>
-    query.sort === column.key ? (query.dir === "asc" ? " ▲" : " ▼") : "";
+    view.query.sort === column.key
+      ? view.query.dir === "asc"
+        ? " ▲"
+        : " ▼"
+      : "";
 
   const filterControl = (column: ColumnMeta) => {
     if (column.redacted || column.dataType === "json") return null;
     if (column.dataType === "date")
       return (
         <DateRangeFilter
-          from={drafts[`${column.key}:from`] ?? ""}
-          to={drafts[`${column.key}:to`] ?? ""}
+          from={view.drafts[`${column.key}:from`] ?? ""}
+          to={view.drafts[`${column.key}:to`] ?? ""}
           onChange={(bound, value) => {
-            setDraft(`${column.key}:${bound}`, value);
+            core.view.setDraft(`${column.key}:${bound}`, value);
           }}
         />
       );
     if (column.enumValues || column.dataType === "boolean")
       return (
         <select
-          value={drafts[column.key] ?? ""}
+          value={view.drafts[column.key] ?? ""}
           onChange={(event) => {
-            setDraft(column.key, event.target.value);
+            core.view.setDraft(column.key, event.target.value);
           }}
         >
           <option value="">all</option>
@@ -271,9 +195,9 @@ export function TablePage({
         type="search"
         placeholder="filter"
         title={FILTER_SYNTAX_HINT}
-        value={drafts[column.key] ?? ""}
+        value={view.drafts[column.key] ?? ""}
         onChange={(event) => {
-          setDraft(column.key, event.target.value);
+          core.view.setDraft(column.key, event.target.value);
         }}
       />
     );
@@ -300,10 +224,10 @@ export function TablePage({
 
       {error ? <p className="error">{error}</p> : null}
 
-      {query.filters.length > 0 ? (
+      {view.query.filters.length > 0 ? (
         <p className="active-filters">
           Filtered:{" "}
-          {query.filters
+          {view.query.filters
             .map(
               (filter) =>
                 `${filter.column} ${filter.op}${
@@ -313,7 +237,13 @@ export function TablePage({
                 }`,
             )
             .join(", ")}{" "}
-          <button onClick={clearFilters}>Clear</button>
+          <button
+            onClick={() => {
+              core.view.clearFilters();
+            }}
+          >
+            Clear
+          </button>
         </p>
       ) : null}
 
@@ -360,7 +290,7 @@ export function TablePage({
                   <span
                     className="sort-label"
                     onClick={() => {
-                      toggleSort(column);
+                      core.view.toggleSort(column.key);
                     }}
                   >
                     {column.key}
@@ -448,13 +378,9 @@ export function TablePage({
         <label>
           Page size{" "}
           <select
-            value={query.limit}
+            value={view.query.limit}
             onChange={(event) => {
-              setQuery((current) => ({
-                ...current,
-                offset: 0,
-                limit: Number(event.target.value),
-              }));
+              core.view.setLimit(Number(event.target.value));
             }}
           >
             {[25, 50, 100, 200].map((size) => (
@@ -465,12 +391,9 @@ export function TablePage({
           </select>
         </label>
         <button
-          disabled={query.offset === 0}
+          disabled={view.query.offset === 0}
           onClick={() => {
-            setQuery((current) => ({
-              ...current,
-              offset: Math.max(0, current.offset - current.limit),
-            }));
+            core.view.previousPage();
           }}
         >
           ← Prev
@@ -478,10 +401,7 @@ export function TablePage({
         <button
           disabled={to >= total}
           onClick={() => {
-            setQuery((current) => ({
-              ...current,
-              offset: current.offset + current.limit,
-            }));
+            core.view.nextPage();
           }}
         >
           Next →

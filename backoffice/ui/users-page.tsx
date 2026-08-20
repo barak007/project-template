@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { BackofficeCore, RowFilter, TableRow } from "../client/index.js";
+import type { BackofficeCore, TableRow } from "../client/index.js";
 
 import { rowText, TablePage } from "./table-page.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
@@ -82,16 +82,10 @@ export function UsersPage({
   core,
   load,
   onOpen,
-  routeFilters,
-  routeLimit,
-  routeOffset,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   onOpen: (userId: string) => void;
-  routeFilters?: RowFilter[] | undefined;
-  routeLimit?: number | undefined;
-  routeOffset?: number | undefined;
 }) {
   return (
     <TablePage
@@ -99,9 +93,6 @@ export function UsersPage({
       load={load}
       table="user"
       heading="Users"
-      routeFilters={routeFilters}
-      routeLimit={routeLimit}
-      routeOffset={routeOffset}
       insertControl={{
         label: "Add user",
         editor: (close) => (

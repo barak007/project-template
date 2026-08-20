@@ -1,16 +1,18 @@
+import type { RowFilter } from "../server/entities/data.js";
+
 import type {
   OrganizationDetail,
   RowsPage,
   TableMeta,
   UserDetail,
 } from "./api.js";
-import type { TableQuery } from "./data-actions.js";
 import type { Route } from "./router.js";
 import type {
   BackofficeAuthError,
   BackofficeError,
   UserDraft,
 } from "./state.js";
+import type { TableQuery } from "./table-view.js";
 
 export type BackofficeEvent =
   | {
@@ -34,4 +36,10 @@ export type BackofficeEvent =
       table: string;
       query: TableQuery;
       page: RowsPage;
-    };
+    }
+  | { type: "table-draft-set"; key: string; value: string }
+  | { type: "table-filters-applied"; filters: RowFilter[] }
+  | { type: "table-filters-cleared" }
+  | { type: "table-sorted"; column: string }
+  | { type: "table-limit-set"; limit: number }
+  | { type: "table-page-turned"; direction: "next" | "previous" };

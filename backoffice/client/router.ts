@@ -1,6 +1,6 @@
 import type { RowFilter } from "../server/entities/data.js";
 
-import { defaultTableQuery } from "./data-actions.js";
+import { defaultTableQuery } from "./table-view.js";
 
 /**
  * Routing is headless: routes are plain values, and the mapping to and from

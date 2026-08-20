@@ -1,4 +1,4 @@
-import type { BackofficeCore, RowFilter, TableRow } from "../client/index.js";
+import type { BackofficeCore, TableRow } from "../client/index.js";
 
 import { rowText, TablePage } from "./table-page.js";
 
@@ -10,16 +10,10 @@ export function OrganizationsPage({
   core,
   load,
   onOpen,
-  routeFilters,
-  routeLimit,
-  routeOffset,
 }: {
   core: BackofficeCore;
   load: (action: () => Promise<void>) => Promise<void>;
   onOpen: (organizationId: string) => void;
-  routeFilters?: RowFilter[] | undefined;
-  routeLimit?: number | undefined;
-  routeOffset?: number | undefined;
 }) {
   return (
     <TablePage
@@ -27,9 +21,6 @@ export function OrganizationsPage({
       load={load}
       table="organizations"
       heading="Organizations"
-      routeFilters={routeFilters}
-      routeLimit={routeLimit}
-      routeOffset={routeOffset}
       rowActions={(row: TableRow) => (
         <button
           onClick={() => {

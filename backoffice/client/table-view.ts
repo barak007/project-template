@@ -1,9 +1,22 @@
 import type { RowFilter } from "../server/entities/data.js";
 
 import type { ColumnMeta } from "./api.js";
-import { defaultTableQuery } from "./data-actions.js";
-import type { TableQuery } from "./data-actions.js";
 import { textRowFilter } from "./filter-query.js";
+import type { Route } from "./router.js";
+
+export type TableQuery = {
+  limit: number;
+  offset: number;
+  sort?: string | undefined;
+  dir?: "asc" | "desc" | undefined;
+  filters: RowFilter[];
+};
+
+export const defaultTableQuery: TableQuery = {
+  limit: 50,
+  offset: 0,
+  filters: [],
+};
 
 /**
  * Per-column filter drafts, keyed by column (plus ":from"/":to" for date
@@ -11,6 +24,44 @@ import { textRowFilter } from "./filter-query.js";
  * the non-empty ones into typed row filters.
  */
 export type FilterDrafts = Record<string, string>;
+
+/**
+ * Everything the open table page shows or edits besides the rows themselves:
+ * the query being asked, the filter drafts under the column headers, and the
+ * filters the route arrived with (a followed foreign-key link), which the URL
+ * keeps carrying while the query changes underneath.
+ */
+export type TableViewState = {
+  table: string;
+  routeFilters: RowFilter[];
+  query: TableQuery;
+  drafts: FilterDrafts;
+};
+
+/**
+ * The view a navigation lands on. Opening another table (or the same table
+ * through a different foreign-key link) starts a fresh view from the route;
+ * a navigation to the same table and filters — the URL mirroring a page turn,
+ * or an idempotent link — keeps the view, so drafts and sorting survive it.
+ */
+export function tableViewOnNavigate(
+  current: TableViewState | null,
+  route: Route,
+): TableViewState | null {
+  if (route.kind !== "table") return current;
+  const filters = route.filters ?? [];
+  if (
+    current?.table === route.table &&
+    JSON.stringify(current.routeFilters) === JSON.stringify(filters)
+  )
+    return current;
+  return {
+    table: route.table,
+    routeFilters: filters,
+    query: tableQueryFromRoute(route),
+    drafts: {},
+  };
+}
 
 export function buildFilters(
   columns: ColumnMeta[],

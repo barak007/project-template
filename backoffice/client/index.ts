@@ -9,6 +9,7 @@ import { createDataActions } from "./data-actions.js";
 import { createBackofficeNavigation } from "./navigation-actions.js";
 import { reduce } from "./projection.js";
 import { initialBackofficeState } from "./state.js";
+import { createTableViewActions } from "./table-view-actions.js";
 
 export { ApiError } from "../../domain-client/errors.js";
 export type { ClientFetch, Host } from "../../domain-client/index.js";
@@ -20,8 +21,9 @@ export type {
   TableRow,
   UserDetail,
 } from "./api.js";
-export { defaultTableQuery } from "./data-actions.js";
-export type { RowFilter, TableQuery } from "./data-actions.js";
+export type { RowFilter } from "./data-actions.js";
+export { defaultTableQuery } from "./table-view.js";
+export type { TableQuery, TableViewState } from "./table-view.js";
 export type { BackofficeEvent } from "./events.js";
 export {
   FILTER_SYNTAX_HINT,
@@ -65,13 +67,16 @@ export function createBackofficeCore(dependencies: BackofficeCoreDependencies) {
   const api = createApi(dependencies.baseUrl, dependencies.host);
   const data = createDataActions(api, store);
 
+  const navigation = createBackofficeNavigation(dependencies.history, store);
+
   return {
     auth: createBackofficeAuthActions(api, store),
     // Admin mutations refresh the affected table through the data actions,
     // so the loaded rows can never go stale behind a side-effectful write.
     admin: createAdminActions(api, store, data.refresh),
     data,
-    navigation: createBackofficeNavigation(dependencies.history, store),
+    navigation,
+    view: createTableViewActions(store, navigation),
     getState: store.getState,
     subscribe: store.subscribe,
   };
