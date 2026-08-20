@@ -41,6 +41,7 @@ Do the work. Requirements that override any shortcut:
 ### 5. Book-keep (this is what lets the next run progress)
 
 In `docs/next-work.md`:
+
 - Check off the completed (sub-)item: `- [x]`.
 - Append one line to the **Work log** section: `- YYYY-MM-DD <what was done, files touched, anything the next run must know>`.
 - If your refactor moved code that other unchecked tasks reference by file:line, update those references so the next run isn't chasing stale line numbers.

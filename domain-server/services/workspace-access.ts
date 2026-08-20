@@ -166,7 +166,12 @@ export async function removeGrant(
 
 async function named(
   db: Database,
-  grant: { workspaceId: string; userId: string; role: WorkspaceRole; createdAt: Date },
+  grant: {
+    workspaceId: string;
+    userId: string;
+    role: WorkspaceRole;
+    createdAt: Date;
+  },
 ) {
   const [person] = await db
     .select({ name: user.name, email: user.email })

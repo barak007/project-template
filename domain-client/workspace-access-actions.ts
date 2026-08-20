@@ -1,8 +1,4 @@
-import type {
-  Api,
-  WorkspaceGrantInput,
-  WorkspaceVisibility,
-} from "./api.js";
+import type { Api, WorkspaceGrantInput, WorkspaceVisibility } from "./api.js";
 import { toApiError } from "./errors.js";
 import type { ClientStore } from "./projection.js";
 

@@ -22,11 +22,7 @@ export type AppError = { code: string; message: string };
  * state, or one disclosure behind the page's primary button.
  */
 export type CreateForm =
-  | "organization"
-  | "workspace"
-  | "repository"
-  | "invitation"
-  | "grant";
+  "organization" | "workspace" | "repository" | "invitation" | "grant";
 
 /**
  * What the app owns on top of the client core's state: where the user is,

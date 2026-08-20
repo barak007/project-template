@@ -51,10 +51,7 @@ const permissions = {
 
 /** What a role on **one workspace** carries. Ordered: each contains the last. */
 export type WorkspacePermission =
-  | "workspace:read"
-  | "session:create"
-  | "workspace:write"
-  | "workspace:manage";
+  "workspace:read" | "session:create" | "workspace:write" | "workspace:manage";
 
 const workspacePermissions = {
   viewer: new Set<WorkspacePermission>(["workspace:read"]),

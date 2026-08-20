@@ -9,10 +9,7 @@ export const workspaceRoleSchema = z.enum([
   "editor",
   "manager",
 ]);
-export const workspaceVisibilitySchema = z.enum([
-  "organization",
-  "restricted",
-]);
+export const workspaceVisibilitySchema = z.enum(["organization", "restricted"]);
 
 export const workspaceInputSchema = z.object({
   name: z.string().trim().min(1).max(200),

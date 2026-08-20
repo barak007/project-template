@@ -3,14 +3,15 @@ import type { ReactNode } from "react";
 
 import {
   ApiError,
-  defaultTableQuery,
+  buildFilters,
   FILTER_SYNTAX_HINT,
   referencesTo,
-  textRowFilter,
+  tableQueryFromRoute,
 } from "../client/index.js";
 import type {
   BackofficeCore,
   ColumnMeta,
+  FilterDrafts,
   RowFilter,
   TableQuery,
   TableRow,
@@ -20,52 +21,6 @@ import { DateRangeFilter } from "./date-range-filter.js";
 import { RowEditor } from "./row-editor.js";
 import { RowRefs } from "./row-refs.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
-
-/**
- * Per-column filter drafts, keyed by column (plus ":from"/":to" for date
- * ranges). Drafts are strings straight from the inputs; buildFilters turns
- * the non-empty ones into typed row filters.
- */
-type Drafts = Record<string, string>;
-
-function buildFilters(columns: ColumnMeta[], drafts: Drafts): RowFilter[] {
-  const filters: RowFilter[] = [];
-  for (const column of columns) {
-    if (column.redacted) continue;
-    if (column.dataType === "date") {
-      const from = drafts[`${column.key}:from`];
-      const to = drafts[`${column.key}:to`];
-      if (from) filters.push({ column: column.key, op: "gte", value: from });
-      if (to) filters.push({ column: column.key, op: "lte", value: to });
-      continue;
-    }
-    const draft = drafts[column.key];
-    if (!draft) continue;
-    switch (column.dataType) {
-      case "string": {
-        if (column.enumValues) {
-          filters.push({ column: column.key, op: "eq", value: draft });
-          break;
-        }
-        const filter = textRowFilter(column.key, draft);
-        if (filter) filters.push(filter);
-        break;
-      }
-      case "boolean":
-        filters.push({ column: column.key, op: "eq", value: draft === "true" });
-        break;
-      case "number": {
-        const value = Number(draft);
-        if (!Number.isNaN(value))
-          filters.push({ column: column.key, op: "eq", value });
-        break;
-      }
-      case "json":
-        break;
-    }
-  }
-  return filters;
-}
 
 function formatCell(
   column: ColumnMeta,
@@ -137,21 +92,13 @@ export function TablePage({
   // that must not wipe drafts or reset the query it just came from.
   const routePage = useRef({ limit: routeLimit, offset: routeOffset });
   routePage.current = { limit: routeLimit, offset: routeOffset };
-  const queryFromRoute = (filters: RowFilter[]): TableQuery => ({
-    ...defaultTableQuery,
-    ...(routePage.current.limit === undefined
-      ? {}
-      : { limit: routePage.current.limit }),
-    ...(routePage.current.offset === undefined
-      ? {}
-      : { offset: routePage.current.offset }),
-    filters,
-  });
+  const queryFromRoute = (filters: RowFilter[]): TableQuery =>
+    tableQueryFromRoute({ ...routePage.current, filters });
 
   const [query, setQuery] = useState<TableQuery>(() =>
     queryFromRoute(routeFilters ?? []),
   );
-  const [drafts, setDrafts] = useState<Drafts>({});
+  const [drafts, setDrafts] = useState<FilterDrafts>({});
   const [editor, setEditor] = useState<Editor | null>(null);
   const [error, setError] = useState<string | null>(null);
 

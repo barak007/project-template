@@ -223,20 +223,20 @@ export function WorkspacePage({
                 </div>
                 <div className="row-actions">
                   {!edits ? null : (
-                  <ConfirmButton
-                    core={core}
-                    confirmKey={confirmKeys.removeRepository(source.id)}
-                    actionKey={actionKeys.removeRepository(source.id)}
-                    label="Remove"
-                    question={`Remove ${source.name} from this workspace?`}
-                    onConfirm={() => {
-                      void core.repositories.remove(
-                        organizationId,
-                        workspaceId,
-                        source.id,
-                      );
-                    }}
-                  />
+                    <ConfirmButton
+                      core={core}
+                      confirmKey={confirmKeys.removeRepository(source.id)}
+                      actionKey={actionKeys.removeRepository(source.id)}
+                      label="Remove"
+                      question={`Remove ${source.name} from this workspace?`}
+                      onConfirm={() => {
+                        void core.repositories.remove(
+                          organizationId,
+                          workspaceId,
+                          source.id,
+                        );
+                      }}
+                    />
                   )}
                 </div>
               </li>

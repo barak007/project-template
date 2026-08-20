@@ -147,5 +147,9 @@ export async function changeMemberRole(
     .from(user)
     .where(eq(user.id, membership.userId))
     .limit(1);
-  return { ...membership, name: person?.name ?? "", email: person?.email ?? "" };
+  return {
+    ...membership,
+    name: person?.name ?? "",
+    email: person?.email ?? "",
+  };
 }

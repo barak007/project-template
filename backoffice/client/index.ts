@@ -33,6 +33,8 @@ export { createMemoryHistory } from "../../domain-client/history.js";
 export type { History, MemoryHistory } from "../../domain-client/history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
 export type { Route } from "./router.js";
+export { buildFilters, tableQueryFromRoute } from "./table-view.js";
+export type { FilterDrafts } from "./table-view.js";
 export { referencesTo } from "./selectors.js";
 export type { IncomingReference } from "./selectors.js";
 export type {
