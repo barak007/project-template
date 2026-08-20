@@ -63,8 +63,9 @@ over a store, tested in Node against the real server
 [backoffice/ui/](../backoffice/ui/) is a rendering adapter that owns no logic.
 
 The open table page's view — the row query (pagination, sorting, applied
-filters), the per-column filter drafts, and the filters a followed
-foreign-key link arrived with — is the `tableView` state slice
+filters), the per-column filter drafts, the filters a followed foreign-key
+link arrived with, the open row editor, and the last mutation error — is the
+`tableView` state slice
 ([backoffice/client/table-view.ts](../backoffice/client/table-view.ts)),
 changed only by events and driven by the `view` actions
 ([backoffice/client/table-view-actions.ts](../backoffice/client/table-view-actions.ts)).

@@ -1,8 +1,18 @@
+import { ApiError } from "../../domain-client/errors.js";
+
 import type { createBackofficeNavigation } from "./navigation-actions.js";
 import type { BackofficeStore } from "./projection.js";
+import type { BackofficeError } from "./state.js";
 import { buildFilters } from "./table-view.js";
+import type { TableEditor } from "./table-view.js";
 
 type Navigation = ReturnType<typeof createBackofficeNavigation>;
+
+function toBackofficeError(error: unknown): BackofficeError {
+  if (error instanceof ApiError)
+    return { code: error.code, message: error.message };
+  return { code: "UNEXPECTED", message: "Something went wrong" };
+}
 
 /**
  * Everything a user does to the open table view besides reading rows:
@@ -82,6 +92,32 @@ export function createTableViewActions(
     previousPage: () => {
       store.dispatch({ type: "table-page-turned", direction: "previous" });
       mirror();
+    },
+    openEditor: (editor: TableEditor) => {
+      store.dispatch({ type: "table-editor-opened", editor });
+    },
+    closeEditor: () => {
+      store.dispatch({ type: "table-editor-closed" });
+    },
+    /**
+     * Runs one row mutation; failures land in `tableView.error`, never as
+     * throws, and starting clears the previous failure. Returns whether the
+     * mutation succeeded, so a caller can close the editor it came from.
+     * (The planned backoffice `attempt` funnel will absorb this — see
+     * docs/next-work.md, Milestone 1.)
+     */
+    mutate: async (work: () => Promise<void>): Promise<boolean> => {
+      store.dispatch({ type: "table-mutation-started" });
+      try {
+        await work();
+        return true;
+      } catch (caught) {
+        store.dispatch({
+          type: "table-mutation-failed",
+          error: toBackofficeError(caught),
+        });
+        return false;
+      }
     },
   };
 }

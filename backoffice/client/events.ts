@@ -12,7 +12,7 @@ import type {
   BackofficeError,
   UserDraft,
 } from "./state.js";
-import type { TableQuery } from "./table-view.js";
+import type { TableEditor, TableQuery } from "./table-view.js";
 
 export type BackofficeEvent =
   | {
@@ -42,4 +42,8 @@ export type BackofficeEvent =
   | { type: "table-filters-cleared" }
   | { type: "table-sorted"; column: string }
   | { type: "table-limit-set"; limit: number }
-  | { type: "table-page-turned"; direction: "next" | "previous" };
+  | { type: "table-page-turned"; direction: "next" | "previous" }
+  | { type: "table-editor-opened"; editor: TableEditor }
+  | { type: "table-editor-closed" }
+  | { type: "table-mutation-started" }
+  | { type: "table-mutation-failed"; error: BackofficeError };

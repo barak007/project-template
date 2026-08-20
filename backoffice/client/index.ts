@@ -23,7 +23,7 @@ export type {
 } from "./api.js";
 export type { RowFilter } from "./data-actions.js";
 export { defaultTableQuery } from "./table-view.js";
-export type { TableQuery, TableViewState } from "./table-view.js";
+export type { TableEditor, TableQuery, TableViewState } from "./table-view.js";
 export type { BackofficeEvent } from "./events.js";
 export {
   FILTER_SYNTAX_HINT,

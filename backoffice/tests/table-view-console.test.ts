@@ -2,7 +2,12 @@ import { afterAll, beforeAll, describe, it } from "vitest";
 
 import { browserFetch } from "../../domain-client/tests/kit/browser-fetch.js";
 import type { Database } from "../../domain-server/db/client.js";
-import { createTestDatabase } from "../../domain-server/tests/helpers/harness.js";
+import {
+  asUser,
+  createTestDatabase,
+  createTestUser,
+  jsonBody,
+} from "../../domain-server/tests/helpers/harness.js";
 import {
   createBackofficeCore,
   createMemoryHistory,
@@ -21,9 +26,18 @@ let db: Database;
 let close: () => Promise<void>;
 let app: ReturnType<typeof createBackofficeTestApp>["app"];
 
+const founder = "table-view-founder";
+let organizationId = "";
+
 beforeAll(async () => {
   ({ db, close } = await createTestDatabase());
   ({ app } = createBackofficeTestApp(db));
+  await createTestUser(db, founder);
+  const created = await app.request(
+    "/api/organizations",
+    asUser(founder, jsonBody({ name: "Table View Tenant" })),
+  );
+  organizationId = ((await created.json()) as { id: string }).id;
 });
 
 afterAll(async () => {
@@ -62,6 +76,8 @@ describe("backoffice table view", () => {
       routeFilters: [],
       query: defaultTableQuery,
       drafts: {},
+      editor: null,
+      error: null,
     });
   });
 
@@ -76,6 +92,8 @@ describe("backoffice table view", () => {
         routeFilters: [],
         query: defaultTableQuery,
         drafts: {},
+        editor: null,
+        error: null,
       });
     },
   );
@@ -209,6 +227,8 @@ describe("backoffice table view", () => {
         routeFilters: [],
         query: defaultTableQuery,
         drafts: {},
+        editor: null,
+        error: null,
       });
       expect(history.path()).toBe("/tables/workspaces");
     },
@@ -228,6 +248,57 @@ describe("backoffice table view", () => {
   );
 
   it.concurrent(
+    "the row editor opens and closes in the view",
+    async ({ expect }) => {
+      const { backoffice } = await openedConsole();
+      backoffice.view.openEditor({ mode: "insert" });
+      expect(backoffice.getState().tableView?.editor).toEqual({
+        mode: "insert",
+      });
+      backoffice.view.closeEditor();
+      expect(backoffice.getState().tableView?.editor).toBeNull();
+    },
+  );
+
+  it.concurrent(
+    "mutation failures land in state and the next attempt clears them",
+    async ({ expect }) => {
+      const { backoffice } = await openedConsole();
+      const failed = await backoffice.view.mutate(() =>
+        backoffice.data.insertRow("organizations", { name: 5 }),
+      );
+      expect(failed).toBe(false);
+      expect(backoffice.getState().tableView?.error?.code).toBe(
+        "VALIDATION_FAILED",
+      );
+
+      const saved = await backoffice.view.mutate(() =>
+        backoffice.data.insertRow("workspaces", {
+          organizationId,
+          name: `ops-${crypto.randomUUID()}`,
+        }),
+      );
+      expect(saved).toBe(true);
+      expect(backoffice.getState().tableView?.error).toBeNull();
+    },
+  );
+
+  it.concurrent(
+    "opening another table closes the editor and drops the error",
+    async ({ expect }) => {
+      const { backoffice } = await openedConsole();
+      backoffice.view.openEditor({ mode: "insert" });
+      await backoffice.view.mutate(() =>
+        backoffice.data.insertRow("organizations", { name: 5 }),
+      );
+      backoffice.navigation.navigate({ kind: "table", table: "workspaces" });
+      const view = backoffice.getState().tableView;
+      expect(view?.editor).toBeNull();
+      expect(view?.error).toBeNull();
+    },
+  );
+
+  it.concurrent(
     "signing out rebuilds the view for the route it stays on",
     async ({ expect }) => {
       const { backoffice } = await openedConsole();
@@ -243,6 +314,8 @@ describe("backoffice table view", () => {
         routeFilters: nameFilter,
         query: { ...defaultTableQuery, filters: nameFilter },
         drafts: {},
+        editor: null,
+        error: null,
       });
     },
   );

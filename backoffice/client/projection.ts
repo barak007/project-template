@@ -8,17 +8,24 @@ import type { TableQuery, TableViewState } from "./table-view.js";
 
 export type BackofficeStore = Store<BackofficeState, BackofficeEvent>;
 
+/** Applies a change to the open table view; without one, a no-op. */
+function withView(
+  state: BackofficeState,
+  change: (view: TableViewState) => Partial<TableViewState>,
+): BackofficeState {
+  const view = state.tableView;
+  if (!view) return state;
+  return { ...state, tableView: { ...view, ...change(view) } };
+}
+
 /** Applies a query change to the open table view; without one, a no-op. */
 function withQuery(
   state: BackofficeState,
   change: (view: TableViewState) => Partial<TableQuery>,
 ): BackofficeState {
-  const view = state.tableView;
-  if (!view) return state;
-  return {
-    ...state,
-    tableView: { ...view, query: { ...view.query, ...change(view) } },
-  };
+  return withView(state, (view) => ({
+    query: { ...view.query, ...change(view) },
+  }));
 }
 
 export function reduce(
@@ -100,31 +107,19 @@ export function reduce(
         },
       };
     case "table-draft-set":
-      return state.tableView
-        ? {
-            ...state,
-            tableView: {
-              ...state.tableView,
-              drafts: { ...state.tableView.drafts, [event.key]: event.value },
-            },
-          }
-        : state;
+      return withView(state, (view) => ({
+        drafts: { ...view.drafts, [event.key]: event.value },
+      }));
     // Every query change returns to the first page: the reader is asking a
     // new question, and the old offset may not even exist under it.
     case "table-filters-applied":
       return withQuery(state, () => ({ offset: 0, filters: event.filters }));
     case "table-filters-cleared":
-      return state.tableView
-        ? {
-            ...state,
-            tableView: {
-              ...state.tableView,
-              routeFilters: [],
-              drafts: {},
-              query: { ...state.tableView.query, offset: 0, filters: [] },
-            },
-          }
-        : state;
+      return withView(state, (view) => ({
+        routeFilters: [],
+        drafts: {},
+        query: { ...view.query, offset: 0, filters: [] },
+      }));
     case "table-sorted":
       return withQuery(state, (view) => ({
         offset: 0,
@@ -143,5 +138,15 @@ export function reduce(
             ? view.query.offset + view.query.limit
             : Math.max(0, view.query.offset - view.query.limit),
       }));
+    case "table-editor-opened":
+      return withView(state, () => ({ editor: event.editor }));
+    case "table-editor-closed":
+      return withView(state, () => ({ editor: null }));
+    // Starting a mutation drops the previous failure: the message on screen
+    // must always be about the attempt the user just made.
+    case "table-mutation-started":
+      return withView(state, () => ({ error: null }));
+    case "table-mutation-failed":
+      return withView(state, () => ({ error: event.error }));
   }
 }

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 
-import { ApiError, FILTER_SYNTAX_HINT, referencesTo } from "../client/index.js";
+import { FILTER_SYNTAX_HINT, referencesTo } from "../client/index.js";
 import type { BackofficeCore, ColumnMeta, TableRow } from "../client/index.js";
 
 import { DateRangeFilter } from "./date-range-filter.js";
@@ -33,14 +33,12 @@ function rowKey(primaryKey: string[], row: TableRow): TableRow {
   );
 }
 
-type Editor = { mode: "insert" } | { mode: "edit"; row: TableRow };
-
 /**
- * The generic table console. The view it renders — query, filter drafts, and
- * the filters the route arrived with — lives in the store as `tableView`
- * (backoffice/client/table-view.ts), reset by navigation when another table
- * opens; callers key this component on table + route filters so the local
- * editor/error state resets with it.
+ * The generic table console. Everything it renders besides its callers'
+ * affordances — query, filter drafts, route filters, the open row editor,
+ * and the last mutation error — lives in the store as `tableView`
+ * (backoffice/client/table-view.ts), reset by navigation when another
+ * table opens.
  */
 export function TablePage({
   core,
@@ -75,11 +73,6 @@ export function TablePage({
   const tableView = useBackofficeState(core, (state) => state.tableView);
   const view = tableView?.table === table ? tableView : null;
 
-  // Editor and error are still component state (their extraction is the next
-  // slice); everything else the page shows comes from the store.
-  const [editor, setEditor] = useState<Editor | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   const query = view?.query ?? null;
   useEffect(() => {
     if (!query) return;
@@ -104,18 +97,10 @@ export function TablePage({
   const columns = meta.columns;
   const page = tableData?.table === table ? tableData.page : null;
 
-  const run = async (action: () => Promise<void>) => {
-    setError(null);
-    try {
-      await load(action);
-      return true;
-    } catch (caught) {
-      setError(
-        caught instanceof ApiError ? caught.message : "Something went wrong",
-      );
-      return false;
-    }
-  };
+  // `load` keeps the auth funnel (an expired session lands on sign-in);
+  // everything else the mutation throws becomes `tableView.error`.
+  const run = (action: () => Promise<void>) =>
+    core.view.mutate(() => load(action));
 
   const remove = (row: TableRow) => {
     const message =
@@ -215,14 +200,14 @@ export function TablePage({
         <button
           className="primary"
           onClick={() => {
-            setEditor({ mode: "insert" });
+            core.view.openEditor({ mode: "insert" });
           }}
         >
           {insertControl?.label ?? "Add row"}
         </button>
       </header>
 
-      {error ? <p className="error">{error}</p> : null}
+      {view.error ? <p className="error">{view.error.message}</p> : null}
 
       {view.query.filters.length > 0 ? (
         <p className="active-filters">
@@ -247,21 +232,26 @@ export function TablePage({
         </p>
       ) : null}
 
-      {editor?.mode === "insert" && insertControl ? (
+      {view.editor?.mode === "insert" && insertControl ? (
         insertControl.editor(() => {
-          setEditor(null);
+          core.view.closeEditor();
         })
-      ) : editor ? (
+      ) : view.editor ? (
         <RowEditor
-          key={editor.mode === "edit" ? JSON.stringify(editor.row) : "insert"}
+          key={
+            view.editor.mode === "edit"
+              ? JSON.stringify(view.editor.row)
+              : "insert"
+          }
           meta={meta}
-          row={editor.mode === "edit" ? editor.row : null}
+          row={view.editor.mode === "edit" ? view.editor.row : null}
           onCancel={() => {
-            setEditor(null);
+            core.view.closeEditor();
           }}
           onSave={async (values) => {
+            const editor = view.editor;
             const saved = await run(() =>
-              editor.mode === "edit"
+              editor?.mode === "edit"
                 ? core.data.updateRow(
                     table,
                     rowKey(meta.primaryKey, editor.row),
@@ -269,7 +259,7 @@ export function TablePage({
                   )
                 : core.data.insertRow(table, values),
             );
-            if (saved) setEditor(null);
+            if (saved) core.view.closeEditor();
           }}
         />
       ) : null}
@@ -341,7 +331,7 @@ export function TablePage({
                   {rowReferences(row)}
                   <button
                     onClick={() => {
-                      setEditor({ mode: "edit", row });
+                      core.view.openEditor({ mode: "edit", row });
                     }}
                   >
                     Edit

@@ -3,17 +3,6 @@ import { useCallback, useEffect } from "react";
 import { ApiError } from "../client/index.js";
 import type { BackofficeCore, Route } from "../client/index.js";
 
-/**
- * Table pages remount when the table or the route's filters change — the
- * store's view resets on that same navigation, and the remount drops what is
- * still component-local (editor, error). Pagination mirrors (limit/offset)
- * rewrite the route too, but produce the same key, so page turns never
- * remount.
- */
-function tablePageKey(route: Route & { kind: "table" }): string {
-  return `${route.table}:${JSON.stringify(route.filters ?? [])}`;
-}
-
 import { OrganizationDetailPage } from "./organization-detail-page.js";
 import { OrganizationsPage } from "./organizations-page.js";
 import { Setup } from "./setup.js";
@@ -133,7 +122,6 @@ export function App({ core }: { core: BackofficeCore }) {
           />
         ) : route.table === "user" ? (
           <UsersPage
-            key={tablePageKey(route)}
             core={core}
             load={load}
             onOpen={(userId) => {
@@ -142,7 +130,6 @@ export function App({ core }: { core: BackofficeCore }) {
           />
         ) : route.table === "organizations" ? (
           <OrganizationsPage
-            key={tablePageKey(route)}
             core={core}
             load={load}
             onOpen={(organizationId) => {
@@ -150,12 +137,7 @@ export function App({ core }: { core: BackofficeCore }) {
             }}
           />
         ) : (
-          <TablePage
-            key={tablePageKey(route)}
-            core={core}
-            load={load}
-            table={route.table}
-          />
+          <TablePage core={core} load={load} table={route.table} />
         )}
       </main>
     </div>

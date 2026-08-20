@@ -1,8 +1,9 @@
 import type { RowFilter } from "../server/entities/data.js";
 
-import type { ColumnMeta } from "./api.js";
+import type { ColumnMeta, TableRow } from "./api.js";
 import { textRowFilter } from "./filter-query.js";
 import type { Route } from "./router.js";
+import type { BackofficeError } from "./state.js";
 
 export type TableQuery = {
   limit: number;
@@ -25,17 +26,23 @@ export const defaultTableQuery: TableQuery = {
  */
 export type FilterDrafts = Record<string, string>;
 
+/** The row editor over the table: inserting a new row or editing one. */
+export type TableEditor = { mode: "insert" } | { mode: "edit"; row: TableRow };
+
 /**
  * Everything the open table page shows or edits besides the rows themselves:
- * the query being asked, the filter drafts under the column headers, and the
+ * the query being asked, the filter drafts under the column headers, the
  * filters the route arrived with (a followed foreign-key link), which the URL
- * keeps carrying while the query changes underneath.
+ * keeps carrying while the query changes underneath, the open row editor,
+ * and the last mutation failure.
  */
 export type TableViewState = {
   table: string;
   routeFilters: RowFilter[];
   query: TableQuery;
   drafts: FilterDrafts;
+  editor: TableEditor | null;
+  error: BackofficeError | null;
 };
 
 /**
@@ -60,6 +67,8 @@ export function tableViewOnNavigate(
     routeFilters: filters,
     query: tableQueryFromRoute(route),
     drafts: {},
+    editor: null,
+    error: null,
   };
 }
 
