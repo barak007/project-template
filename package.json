@@ -45,12 +45,12 @@
     "zod": "latest"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.4",
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "latest",
     "@types/node": "latest",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.0.5",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "latest",
     "drizzle-kit": "latest",
     "eslint": "latest",
@@ -58,7 +58,7 @@
     "eslint-plugin-import-x": "latest",
     "prettier": "latest",
     "tsx": "latest",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "typescript-eslint": "latest",
     "vite": "latest",
     "vitest": "latest"
