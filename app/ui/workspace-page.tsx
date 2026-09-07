@@ -53,7 +53,6 @@ export function WorkspacePage({
   const sources = useAppState(core, (state) => state.sources);
   const workSessions = useAppState(core, (state) => state.workSessions);
   const draft = useAppState(core, (state) => state.repositoryDraft);
-  const members = useAppState(core, (state) => state.members.length);
   const repositoriesLoaded = useAppState(core, (state) =>
     hasLoaded(state, loadKeys.repositories(organizationId)),
   );
@@ -276,34 +275,13 @@ export function WorkspacePage({
         )}
       </Section>
 
-      {/* Managing access is the manager's; everyone else is told what applies
-          rather than shown controls the server would refuse. */}
-      {manages && workspace ? (
-        <WorkspaceAccessSection
-          core={core}
-          organizationId={organizationId}
-          workspaceId={workspaceId}
-          visibility={workspace.visibility}
-        />
-      ) : (
-        <Section title="Access">
-          <div className="project-row for-organization">
-            <EntityIcon entity="organization" />
-            <span className="muted">
-              {workspace?.visibility === "restricted"
-                ? "This workspace is restricted to the people its manager has named."
-                : "Everyone in this organization can open this workspace."}
-            </span>
-            <RouteLink
-              core={core}
-              to={{ kind: "organization", organizationId }}
-              className="link"
-            >
-              {members === 1 ? "1 member" : `${String(members)} members`}
-            </RouteLink>
-          </div>
-        </Section>
-      )}
+      <WorkspaceAccessSection
+        core={core}
+        organizationId={organizationId}
+        workspaceId={workspaceId}
+        visibility={workspace?.visibility ?? "organization"}
+        manages={manages && workspace !== undefined}
+      />
     </section>
   );
 }

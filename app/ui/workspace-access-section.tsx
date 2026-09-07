@@ -32,11 +32,14 @@ export function WorkspaceAccessSection({
   organizationId,
   workspaceId,
   visibility,
+  manages,
 }: {
   core: AppCore;
   organizationId: string;
   workspaceId: string;
   visibility: "organization" | "restricted";
+  /** Managing access is the manager's; everyone else is told what applies. */
+  manages: boolean;
 }) {
   const grants = useAppState(core, (state) => state.workspaceGrants.grants);
   const forThis = useAppState(
@@ -49,7 +52,29 @@ export function WorkspaceAccessSection({
   const changingVisibility = useAppState(core, (state) =>
     isPending(state, actionKeys.setVisibility(workspaceId)),
   );
+  const members = useAppState(core, (state) => state.members.length);
   const restricted = visibility === "restricted";
+
+  if (!manages)
+    return (
+      <Section title="Access">
+        <div className="project-row for-organization">
+          <EntityIcon entity="organization" />
+          <span className="muted">
+            {restricted
+              ? "This workspace is restricted to the people its manager has named."
+              : "Everyone in this organization can open this workspace."}
+          </span>
+          <RouteLink
+            core={core}
+            to={{ kind: "organization", organizationId }}
+            className="link"
+          >
+            {members === 1 ? "1 member" : `${String(members)} members`}
+          </RouteLink>
+        </div>
+      </Section>
+    );
 
   return (
     <Section
