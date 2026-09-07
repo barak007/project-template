@@ -1,4 +1,5 @@
 import type { AppActionContext } from "./context.js";
+import { createDraftForm } from "./draft-form.js";
 import { actionKeys, loadKeys } from "./keys.js";
 import type { NameDraft } from "./state.js";
 
@@ -13,6 +14,15 @@ export function createWorkspaceActions({
   navigation,
   attempt,
 }: AppActionContext) {
+  const form = createDraftForm(store, {
+    form: "workspace",
+    changed: (draft: Partial<NameDraft>) => ({
+      type: "workspace-draft-changed",
+      draft,
+    }),
+    empty: { name: "" },
+  });
+
   return {
     load: (organizationId: string) =>
       attempt(() => client.workspaces.load(organizationId), {
@@ -21,27 +31,16 @@ export function createWorkspaceActions({
     open: (organizationId: string, workspaceId: string) => {
       navigation.navigate({ kind: "workspace", organizationId, workspaceId });
     },
-    changeDraft: (draft: Partial<NameDraft>) => {
-      store.dispatch({ type: "workspace-draft-changed", draft });
-    },
-    startCreating: () => {
-      store.dispatch({ type: "create-form-opened", form: "workspace" });
-    },
-    cancelCreating: () => {
-      store.dispatch({ type: "create-form-closed" });
-      store.dispatch({ type: "workspace-draft-changed", draft: { name: "" } });
-    },
+    changeDraft: form.change,
+    startCreating: form.open,
+    cancelCreating: form.cancel,
     create: (organizationId: string) =>
       attempt(
         async () => {
           const name = store.getState().workspaceDraft.name.trim();
           if (!name) return;
           await client.workspaces.create(organizationId, { name });
-          store.dispatch({
-            type: "workspace-draft-changed",
-            draft: { name: "" },
-          });
-          store.dispatch({ type: "create-form-closed" });
+          form.finish();
         },
         { key: actionKeys.createWorkspace },
       ),

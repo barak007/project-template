@@ -1,4 +1,5 @@
 import type { AppActionContext } from "./context.js";
+import { createDraftForm } from "./draft-form.js";
 import { actionKeys, loadKeys } from "./keys.js";
 
 /**
@@ -34,22 +35,21 @@ export function createRepositoryActions({
     });
   };
 
+  const form = createDraftForm(store, {
+    form: "repository",
+    changed: (remote: string) => ({ type: "repository-draft-changed", remote }),
+    empty: "",
+  });
+
   return {
     /** Every repository the organization has defined, attached or not. */
     load: (organizationId: string) =>
       attempt(() => client.sources.load(organizationId), {
         loaded: loadKeys.repositories(organizationId),
       }),
-    draft: (remote: string) => {
-      store.dispatch({ type: "repository-draft-changed", remote });
-    },
-    startAdding: () => {
-      store.dispatch({ type: "create-form-opened", form: "repository" });
-    },
-    cancelAdding: () => {
-      store.dispatch({ type: "create-form-closed" });
-      store.dispatch({ type: "repository-draft-changed", remote: "" });
-    },
+    draft: form.change,
+    startAdding: form.open,
+    cancelAdding: form.cancel,
     /**
      * Defines the repository if it is new and attaches it to the workspace.
      * Adding a URL the organization already has reuses that repository rather
@@ -68,8 +68,7 @@ export function createRepositoryActions({
               ? sourceIds
               : [...sourceIds, source.id],
           );
-          store.dispatch({ type: "repository-draft-changed", remote: "" });
-          store.dispatch({ type: "create-form-closed" });
+          form.finish();
         },
         { key: actionKeys.addRepository },
       ),

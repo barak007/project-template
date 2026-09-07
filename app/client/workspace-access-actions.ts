@@ -1,6 +1,7 @@
 import type { WorkspaceVisibility } from "../../domain-client/index.js";
 
 import type { AppActionContext } from "./context.js";
+import { createDraftForm } from "./draft-form.js";
 import { actionKeys, loadKeys } from "./keys.js";
 import { emptyGrantDraft } from "./state.js";
 import type { GrantDraft } from "./state.js";
@@ -15,25 +16,23 @@ export function createWorkspaceAccessActions({
   store,
   attempt,
 }: AppActionContext) {
-  const clearDraft = () => {
-    store.dispatch({ type: "grant-draft-changed", draft: emptyGrantDraft });
-  };
+  const form = createDraftForm(store, {
+    form: "grant",
+    changed: (draft: Partial<GrantDraft>) => ({
+      type: "grant-draft-changed",
+      draft,
+    }),
+    empty: emptyGrantDraft,
+  });
 
   return {
     load: (organizationId: string, workspaceId: string) =>
       attempt(() => client.workspaceAccess.load(organizationId, workspaceId), {
         loaded: loadKeys.workspaceGrants(workspaceId),
       }),
-    changeDraft: (draft: Partial<GrantDraft>) => {
-      store.dispatch({ type: "grant-draft-changed", draft });
-    },
-    startGranting: () => {
-      store.dispatch({ type: "create-form-opened", form: "grant" });
-    },
-    cancelGranting: () => {
-      store.dispatch({ type: "create-form-closed" });
-      clearDraft();
-    },
+    changeDraft: form.change,
+    startGranting: form.open,
+    cancelGranting: form.cancel,
     /** Gives the person in the draft access, and empties the form. */
     grant: (organizationId: string, workspaceId: string) =>
       attempt(
@@ -44,8 +43,7 @@ export function createWorkspaceAccessActions({
             userId,
             role,
           });
-          clearDraft();
-          store.dispatch({ type: "create-form-closed" });
+          form.finish();
         },
         { key: actionKeys.grantAccess },
       ),

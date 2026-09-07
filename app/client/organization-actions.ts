@@ -1,4 +1,5 @@
 import type { AppActionContext } from "./context.js";
+import { createDraftForm } from "./draft-form.js";
 import { actionKeys, loadKeys } from "./keys.js";
 import type { NameDraft } from "./state.js";
 
@@ -9,38 +10,33 @@ export function createOrganizationActions({
   navigation,
   attempt,
 }: AppActionContext) {
+  const form = createDraftForm(store, {
+    form: "organization",
+    changed: (draft: Partial<NameDraft>) => ({
+      type: "organization-draft-changed",
+      draft,
+    }),
+    empty: { name: "" },
+  });
+
   return {
     load: () =>
       attempt(() => client.organizations.load(), {
         loaded: loadKeys.organizations,
       }),
-    changeDraft: (draft: Partial<NameDraft>) => {
-      store.dispatch({ type: "organization-draft-changed", draft });
-    },
+    changeDraft: form.change,
     /** Opens the create form; the page shows it in place of its primary button. */
-    startCreating: () => {
-      store.dispatch({ type: "create-form-opened", form: "organization" });
-    },
-    cancelCreating: () => {
-      store.dispatch({ type: "create-form-closed" });
-      store.dispatch({
-        type: "organization-draft-changed",
-        draft: { name: "" },
-      });
-    },
+    startCreating: form.open,
+    cancelCreating: form.cancel,
     create: () =>
       attempt(
         async () => {
           const name = store.getState().organizationDraft.name.trim();
           if (!name) return;
           await client.organizations.create({ name });
-          store.dispatch({
-            type: "organization-draft-changed",
-            draft: { name: "" },
-          });
           // The form has done its job; leaving it open would put an empty input
           // above the thing that was just created.
-          store.dispatch({ type: "create-form-closed" });
+          form.finish();
         },
         { key: actionKeys.createOrganization },
       ),

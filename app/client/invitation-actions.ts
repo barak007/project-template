@@ -1,4 +1,5 @@
 import type { AppActionContext } from "./context.js";
+import { createDraftForm } from "./draft-form.js";
 import { actionKeys, loadKeys } from "./keys.js";
 import { emptyInviteDraft } from "./state.js";
 import type { InviteDraft } from "./state.js";
@@ -14,25 +15,23 @@ export function createInvitationActions({
   store,
   attempt,
 }: AppActionContext) {
-  const clearDraft = () => {
-    store.dispatch({ type: "invite-draft-changed", draft: emptyInviteDraft });
-  };
+  const form = createDraftForm(store, {
+    form: "invitation",
+    changed: (draft: Partial<InviteDraft>) => ({
+      type: "invite-draft-changed",
+      draft,
+    }),
+    empty: emptyInviteDraft,
+  });
 
   return {
     load: (organizationId: string) =>
       attempt(() => client.invitations.load(organizationId), {
         loaded: loadKeys.invitations(organizationId),
       }),
-    changeDraft: (draft: Partial<InviteDraft>) => {
-      store.dispatch({ type: "invite-draft-changed", draft });
-    },
-    startInviting: () => {
-      store.dispatch({ type: "create-form-opened", form: "invitation" });
-    },
-    cancelInviting: () => {
-      store.dispatch({ type: "create-form-closed" });
-      clearDraft();
-    },
+    changeDraft: form.change,
+    startInviting: form.open,
+    cancelInviting: form.cancel,
     invite: (organizationId: string) =>
       attempt(
         async () => {
@@ -42,8 +41,7 @@ export function createInvitationActions({
             email: email.trim(),
             role,
           });
-          clearDraft();
-          store.dispatch({ type: "create-form-closed" });
+          form.finish();
         },
         { key: actionKeys.invite },
       ),
