@@ -2,6 +2,8 @@ import { useState } from "react";
 
 import type { ColumnMeta, TableMeta, TableRow } from "../client/index.js";
 
+import { ErrorText } from "./error-text.js";
+
 type RowValues = TableRow;
 
 /** Field drafts are strings straight from the inputs; JSON fields hold JSON text. */
@@ -129,7 +131,7 @@ export function RowEditor({
   return (
     <div className="row-editor">
       <h2>{editing ? "Edit row" : "Add row"}</h2>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <ErrorText>{error}</ErrorText> : null}
       <div className="fields">
         {meta.columns.map((column) => (
           <label key={column.key}>

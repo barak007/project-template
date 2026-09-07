@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { BackofficeCore } from "../client/index.js";
 
+import { ErrorText } from "./error-text.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
 export function SignIn({ core }: { core: BackofficeCore }) {
@@ -38,7 +39,7 @@ export function SignIn({ core }: { core: BackofficeCore }) {
             required
           />
         </label>
-        {error ? <p className="error">{error.message}</p> : null}
+        {error ? <ErrorText>{error.message}</ErrorText> : null}
         <button type="submit">Sign in</button>
       </form>
     </div>

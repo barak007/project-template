@@ -1,10 +1,16 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
-import { FILTER_SYNTAX_HINT, referencesTo } from "../client/index.js";
+import {
+  FILTER_SYNTAX_HINT,
+  filterSummary,
+  referencesTo,
+} from "../client/index.js";
 import type { BackofficeCore, ColumnMeta, TableRow } from "../client/index.js";
 
 import { DateRangeFilter } from "./date-range-filter.js";
+import { ErrorText } from "./error-text.js";
+import { Loading } from "./loading.js";
 import { RowEditor } from "./row-editor.js";
 import { RowRefs } from "./row-refs.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
@@ -93,7 +99,7 @@ export function TablePage({
     };
   }, [core, drafts]);
 
-  if (!meta || !view) return <p>Loading…</p>;
+  if (!meta || !view) return <Loading />;
   const columns = meta.columns;
   const page = tableData?.table === table ? tableData.page : null;
 
@@ -207,21 +213,11 @@ export function TablePage({
         </button>
       </header>
 
-      {view.error ? <p className="error">{view.error.message}</p> : null}
+      {view.error ? <ErrorText>{view.error.message}</ErrorText> : null}
 
       {view.query.filters.length > 0 ? (
         <p className="active-filters">
-          Filtered:{" "}
-          {view.query.filters
-            .map(
-              (filter) =>
-                `${filter.column} ${filter.op}${
-                  filter.value === undefined || filter.value === null
-                    ? ""
-                    : ` ${typeof filter.value === "object" ? JSON.stringify(filter.value) : String(filter.value)}`
-                }`,
-            )
-            .join(", ")}{" "}
+          Filtered: {filterSummary(view.query.filters)}{" "}
           <button
             onClick={() => {
               core.view.clearFilters();

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import type { BackofficeCore, TableRow } from "../client/index.js";
 
+import { ErrorText } from "./error-text.js";
 import { rowText, TablePage } from "./table-page.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
@@ -35,7 +36,7 @@ function AddUserEditor({
   return (
     <div className="row-editor">
       <h2>Add user</h2>
-      {editor.error ? <p className="error">{editor.error.message}</p> : null}
+      {editor.error ? <ErrorText>{editor.error.message}</ErrorText> : null}
       <div className="fields">
         <label>
           <span>name *</span>

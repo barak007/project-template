@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { BackofficeCore } from "../client/index.js";
 
+import { ErrorText } from "./error-text.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
 export function Setup({ core }: { core: BackofficeCore }) {
@@ -59,8 +60,8 @@ export function Setup({ core }: { core: BackofficeCore }) {
             required
           />
         </label>
-        {mismatch ? <p className="error">The passwords do not match</p> : null}
-        {error ? <p className="error">{error.message}</p> : null}
+        {mismatch ? <ErrorText>The passwords do not match</ErrorText> : null}
+        {error ? <ErrorText>{error.message}</ErrorText> : null}
         <button type="submit">Create admin</button>
       </form>
     </div>

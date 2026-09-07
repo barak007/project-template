@@ -2,6 +2,9 @@ import { useEffect } from "react";
 
 import type { BackofficeCore } from "../client/index.js";
 
+import { DetailTable } from "./detail-table.js";
+import { Loading } from "./loading.js";
+import { StatusPill } from "./status-pill.js";
 import { useBackofficeState } from "./use-backoffice-state.js";
 
 export function UserDetailPage({
@@ -23,7 +26,7 @@ export function UserDetailPage({
     void load(() => core.admin.loadUserDetail(userId));
   }, [core, load, userId]);
 
-  if (detail?.user.id !== userId) return <p>Loading…</p>;
+  if (detail?.user.id !== userId) return <Loading />;
 
   return (
     <section className="detail-page">
@@ -36,132 +39,66 @@ export function UserDetailPage({
       </p>
 
       <h2>Sign-in methods</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Provider</th>
-            <th>Created</th>
-            <th>Updated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {detail.accounts.map((entry) => (
-            <tr key={entry.id}>
-              <td>
-                {entry.providerId === "credential"
-                  ? "credential (email + password)"
-                  : entry.providerId}
-              </td>
-              <td>{new Date(entry.createdAt).toLocaleString()}</td>
-              <td>{new Date(entry.updatedAt).toLocaleString()}</td>
-            </tr>
-          ))}
-          {detail.accounts.length === 0 ? (
-            <tr>
-              <td className="empty" colSpan={3}>
-                No sign-in methods.
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+      <DetailTable
+        columns={["Provider", "Created", "Updated"]}
+        rows={detail.accounts}
+        rowKey={(entry) => entry.id}
+        cells={(entry) => [
+          entry.providerId === "credential"
+            ? "credential (email + password)"
+            : entry.providerId,
+          new Date(entry.createdAt).toLocaleString(),
+          new Date(entry.updatedAt).toLocaleString(),
+        ]}
+        emptyMessage="No sign-in methods."
+      />
 
       <h2>Organizations</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Joined</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {detail.memberships.map((membership) => (
-            <tr key={membership.organizationId}>
-              <td>{membership.organizationName}</td>
-              <td>{membership.role}</td>
-              <td>{new Date(membership.createdAt).toLocaleString()}</td>
-              <td>
-                <button
-                  onClick={() => {
-                    onOpenOrganization(membership.organizationId);
-                  }}
-                >
-                  Open
-                </button>
-              </td>
-            </tr>
-          ))}
-          {detail.memberships.length === 0 ? (
-            <tr>
-              <td className="empty" colSpan={4}>
-                No memberships.
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+      <DetailTable
+        columns={["Name", "Role", "Joined", ""]}
+        rows={detail.memberships}
+        rowKey={(membership) => membership.organizationId}
+        cells={(membership) => [
+          membership.organizationName,
+          membership.role,
+          new Date(membership.createdAt).toLocaleString(),
+          <button
+            onClick={() => {
+              onOpenOrganization(membership.organizationId);
+            }}
+          >
+            Open
+          </button>,
+        ]}
+        emptyMessage="No memberships."
+      />
 
       <h2>Sessions</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Created</th>
-            <th>Expires</th>
-            <th>IP</th>
-            <th>Agent</th>
-          </tr>
-        </thead>
-        <tbody>
-          {detail.sessions.map((entry) => (
-            <tr key={entry.id}>
-              <td>{new Date(entry.createdAt).toLocaleString()}</td>
-              <td>{new Date(entry.expiresAt).toLocaleString()}</td>
-              <td>{entry.ipAddress ?? "—"}</td>
-              <td>{entry.userAgent ?? "—"}</td>
-            </tr>
-          ))}
-          {detail.sessions.length === 0 ? (
-            <tr>
-              <td className="empty" colSpan={4}>
-                No sessions.
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+      <DetailTable
+        columns={["Created", "Expires", "IP", "Agent"]}
+        rows={detail.sessions}
+        rowKey={(entry) => entry.id}
+        cells={(entry) => [
+          new Date(entry.createdAt).toLocaleString(),
+          new Date(entry.expiresAt).toLocaleString(),
+          entry.ipAddress ?? "—",
+          entry.userAgent ?? "—",
+        ]}
+        emptyMessage="No sessions."
+      />
 
       <h2>Work sessions created</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Failure</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          {detail.workSessions.map((workSession) => (
-            <tr key={workSession.id}>
-              <td>
-                <span className={`status status-${workSession.status}`}>
-                  {workSession.status}
-                </span>
-              </td>
-              <td>{workSession.failureCode ?? "—"}</td>
-              <td>{new Date(workSession.createdAt).toLocaleString()}</td>
-            </tr>
-          ))}
-          {detail.workSessions.length === 0 ? (
-            <tr>
-              <td className="empty" colSpan={3}>
-                None. This user can be deleted.
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
+      <DetailTable
+        columns={["Status", "Failure", "Created"]}
+        rows={detail.workSessions}
+        rowKey={(workSession) => workSession.id}
+        cells={(workSession) => [
+          <StatusPill status={workSession.status} />,
+          workSession.failureCode ?? "—",
+          new Date(workSession.createdAt).toLocaleString(),
+        ]}
+        emptyMessage="None. This user can be deleted."
+      />
       {detail.workSessions.length > 0 ? (
         <p className="hint">
           Work sessions block deletion of this user (on delete restrict).

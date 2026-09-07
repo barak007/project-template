@@ -31,6 +31,7 @@ export {
   textRowFilter,
 } from "./filter-query.js";
 export type { FilterMode, ParsedFilter } from "./filter-query.js";
+export { filterSummary } from "./filter-summary.js";
 export { createMemoryHistory } from "../../domain-client/history.js";
 export type { History, MemoryHistory } from "../../domain-client/history.js";
 export { defaultRoute, pathToRoute, routeToPath } from "./router.js";
