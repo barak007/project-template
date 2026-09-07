@@ -162,6 +162,14 @@ describe("listing grants", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("hides it from an organization owner too", async () => {
+    // Regression: the owner/admin shortcut used to skip the
+    // workspace-in-organization check, leaking another tenant's grant list.
+    const response = await listGrants(owner, otherOrganizationWorkspaceId);
+
+    expect(response.status).toBe(404);
+  });
 });
 
 describe("granting access", () => {
@@ -221,6 +229,15 @@ describe("granting access", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("hides it from an organization owner too", async () => {
+    const response = await putGrant(owner, otherOrganizationWorkspaceId, {
+      userId: member,
+      role: "viewer",
+    });
+
+    expect(response.status).toBe(404);
+  });
 });
 
 describe("removing a grant", () => {
@@ -235,6 +252,16 @@ describe("removing a grant", () => {
       grantedManager,
       otherOrganizationWorkspaceId,
       member,
+    );
+
+    expect(response.status).toBe(404);
+  });
+
+  it("hides it from an organization owner too", async () => {
+    const response = await removeGrant(
+      owner,
+      otherOrganizationWorkspaceId,
+      outsider,
     );
 
     expect(response.status).toBe(404);

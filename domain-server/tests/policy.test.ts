@@ -285,6 +285,15 @@ describe("resolveWorkspaceRole", () => {
       await resolveWorkspaceRole(db, member, organizationId, randomUUID()),
     ).toBeUndefined();
   });
+
+  it("resolves nothing even for an owner on a foreign or unknown workspace", async () => {
+    expect(
+      await resolveWorkspaceRole(db, owner, organizationId, foreignWorkspaceId),
+    ).toBeUndefined();
+    expect(
+      await resolveWorkspaceRole(db, owner, organizationId, randomUUID()),
+    ).toBeUndefined();
+  });
 });
 
 describe("requireWorkspacePermission", () => {
@@ -432,6 +441,15 @@ describe("resolveWorkspaceRoles", () => {
       grantedRestrictedWorkspaceId,
     ]);
     expect(roles).toEqual(new Map([[grantedRestrictedWorkspaceId, "editor"]]));
+  });
+
+  it("ignores foreign and unknown workspaces even for an owner", async () => {
+    const roles = await resolveWorkspaceRoles(db, owner, organizationId, [
+      openWorkspaceId,
+      foreignWorkspaceId,
+      randomUUID(),
+    ]);
+    expect(roles).toEqual(new Map([[openWorkspaceId, "manager"]]));
   });
 });
 

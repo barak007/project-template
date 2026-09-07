@@ -112,9 +112,10 @@ export async function resolveWorkspaceRole(
   const membership = await organizationMembership(db, userId, organizationId);
   // Not in the organization: nothing inside it exists as far as they know.
   if (!membership) return undefined;
-  if (membership.role === "owner" || membership.role === "admin")
-    return "manager";
 
+  // Before any role applies, the workspace must be this organization's — an id
+  // from another organization resolves to nothing even for an owner, so the
+  // guard 404s instead of acting across tenants.
   const [workspace] = await db
     .select({ visibility: workspaces.visibility })
     .from(workspaces)
@@ -126,6 +127,8 @@ export async function resolveWorkspaceRole(
     )
     .limit(1);
   if (!workspace) return undefined;
+  if (membership.role === "owner" || membership.role === "admin")
+    return "manager";
 
   const candidates: WorkspaceRole[] = [];
   if (workspace.visibility === "organization") candidates.push("viewer");
@@ -190,34 +193,35 @@ export async function resolveWorkspaceRoles(
   if (workspaceIds.length === 0) return roles;
   const membership = await organizationMembership(db, userId, organizationId);
   if (!membership) return roles;
+
+  const rows = await db
+    .select({ id: workspaces.id, visibility: workspaces.visibility })
+    .from(workspaces)
+    .where(
+      and(
+        eq(workspaces.organizationId, organizationId),
+        inArray(workspaces.id, workspaceIds),
+      ),
+    );
+  // Only ids that are really this organization's resolve at all — even for an
+  // owner, a foreign or unknown id stays absent from the answer.
   if (membership.role === "owner" || membership.role === "admin") {
-    for (const id of workspaceIds) roles.set(id, "manager");
+    for (const row of rows) roles.set(row.id, "manager");
     return roles;
   }
 
-  const [rows, grants] = await Promise.all([
-    db
-      .select({ id: workspaces.id, visibility: workspaces.visibility })
-      .from(workspaces)
-      .where(
-        and(
-          eq(workspaces.organizationId, organizationId),
-          inArray(workspaces.id, workspaceIds),
-        ),
+  const grants = await db
+    .select({
+      workspaceId: workspaceUserGrants.workspaceId,
+      role: workspaceUserGrants.role,
+    })
+    .from(workspaceUserGrants)
+    .where(
+      and(
+        eq(workspaceUserGrants.userId, userId),
+        inArray(workspaceUserGrants.workspaceId, workspaceIds),
       ),
-    db
-      .select({
-        workspaceId: workspaceUserGrants.workspaceId,
-        role: workspaceUserGrants.role,
-      })
-      .from(workspaceUserGrants)
-      .where(
-        and(
-          eq(workspaceUserGrants.userId, userId),
-          inArray(workspaceUserGrants.workspaceId, workspaceIds),
-        ),
-      ),
-  ]);
+    );
   for (const row of rows)
     if (row.visibility === "organization") roles.set(row.id, "viewer");
   const known = new Set(rows.map((row) => row.id));
