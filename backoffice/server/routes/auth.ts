@@ -1,7 +1,6 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 
-import { validationHook } from "../../../domain-server/http/validation.js";
+import { validate } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   backofficeAuthStatusResponseSchema,
@@ -42,7 +41,7 @@ export function createBackofficeAuthRoutes(
     })
     .post(
       "/setup",
-      zValidator("json", backofficeSetupInputSchema, validationHook),
+      validate("json", backofficeSetupInputSchema),
       async (context) => {
         const credentials = context.req.valid("json");
         await setupBackofficeAdmin(dependencies, credentials);
@@ -55,7 +54,7 @@ export function createBackofficeAuthRoutes(
     )
     .post(
       "/sign-in",
-      zValidator("json", backofficeSignInInputSchema, validationHook),
+      validate("json", backofficeSignInInputSchema),
       async (context) => {
         const credentials = context.req.valid("json");
         await verifyBackofficeCredentials(environment, credentials);

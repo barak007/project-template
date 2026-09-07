@@ -1,4 +1,3 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -42,7 +41,7 @@ import {
 } from "../entities/workspace.js";
 import { requireAuthentication } from "../http/auth-middleware.js";
 import type { AppBindings, RuntimeDependencies } from "../http/context.js";
-import { validationHook } from "../http/validation.js";
+import { validate } from "../http/validation.js";
 import {
   inviteMember,
   listInvitations,
@@ -132,7 +131,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       })
       .post(
         "/organizations",
-        zValidator("json", organizationCreateSchema, validationHook),
+        validate("json", organizationCreateSchema),
         async (context) => {
           const result = await createOrganization(
             dependencies.db,
@@ -144,7 +143,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await getOrganization(
             dependencies.db,
@@ -156,7 +155,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/members",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listMemberships(
             dependencies.db,
@@ -171,8 +170,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/members",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", membershipInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", membershipInputSchema),
         async (context) => {
           const result = await changeMemberRole(
             dependencies.db,
@@ -187,7 +186,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       // see /me/invitations below for the other half of the exchange.
       .get(
         "/organizations/:organizationId/invitations",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listInvitations(
             dependencies.db,
@@ -202,8 +201,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/invitations",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", invitationCreateSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", invitationCreateSchema),
         async (context) => {
           const result = await inviteMember(
             dependencies.db,
@@ -217,7 +216,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/organizations/:organizationId/invitations/:invitationId",
-        zValidator("param", invitationParams, validationHook),
+        validate("param", invitationParams),
         async (context) => {
           const params = context.req.valid("param");
           const result = await revokeInvitation(
@@ -231,8 +230,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/repositories",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", repositoryInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", repositoryInputSchema),
         async (context) => {
           const result = await addRepository(
             dependencies.db,
@@ -245,7 +244,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/sources",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listSources(
             dependencies.db,
@@ -257,8 +256,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/sources",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", sourceInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", sourceInputSchema),
         async (context) => {
           const result = await createSource(
             dependencies.db,
@@ -271,8 +270,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/sources/:sourceId",
-        zValidator("param", sourceParams, validationHook),
-        zValidator("json", sourceInputSchema, validationHook),
+        validate("param", sourceParams),
+        validate("json", sourceInputSchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await updateSource(
@@ -287,7 +286,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/organizations/:organizationId/sources/:sourceId",
-        zValidator("param", sourceParams, validationHook),
+        validate("param", sourceParams),
         async (context) => {
           const params = context.req.valid("param");
           await deleteSource(
@@ -301,7 +300,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/workspaces",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listWorkspaces(
             dependencies.db,
@@ -316,8 +315,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/workspaces",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", workspaceInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", workspaceInputSchema),
         async (context) => {
           const result = await createWorkspace(
             dependencies.db,
@@ -330,8 +329,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/workspaces/:workspaceId",
-        zValidator("param", workspaceParams, validationHook),
-        zValidator("json", workspaceInputSchema, validationHook),
+        validate("param", workspaceParams),
+        validate("json", workspaceInputSchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await updateWorkspace(
@@ -346,7 +345,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/organizations/:organizationId/workspaces/:workspaceId",
-        zValidator("param", workspaceParams, validationHook),
+        validate("param", workspaceParams),
         async (context) => {
           const params = context.req.valid("param");
           await deleteWorkspace(
@@ -363,7 +362,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       // own manager holds on theirs.
       .get(
         "/organizations/:organizationId/workspaces/:workspaceId/grants",
-        zValidator("param", workspaceParams, validationHook),
+        validate("param", workspaceParams),
         async (context) => {
           const params = context.req.valid("param");
           const result = await listGrants(
@@ -380,8 +379,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/workspaces/:workspaceId/grants",
-        zValidator("param", workspaceParams, validationHook),
-        zValidator("json", workspaceGrantInputSchema, validationHook),
+        validate("param", workspaceParams),
+        validate("json", workspaceGrantInputSchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await putGrant(
@@ -396,7 +395,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/organizations/:organizationId/workspaces/:workspaceId/grants/:userId",
-        zValidator("param", grantParams, validationHook),
+        validate("param", grantParams),
         async (context) => {
           const params = context.req.valid("param");
           await removeGrant(
@@ -411,8 +410,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/workspaces/:workspaceId/visibility",
-        zValidator("param", workspaceParams, validationHook),
-        zValidator("json", workspaceVisibilityInputSchema, validationHook),
+        validate("param", workspaceParams),
+        validate("json", workspaceVisibilityInputSchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await setWorkspaceVisibility(
@@ -431,8 +430,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       // exactly like a session's copy of it.
       .get(
         "/organizations/:organizationId/workspaces/:workspaceId/project/files",
-        zValidator("param", workspaceParams, validationHook),
-        zValidator("query", projectPathQuerySchema, validationHook),
+        validate("param", workspaceParams),
+        validate("query", projectPathQuerySchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await listWorkspaceProjectDirectory(
@@ -451,8 +450,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/workspaces/:workspaceId/project/file",
-        zValidator("param", workspaceParams, validationHook),
-        zValidator("query", projectPathQuerySchema, validationHook),
+        validate("param", workspaceParams),
+        validate("query", projectPathQuerySchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await readWorkspaceProjectFile(
@@ -468,7 +467,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/secrets",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listOrganizationSecrets(
             dependencies.db,
@@ -480,8 +479,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/secrets",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", secretInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", secretInputSchema),
         async (context) => {
           const result = await putOrganizationSecret(
             dependencies.db,
@@ -495,7 +494,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/organizations/:organizationId/secrets/:key",
-        zValidator("param", secretParams, validationHook),
+        validate("param", secretParams),
         async (context) => {
           const params = context.req.valid("param");
           await deleteOrganizationSecret(
@@ -509,7 +508,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/data",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listOrganizationData(
             dependencies.db,
@@ -521,8 +520,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .put(
         "/organizations/:organizationId/data",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", dataInputSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", dataInputSchema),
         async (context) => {
           const result = await putOrganizationData(
             dependencies.db,
@@ -535,7 +534,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/work-sessions",
-        zValidator("param", organizationParams, validationHook),
+        validate("param", organizationParams),
         async (context) => {
           const result = await listWorkSessions(
             dependencies.db,
@@ -550,8 +549,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/work-sessions",
-        zValidator("param", organizationParams, validationHook),
-        zValidator("json", workSessionCreateSchema, validationHook),
+        validate("param", organizationParams),
+        validate("json", workSessionCreateSchema),
         async (context) => {
           const result = await createWorkSession(
             dependencies.db,
@@ -565,7 +564,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/work-sessions/:workSessionId",
-        zValidator("param", workSessionParams, validationHook),
+        validate("param", workSessionParams),
         async (context) => {
           const params = context.req.valid("param");
           const result = await getWorkSession(
@@ -582,8 +581,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       // reading happens on the server, wherever the project actually lives.
       .get(
         "/organizations/:organizationId/work-sessions/:workSessionId/project/files",
-        zValidator("param", workSessionParams, validationHook),
-        zValidator("query", projectPathQuerySchema, validationHook),
+        validate("param", workSessionParams),
+        validate("query", projectPathQuerySchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await listWorkSessionDirectory(
@@ -602,8 +601,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .get(
         "/organizations/:organizationId/work-sessions/:workSessionId/project/file",
-        zValidator("param", workSessionParams, validationHook),
-        zValidator("query", projectPathQuerySchema, validationHook),
+        validate("param", workSessionParams),
+        validate("query", projectPathQuerySchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await readWorkSessionFile(
@@ -619,8 +618,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .post(
         "/organizations/:organizationId/work-sessions/:workSessionId/project/branch",
-        zValidator("param", workSessionParams, validationHook),
-        zValidator("json", projectBranchSchema, validationHook),
+        validate("param", workSessionParams),
+        validate("json", projectBranchSchema),
         async (context) => {
           const params = context.req.valid("param");
           const result = await branchWorkSessionProject(
@@ -650,8 +649,8 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       })
       .post(
         "/me/invitations/:invitationId/response",
-        zValidator("param", userInvitationParams, validationHook),
-        zValidator("json", invitationDecisionSchema, validationHook),
+        validate("param", userInvitationParams),
+        validate("json", invitationDecisionSchema),
         async (context) => {
           const user = context.get("user");
           const result = await respondToInvitation(
@@ -672,7 +671,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       })
       .put(
         "/me/secrets",
-        zValidator("json", secretInputSchema, validationHook),
+        validate("json", secretInputSchema),
         async (context) => {
           const result = await putUserSecret(
             dependencies.db,
@@ -685,7 +684,7 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
       )
       .delete(
         "/me/secrets/:key",
-        zValidator("param", userKeyParams, validationHook),
+        validate("param", userKeyParams),
         async (context) => {
           await deleteUserSecret(
             dependencies.db,
@@ -702,18 +701,14 @@ export function createDomainRoutes(dependencies: RuntimeDependencies) {
         );
         return context.json(z.array(dataResponseSchema).parse(result), 200);
       })
-      .put(
-        "/me/data",
-        zValidator("json", dataInputSchema, validationHook),
-        async (context) => {
-          const result = await putUserData(
-            dependencies.db,
-            context.get("user").id,
-            context.req.valid("json"),
-          );
-          return context.json(dataResponseSchema.parse(result), 200);
-        },
-      )
+      .put("/me/data", validate("json", dataInputSchema), async (context) => {
+        const result = await putUserData(
+          dependencies.db,
+          context.get("user").id,
+          context.req.valid("json"),
+        );
+        return context.json(dataResponseSchema.parse(result), 200);
+      })
   );
 }
 

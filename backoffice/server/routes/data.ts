@@ -1,9 +1,8 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
 import { AppError } from "../../../domain-server/errors.js";
-import { validationHook } from "../../../domain-server/http/validation.js";
+import { validate } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   deleteRowBodySchema,
@@ -63,8 +62,8 @@ export function createBackofficeDataRoutes(
     )
     .get(
       "/tables/:table/rows",
-      zValidator("param", tableParams, validationHook),
-      zValidator("query", listRowsQuerySchema, validationHook),
+      validate("param", tableParams),
+      validate("query", listRowsQuerySchema),
       async (context) => {
         const adminTable = resolveTable(context.req.valid("param").table);
         const { filters, ...page } = context.req.valid("query");
@@ -77,8 +76,8 @@ export function createBackofficeDataRoutes(
     )
     .post(
       "/tables/:table/rows",
-      zValidator("param", tableParams, validationHook),
-      zValidator("json", insertRowBodySchema, validationHook),
+      validate("param", tableParams),
+      validate("json", insertRowBodySchema),
       async (context) => {
         const adminTable = resolveTable(context.req.valid("param").table);
         const row = await insertRow(
@@ -91,8 +90,8 @@ export function createBackofficeDataRoutes(
     )
     .patch(
       "/tables/:table/rows",
-      zValidator("param", tableParams, validationHook),
-      zValidator("json", updateRowBodySchema, validationHook),
+      validate("param", tableParams),
+      validate("json", updateRowBodySchema),
       async (context) => {
         const adminTable = resolveTable(context.req.valid("param").table);
         const body = context.req.valid("json");
@@ -107,8 +106,8 @@ export function createBackofficeDataRoutes(
     )
     .delete(
       "/tables/:table/rows",
-      zValidator("param", tableParams, validationHook),
-      zValidator("json", deleteRowBodySchema, validationHook),
+      validate("param", tableParams),
+      validate("json", deleteRowBodySchema),
       async (context) => {
         const adminTable = resolveTable(context.req.valid("param").table);
         await deleteRow(

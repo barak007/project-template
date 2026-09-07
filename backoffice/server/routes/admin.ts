@@ -1,9 +1,8 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
 
 import { idSchema } from "../../../domain-server/entities/common.js";
-import { validationHook } from "../../../domain-server/http/validation.js";
+import { validate } from "../../../domain-server/http/validation.js";
 import type { BackofficeDependencies } from "../dependencies.js";
 import {
   adminOrganizationDetailResponseSchema,
@@ -34,7 +33,7 @@ export function createBackofficeAdminRoutes(
   return routes
     .post(
       "/users",
-      zValidator("json", createAdminUserBodySchema, validationHook),
+      validate("json", createAdminUserBodySchema),
       async (context) => {
         const result = await createUser(
           dependencies.db,
@@ -43,20 +42,16 @@ export function createBackofficeAdminRoutes(
         return context.json(adminUserResponseSchema.parse(result), 201);
       },
     )
-    .get(
-      "/users/:userId",
-      zValidator("param", userParams, validationHook),
-      async (context) => {
-        const result = await getUserDetail(
-          dependencies.db,
-          context.req.valid("param").userId,
-        );
-        return context.json(adminUserDetailResponseSchema.parse(result), 200);
-      },
-    )
+    .get("/users/:userId", validate("param", userParams), async (context) => {
+      const result = await getUserDetail(
+        dependencies.db,
+        context.req.valid("param").userId,
+      );
+      return context.json(adminUserDetailResponseSchema.parse(result), 200);
+    })
     .delete(
       "/organizations/:organizationId",
-      zValidator("param", organizationParams, validationHook),
+      validate("param", organizationParams),
       async (context) => {
         await deleteOrganization(
           dependencies.db,
@@ -67,7 +62,7 @@ export function createBackofficeAdminRoutes(
     )
     .get(
       "/organizations/:organizationId",
-      zValidator("param", organizationParams, validationHook),
+      validate("param", organizationParams),
       async (context) => {
         const result = await getOrganizationDetail(
           dependencies.db,
