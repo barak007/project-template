@@ -1,3 +1,5 @@
+import { fileURLToPath } from "node:url";
+
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 
 import { loadEnvironment } from "../domain-server/config/env.js";
@@ -11,7 +13,9 @@ if (!databaseName.includes("test"))
   );
 const { db, client } = createDatabase(environment);
 try {
-  await migrate(db, { migrationsFolder: "drizzle" });
+  await migrate(db, {
+    migrationsFolder: fileURLToPath(new URL("../drizzle", import.meta.url)),
+  });
   console.info(`Test database ${databaseName} is ready`);
 } finally {
   await client.end();
