@@ -1,10 +1,4 @@
-import {
-  actionKeys,
-  confirmKeys,
-  hasLoaded,
-  isPending,
-  loadKeys,
-} from "../client/index.js";
+import { actionKeys, hasLoaded, isPending, loadKeys } from "../client/index.js";
 import type { AppCore, Invitation, Membership } from "../client/index.js";
 
 import { ConfirmButton } from "./confirm-button.js";
@@ -91,7 +85,6 @@ export function InvitationsSection({
               <div className="row-actions">
                 <ConfirmButton
                   core={core}
-                  confirmKey={confirmKeys.revokeInvitation(invitation.id)}
                   actionKey={actionKeys.revokeInvitation(invitation.id)}
                   label="Revoke"
                   question={`Withdraw the invitation to ${invitation.email}?`}

@@ -12,7 +12,7 @@ import type { AppStore } from "./store.js";
  * user did not ask for — a poll — which must not clear the error they are
  * reading or make a button look busy.
  */
-export type AttemptOptions = {
+type AttemptOptions = {
   key?: string;
   loaded?: string;
   background?: boolean;

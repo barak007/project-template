@@ -1,5 +1,3 @@
-import "dotenv/config";
-
 import { loadEnvironment } from "../domain-server/config/env.js";
 import { createDatabase } from "../domain-server/db/client.js";
 import {

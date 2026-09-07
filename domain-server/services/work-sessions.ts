@@ -61,7 +61,13 @@ export async function getWorkSession(
   organizationId: string,
   workSessionId: string,
 ) {
-  const row = await readableSession(db, userId, organizationId, workSessionId);
+  const row = await readableSession(
+    db,
+    userId,
+    organizationId,
+    workSessionId,
+    "workspace:read",
+  );
   return response(row);
 }
 
@@ -76,7 +82,7 @@ async function readableSession(
   userId: string,
   organizationId: string,
   workSessionId: string,
-  permission: "workspace:read" | "session:create" = "workspace:read",
+  permission: "workspace:read" | "session:create",
 ) {
   const [row] = await db
     .select()

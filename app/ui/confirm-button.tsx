@@ -14,23 +14,20 @@ import { useAppState } from "./use-app-state.js";
  */
 export function ConfirmButton({
   core,
-  confirmKey,
   actionKey,
   label,
   question,
   onConfirm,
 }: {
   core: AppCore;
-  /** What is armed. One at a time across the page. */
-  confirmKey: string;
-  /** What is in flight, once committed. */
+  /** What is armed (one at a time across the page) and, once committed, in flight. */
   actionKey: string;
   label: string;
   /** What the row asks once armed — name the thing, not the verb. */
   question: string;
   onConfirm: () => void;
 }) {
-  const armed = useAppState(core, (state) => isConfirming(state, confirmKey));
+  const armed = useAppState(core, (state) => isConfirming(state, actionKey));
   const pending = useAppState(core, (state) => isPending(state, actionKey));
 
   if (pending)
@@ -46,7 +43,7 @@ export function ConfirmButton({
         type="button"
         className="ghost danger small"
         onClick={() => {
-          core.confirmation.ask(confirmKey);
+          core.confirmation.ask(actionKey);
         }}
       >
         {label}

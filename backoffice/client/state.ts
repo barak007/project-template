@@ -45,7 +45,7 @@ export type TableDataState = {
   page: RowsPage;
 } | null;
 
-export type AdminState = {
+type AdminState = {
   userEditor: UserEditorState;
   userDetail: UserDetail | null;
   organizationDetail: OrganizationDetail | null;

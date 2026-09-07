@@ -7,7 +7,10 @@ import {
   user,
   workspaces,
 } from "../db/schema.js";
-import type { OrganizationCreate } from "../entities/organization.js";
+import type {
+  MembershipInput,
+  OrganizationCreate,
+} from "../entities/organization.js";
 import { AppError } from "../errors.js";
 
 import { requireOrganizationPermission } from "./policy.js";
@@ -118,7 +121,7 @@ export async function changeMemberRole(
   db: Database,
   actorUserId: string,
   organizationId: string,
-  input: { userId: string; role: "owner" | "admin" | "member" },
+  input: MembershipInput,
 ) {
   await requireOrganizationPermission(
     db,

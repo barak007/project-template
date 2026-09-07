@@ -40,7 +40,8 @@ async function validateSources(
     );
 }
 
-async function withSourceIds(
+/** Attaches each workspace's linked source ids — the shape every read returns. */
+export async function withSourceIds(
   db: Database,
   rows: (typeof workspaces.$inferSelect)[],
 ) {

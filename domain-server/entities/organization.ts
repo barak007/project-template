@@ -27,4 +27,5 @@ export const membershipInputSchema = z.object({
   userId: z.string().min(1),
   role: memberRoleSchema,
 });
+export type MembershipInput = z.infer<typeof membershipInputSchema>;
 export type OrganizationCreate = z.infer<typeof organizationCreateSchema>;

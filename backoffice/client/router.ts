@@ -101,10 +101,6 @@ export function pathToRoute(path: string): Route {
     return { kind: "user", userId: second };
   if (first === "organizations" && second !== undefined)
     return { kind: "organization", organizationId: second };
-  // Legacy list paths from before users/organizations became table pages.
-  if (first === "users") return { kind: "table", table: "user" };
-  if (first === "organizations")
-    return { kind: "table", table: "organizations" };
   if (first === "tables" && second !== undefined) {
     const filters = filtersFromSearch(search);
     const limit = pageParamFromSearch(search, "limit");

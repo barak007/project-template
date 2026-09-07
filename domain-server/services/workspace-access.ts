@@ -5,13 +5,14 @@ import {
   organizationMembers,
   user,
   workspaces,
-  workspaceSources,
   workspaceUserGrants,
 } from "../db/schema.js";
 import type { WorkspaceRole } from "../db/schema.js";
+import type { WorkspaceGrantInput } from "../entities/workspace.js";
 import { AppError } from "../errors.js";
 
 import { requireWorkspacePermission } from "./policy.js";
+import { withSourceIds } from "./workspaces.js";
 
 /**
  * Who may reach one workspace, and how. Two separate levers: **visibility**
@@ -25,13 +26,13 @@ import { requireWorkspacePermission } from "./policy.js";
  */
 export async function listGrants(
   db: Database,
-  userId: string,
+  actorUserId: string,
   organizationId: string,
   workspaceId: string,
 ) {
   await requireWorkspacePermission(
     db,
-    userId,
+    actorUserId,
     organizationId,
     workspaceId,
     "workspace:manage",
@@ -55,14 +56,14 @@ export async function listGrants(
 
 export async function setWorkspaceVisibility(
   db: Database,
-  userId: string,
+  actorUserId: string,
   organizationId: string,
   workspaceId: string,
   visibility: "organization" | "restricted",
 ) {
   const yourRole = await requireWorkspacePermission(
     db,
-    userId,
+    actorUserId,
     organizationId,
     workspaceId,
     "workspace:manage",
@@ -80,15 +81,10 @@ export async function setWorkspaceVisibility(
   if (!workspace) throw new AppError("NOT_FOUND", "Workspace not found", 404);
   // The whole workspace comes back, repositories included, so a caller replaces
   // the row it already has rather than re-reading the list.
-  const links = await db
-    .select({ sourceId: workspaceSources.sourceId })
-    .from(workspaceSources)
-    .where(eq(workspaceSources.workspaceId, workspaceId));
-  return {
-    ...workspace,
-    sourceIds: links.map((link) => link.sourceId),
-    yourRole,
-  };
+  const [withSources] = await withSourceIds(db, [workspace]);
+  if (!withSources)
+    throw new AppError("INTERNAL_ERROR", "Could not read the workspace", 500);
+  return { ...withSources, yourRole };
 }
 
 /** Grants access, or changes the access already granted. */
@@ -97,7 +93,7 @@ export async function putGrant(
   actorUserId: string,
   organizationId: string,
   workspaceId: string,
-  input: { userId: string; role: WorkspaceRole },
+  input: WorkspaceGrantInput,
 ) {
   await requireWorkspacePermission(
     db,

@@ -76,14 +76,6 @@ describe("router", () => {
     });
   });
 
-  it("maps the legacy list paths onto their table routes", () => {
-    expect(pathToRoute("/users")).toEqual({ kind: "table", table: "user" });
-    expect(pathToRoute("/organizations")).toEqual({
-      kind: "table",
-      table: "organizations",
-    });
-  });
-
   it("drops malformed or empty filter query strings", () => {
     expect(pathToRoute("/tables/account?filters=not-json")).toEqual({
       kind: "table",

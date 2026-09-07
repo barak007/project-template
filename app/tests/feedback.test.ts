@@ -3,7 +3,6 @@ import { describe } from "vitest";
 import { it } from "../../domain-client/tests/kit/fixtures.js";
 import {
   actionKeys,
-  confirmKeys,
   hasLoaded,
   isConfirming,
   isPending,
@@ -105,8 +104,8 @@ describe("what the app says about its own work", () => {
       const founder = await world.founder("ada");
       const { core } = visit(world, "/sign-in");
       await signIn(core, founder.credentials);
-      const first = confirmKeys.deleteWorkspace("one");
-      const second = confirmKeys.deleteWorkspace("two");
+      const first = actionKeys.deleteWorkspace("one");
+      const second = actionKeys.deleteWorkspace("two");
 
       core.confirmation.ask(first);
       expect(isConfirming(core.getState(), first)).toBe(true);
@@ -127,7 +126,7 @@ describe("what the app says about its own work", () => {
       const { core } = visit(world, "/sign-in");
       await signIn(core, founder.credentials);
 
-      core.confirmation.ask(confirmKeys.deleteWorkspace("one"));
+      core.confirmation.ask(actionKeys.deleteWorkspace("one"));
       core.workspaces.startCreating();
       expect(core.getState().openForm).toBe("workspace");
       expect(core.getState().confirming).toBeNull();

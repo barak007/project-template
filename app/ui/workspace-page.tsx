@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 import {
   actionKeys,
-  confirmKeys,
   currentWorkspace,
   hasLoaded,
   isPending,
@@ -225,7 +224,6 @@ export function WorkspacePage({
                   {!edits ? null : (
                     <ConfirmButton
                       core={core}
-                      confirmKey={confirmKeys.removeRepository(source.id)}
                       actionKey={actionKeys.removeRepository(source.id)}
                       label="Remove"
                       question={`Remove ${source.name} from this workspace?`}

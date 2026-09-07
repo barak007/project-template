@@ -20,7 +20,11 @@ export const loadKeys = {
   inbox: "inbox",
 } as const;
 
-/** One key per control that can be in flight. */
+/**
+ * One key per control that can be in flight. A destructive control's key also
+ * names what its row is armed to confirm: a row is armed before anything is in
+ * flight, but it is armed *about* the same action, so the two share one key.
+ */
 export const actionKeys = {
   createOrganization: "organization.create",
   createWorkspace: "workspace.create",
@@ -38,16 +42,4 @@ export const actionKeys = {
     `invitation.revoke:${invitationId}`,
   answerInvitation: (invitationId: string) =>
     `invitation.answer:${invitationId}`,
-} as const;
-
-/**
- * What a destructive control is waiting to be confirmed about. Separate from
- * `actionKeys` because a row is armed before anything is in flight.
- */
-export const confirmKeys = {
-  deleteWorkspace: (workspaceId: string) => `workspace.delete:${workspaceId}`,
-  removeRepository: (sourceId: string) => `repository.remove:${sourceId}`,
-  removeGrant: (userId: string) => `workspace.grant.remove:${userId}`,
-  revokeInvitation: (invitationId: string) =>
-    `invitation.revoke:${invitationId}`,
 } as const;

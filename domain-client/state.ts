@@ -45,7 +45,7 @@ export type ProjectFilesState = {
  * state mirrors a UI showing one organization at a time, so acting on a
  * different organization resets these (see projection.ts).
  */
-export type OrganizationSlices = {
+type OrganizationSlices = {
   currentOrganizationId: string | null;
   members: Membership[];
   /** Offers of membership, in every state they have ever reached. */

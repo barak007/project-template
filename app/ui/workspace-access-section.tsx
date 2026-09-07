@@ -1,10 +1,4 @@
-import {
-  actionKeys,
-  confirmKeys,
-  hasLoaded,
-  isPending,
-  loadKeys,
-} from "../client/index.js";
+import { actionKeys, hasLoaded, isPending, loadKeys } from "../client/index.js";
 import type { AppCore, Membership, WorkspaceRole } from "../client/index.js";
 
 import { ConfirmButton } from "./confirm-button.js";
@@ -142,7 +136,6 @@ export function WorkspaceAccessSection({
                   />
                   <ConfirmButton
                     core={core}
-                    confirmKey={confirmKeys.removeGrant(grant.userId)}
                     actionKey={actionKeys.removeGrant(grant.userId)}
                     label="Remove"
                     question={`Take away ${grant.name || grant.email}’s access?`}

@@ -16,6 +16,17 @@ export type JobProducer = {
   enqueueMaterialize(input: MaterializeWorkSessionJob): Promise<string>;
 };
 
+/** One retry story, declared on the queue and repeated per send (pg-boss
+ * applies send options over queue options, so both must agree). */
+const materializeRetryOptions = {
+  retryLimit: 5,
+  retryDelay: 5,
+  retryBackoff: true,
+  retryDelayMax: 300,
+  expireInSeconds: 900,
+  deadLetter: MATERIALIZE_WORK_SESSION_DEAD_LETTER,
+} as const;
+
 export class QueueRuntime implements JobProducer {
   private readonly boss: PgBoss;
 
@@ -39,13 +50,8 @@ export class QueueRuntime implements JobProducer {
     });
     await this.boss.createQueue(MATERIALIZE_WORK_SESSION_QUEUE, {
       policy: "standard",
-      retryLimit: 5,
-      retryDelay: 5,
-      retryBackoff: true,
-      retryDelayMax: 300,
-      expireInSeconds: 900,
       retentionSeconds: 86_400,
-      deadLetter: MATERIALIZE_WORK_SESSION_DEAD_LETTER,
+      ...materializeRetryOptions,
     });
   }
 
@@ -53,12 +59,7 @@ export class QueueRuntime implements JobProducer {
     const data = materializeWorkSessionJobSchema.parse(input);
     const id = await this.boss.send(MATERIALIZE_WORK_SESSION_QUEUE, data, {
       id: data.workSessionId,
-      retryLimit: 5,
-      retryDelay: 5,
-      retryBackoff: true,
-      retryDelayMax: 300,
-      expireInSeconds: 900,
-      deadLetter: MATERIALIZE_WORK_SESSION_DEAD_LETTER,
+      ...materializeRetryOptions,
     });
     if (!id) throw new Error("Queue rejected materialization job");
     return id;

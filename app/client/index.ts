@@ -42,7 +42,7 @@ export type {
 export { createMemoryHistory } from "../../domain-client/history.js";
 export type { History, MemoryHistory } from "../../domain-client/history.js";
 export type { AppEvent } from "./events.js";
-export { actionKeys, confirmKeys, loadKeys } from "./keys.js";
+export { actionKeys, loadKeys } from "./keys.js";
 export {
   defaultRoute,
   pathToRoute,

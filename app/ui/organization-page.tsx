@@ -2,7 +2,6 @@ import { useEffect } from "react";
 
 import {
   actionKeys,
-  confirmKeys,
   currentOrganization,
   hasLoaded,
   isPending,
@@ -134,7 +133,6 @@ export function OrganizationPage({
                 <div className="row-actions">
                   <ConfirmButton
                     core={core}
-                    confirmKey={confirmKeys.deleteWorkspace(workspace.id)}
                     actionKey={actionKeys.deleteWorkspace(workspace.id)}
                     label="Delete"
                     question={`Delete ${workspace.name} and its sessions?`}
