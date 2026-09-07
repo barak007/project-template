@@ -6,7 +6,6 @@ import { promisify } from "node:util";
 import type { ProjectLocation } from "../db/schema.js";
 import { AppError } from "../errors.js";
 import type { Logger } from "../logging.js";
-import { silentLogger } from "../logging.js";
 
 import type {
   CloneForSessionInput,
@@ -49,7 +48,7 @@ type Submodule = { name: string; path: string; remote: string; ref?: string };
  */
 export function createLocalProjectBuilder(
   root: string,
-  log: Logger = silentLogger,
+  log: Logger,
 ): WorkspaceProjectBuilder {
   return {
     ensureWorkspaceProject: async (

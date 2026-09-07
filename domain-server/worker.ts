@@ -1,18 +1,18 @@
 import { createRuntime } from "./runtime.js";
 
 const runtime = await createRuntime();
+const log = runtime.dependencies.log;
 await runtime.queue.registerWorkers(
   runtime.dependencies.db,
   runtime.dependencies.projectBuilder,
-  runtime.dependencies.log,
 );
-console.info("Worker is accepting jobs");
+log.info("Worker is accepting jobs");
 
 let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.info(`Received ${signal}; stopping worker`);
+  log.info("Stopping worker", { signal });
   try {
     await Promise.race([
       Promise.allSettled([
@@ -28,7 +28,9 @@ async function shutdown(signal: NodeJS.Signals) {
     ]);
     process.exitCode = 0;
   } catch (error) {
-    console.error(error);
+    log.error("Worker shutdown failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     process.exitCode = 1;
   }
 }

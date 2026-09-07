@@ -2,13 +2,14 @@ import { Hono } from "hono";
 import { describe, expect, it, vi } from "vitest";
 
 import { AppError, handleError } from "../errors.js";
+import { silentLogger } from "../logging.js";
 
-function appThrowing(error: Error) {
+function appThrowing(error: Error, log = silentLogger) {
   const app = new Hono();
   app.get("/", () => {
     throw error;
   });
-  app.onError(handleError);
+  app.onError((thrown, context) => handleError(thrown, context, log));
   return app;
 }
 
@@ -45,23 +46,24 @@ describe("handleError", () => {
     });
   });
 
-  it("hides unknown errors behind a generic 500", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const response = await appThrowing(new Error("password=hunter2")).request(
-      "/",
-    );
+  it("hides unknown errors behind a generic 500 and logs them", async () => {
+    const errorLine = vi.fn();
+    const response = await appThrowing(new Error("password=hunter2"), {
+      ...silentLogger,
+      error: errorLine,
+    }).request("/");
     expect(response.status).toBe(500);
     expect(await response.text()).not.toContain("hunter2");
-    expect(log).toHaveBeenCalled();
-    log.mockRestore();
+    expect(errorLine).toHaveBeenCalledWith(
+      "Unhandled request error",
+      expect.objectContaining({ message: "password=hunter2" }),
+    );
   });
 
   it("survives cyclic cause chains", async () => {
-    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
     const error = new Error("outer");
     error.cause = error;
     const response = await appThrowing(error).request("/");
     expect(response.status).toBe(500);
-    log.mockRestore();
   });
 });

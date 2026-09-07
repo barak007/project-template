@@ -19,12 +19,17 @@ export type JobProducer = {
 export class QueueRuntime implements JobProducer {
   private readonly boss: PgBoss;
 
-  constructor(databaseUrl: string) {
+  constructor(
+    databaseUrl: string,
+    private readonly log: Logger,
+  ) {
     this.boss = new PgBoss({
       connectionString: databaseUrl,
       application_name: "what-we-sure-about-jobs",
     });
-    this.boss.on("error", (error) => console.error("Queue error", error));
+    this.boss.on("error", (error) =>
+      this.log.error("Queue error", { error: error.message }),
+    );
   }
 
   async start(): Promise<void> {
@@ -62,14 +67,13 @@ export class QueueRuntime implements JobProducer {
   async registerWorkers(
     db: Database,
     projectBuilder: WorkspaceProjectBuilder,
-    log?: Logger,
   ): Promise<void> {
     await this.boss.work(
       MATERIALIZE_WORK_SESSION_QUEUE,
       { batchSize: 1 },
       async ([job]) => {
         const input = materializeWorkSessionJobSchema.parse(job?.data);
-        await materializeWorkSession(db, projectBuilder, input, log);
+        await materializeWorkSession(db, projectBuilder, input, this.log);
       },
     );
   }

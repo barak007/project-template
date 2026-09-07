@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Environment } from "../config/env.js";
+import { silentLogger } from "../logging.js";
 import { configureObservability } from "../observability.js";
 
 vi.mock("@sentry/node", () => ({
@@ -20,11 +21,10 @@ function environment(overrides: Partial<Environment> = {}): Environment {
 describe("configureObservability", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   it("initializes Sentry and forwards errors when a DSN is set", () => {
-    const report = configureObservability(environment());
+    const report = configureObservability(environment(), silentLogger);
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({ sendDefaultPii: false, tracesSampleRate: 0.1 }),
     );
@@ -33,17 +33,27 @@ describe("configureObservability", () => {
   });
 
   it("disables tracing outside production", () => {
-    configureObservability(environment({ NODE_ENV: "development" }));
+    configureObservability(
+      environment({ NODE_ENV: "development" }),
+      silentLogger,
+    );
     expect(Sentry.init).toHaveBeenCalledWith(
       expect.objectContaining({ tracesSampleRate: 0 }),
     );
   });
 
   it("logs locally without Sentry when no DSN is set", () => {
-    const report = configureObservability(environment({ SENTRY_DSN: "" }));
+    const errorLine = vi.fn();
+    const report = configureObservability(environment({ SENTRY_DSN: "" }), {
+      ...silentLogger,
+      error: errorLine,
+    });
     report(new Error("boom"));
     expect(Sentry.init).not.toHaveBeenCalled();
     expect(Sentry.captureException).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(errorLine).toHaveBeenCalledWith(
+      "Application error",
+      expect.objectContaining({ error: "boom" }),
+    );
   });
 });

@@ -1,6 +1,8 @@
 import type { Context } from "hono";
 import { z } from "zod";
 
+import type { Logger } from "./logging.js";
+
 export const errorResponseSchema = z.object({
   error: z.object({
     code: z.string(),
@@ -42,7 +44,7 @@ function sqlState(error: unknown): string | undefined {
   return undefined;
 }
 
-export function handleError(error: Error, context: Context) {
+export function handleError(error: Error, context: Context, log: Logger) {
   if (error instanceof AppError) {
     const body = errorResponseSchema.parse({
       error: {
@@ -74,7 +76,11 @@ export function handleError(error: Error, context: Context) {
       409,
     );
   }
-  console.error("Unhandled request error", error);
+  log.error("Unhandled request error", {
+    name: error.name,
+    message: error.message,
+    stack: error.stack ?? null,
+  });
   return context.json(
     errorResponseSchema.parse({
       error: {

@@ -8,6 +8,7 @@ import {
   MATERIALIZE_WORK_SESSION_QUEUE,
 } from "../jobs/materialize.js";
 import { QueueRuntime } from "../jobs/queue.js";
+import { silentLogger } from "../logging.js";
 
 import { recordingProjectBuilder } from "./helpers/project-builder.js";
 
@@ -41,7 +42,7 @@ describe("QueueRuntime", () => {
   });
 
   it("creates the work queue with retries and a dead-letter queue", async () => {
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     await runtime.start();
     expect(boss.start).toHaveBeenCalled();
     expect(boss.createQueue).toHaveBeenCalledWith(
@@ -60,7 +61,7 @@ describe("QueueRuntime", () => {
   it("enqueues jobs keyed by work session id", async () => {
     const workSessionId = randomUUID();
     boss.send.mockResolvedValueOnce(workSessionId);
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     await expect(runtime.enqueueMaterialize({ workSessionId })).resolves.toBe(
       workSessionId,
     );
@@ -72,7 +73,7 @@ describe("QueueRuntime", () => {
   });
 
   it("rejects invalid job payloads before touching the queue", async () => {
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     await expect(
       runtime.enqueueMaterialize({ workSessionId: "not-a-uuid" }),
     ).rejects.toThrow();
@@ -81,14 +82,14 @@ describe("QueueRuntime", () => {
 
   it("throws when the queue rejects a job", async () => {
     boss.send.mockResolvedValueOnce(null);
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     await expect(
       runtime.enqueueMaterialize({ workSessionId: randomUUID() }),
     ).rejects.toThrow(/rejected/);
   });
 
   it("routes worked jobs into the materializer", async () => {
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     const db = {} as Database;
     const { projectBuilder } = recordingProjectBuilder();
     await runtime.registerWorkers(db, projectBuilder);
@@ -107,13 +108,13 @@ describe("QueueRuntime", () => {
       db,
       projectBuilder,
       { workSessionId },
-      undefined,
+      silentLogger,
     );
     await expect(handler([{ data: {} }])).rejects.toThrow();
   });
 
   it("stops gracefully", async () => {
-    const runtime = new QueueRuntime("postgres://localhost/test");
+    const runtime = new QueueRuntime("postgres://localhost/test", silentLogger);
     await runtime.stop();
     expect(boss.stop).toHaveBeenCalledWith(
       expect.objectContaining({ graceful: true }),

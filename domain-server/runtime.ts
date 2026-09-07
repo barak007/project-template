@@ -13,10 +13,10 @@ import { configureObservability } from "./observability.js";
 
 export async function createRuntime() {
   const environment = loadEnvironment();
-  const { db, client } = createDatabase(environment);
-  const queue = new QueueRuntime(environment.DATABASE_URL);
-  const reportError = configureObservability(environment);
   const log = createLogger(environment);
+  const { db, client } = createDatabase(environment);
+  const queue = new QueueRuntime(environment.DATABASE_URL, log);
+  const reportError = configureObservability(environment, log);
   await queue.start();
   return {
     environment,
@@ -34,6 +34,7 @@ export async function createRuntime() {
       // bucket-backed builder replaces this one without anything above changing.
       projectBuilder: createLocalProjectBuilder(
         environment.WORK_SESSION_PROJECT_ROOT,
+        log,
       ),
       // Sessions are browsed through the API, never off the viewer's own disk,
       // so this reads wherever the builder wrote — here, this machine.

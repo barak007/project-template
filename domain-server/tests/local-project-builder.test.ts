@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { ProjectLocation } from "../db/schema.js";
 import { createLocalProjectBuilder } from "../git/local-project-builder.js";
 import type { ProjectRepository } from "../git/project-builder.js";
+import { silentLogger } from "../logging.js";
 
 const run = promisify(execFile);
 const identity = ["-c", "user.name=Test", "-c", "user.email=test@example.test"];
@@ -95,7 +96,7 @@ describe("createLocalProjectBuilder", () => {
   });
 
   function builderIn(directory: string) {
-    return createLocalProjectBuilder(join(root, directory));
+    return createLocalProjectBuilder(join(root, directory), silentLogger);
   }
 
   function ensure(

@@ -21,7 +21,6 @@ const runtime = await createRuntime();
 await runtime.queue.registerWorkers(
   runtime.dependencies.db,
   runtime.dependencies.projectBuilder,
-  runtime.dependencies.log,
 );
 
 export const port = runtime.environment.PORT;

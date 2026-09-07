@@ -1,11 +1,13 @@
 import * as Sentry from "@sentry/node";
 
 import type { Environment } from "./config/env.js";
+import type { Logger } from "./logging.js";
 
 export type ErrorReporter = (error: unknown) => void;
 
 export function configureObservability(
   environment: Environment,
+  log: Logger,
 ): ErrorReporter {
   if (environment.SENTRY_DSN) {
     Sentry.init({
@@ -16,7 +18,10 @@ export function configureObservability(
     });
   }
   return (error) => {
-    console.error("Application error", error);
+    log.error("Application error", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? (error.stack ?? null) : null,
+    });
     if (environment.SENTRY_DSN) Sentry.captureException(error);
   };
 }

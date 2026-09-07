@@ -15,6 +15,7 @@ export type { AppType };
 // API, the backoffice server and the web app — mounting the backoffice and
 // wrapping the whole thing in the app's static shell.
 const runtime = await createRuntime();
+const log = runtime.dependencies.log;
 const api = createApp(runtime.dependencies).route(
   "/backoffice",
   createBackofficeRoutes(createBackofficeDependencies(runtime.dependencies.db)),
@@ -23,7 +24,7 @@ const app = createWebApp(api);
 const server = serve(
   { fetch: app.fetch, port: runtime.environment.PORT },
   (info) => {
-    console.info(`API listening on http://localhost:${String(info.port)}`);
+    log.info("API listening", { url: `http://localhost:${String(info.port)}` });
   },
 );
 
@@ -31,7 +32,7 @@ let shuttingDown = false;
 async function shutdown(signal: NodeJS.Signals) {
   if (shuttingDown) return;
   shuttingDown = true;
-  console.info(`Received ${signal}; shutting down`);
+  log.info("Shutting down", { signal });
 
   const closeServer = new Promise<void>((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve())),
@@ -51,7 +52,9 @@ async function shutdown(signal: NodeJS.Signals) {
     await Promise.race([cleanup, timeout]);
     process.exitCode = 0;
   } catch (error) {
-    console.error(error);
+    log.error("Shutdown failed", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     process.exitCode = 1;
   }
 }
