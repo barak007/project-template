@@ -1,70 +1,32 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, it } from "vitest";
 
-import { browserFetch } from "../../domain-client/tests/kit/browser-fetch.js";
-import type { Database } from "../../domain-server/db/client.js";
-import {
-  asUser,
-  createTestDatabase,
-  createTestUser,
-  jsonBody,
-} from "../../domain-server/tests/helpers/harness.js";
-import {
-  createBackofficeCore,
-  createMemoryHistory,
-  defaultTableQuery,
-} from "../client/index.js";
+import { defaultTableQuery } from "../client/index.js";
 
-import {
-  backofficeAdminCredentials,
-  createBackofficeTestApp,
-} from "./harness.js";
+import { createBackofficeConsoleWorld } from "./harness.js";
+import type { BackofficeConsoleWorld } from "./harness.js";
 
-const baseUrl = "http://backoffice.test";
-
-let db: Database;
-let close: () => Promise<void>;
-let app: ReturnType<typeof createBackofficeTestApp>["app"];
-
-const founder = "table-founder";
+let world: BackofficeConsoleWorld;
 let organizationId = "";
 
 beforeAll(async () => {
-  ({ db, close } = await createTestDatabase());
-  ({ app } = createBackofficeTestApp(db));
-  await createTestUser(db, founder);
-  const created = await app.request(
-    "/api/organizations",
-    asUser(founder, jsonBody({ name: "Console Data Tenant" })),
-  );
-  expect(created.status).toBe(201);
-  organizationId = ((await created.json()) as { id: string }).id;
+  world = await createBackofficeConsoleWorld({
+    founder: "table-founder",
+    tenantName: "Console Data Tenant",
+  });
+  ({ organizationId } = world);
 });
 
 afterAll(async () => {
-  await close();
+  await world.close();
 });
 
 async function signedInBackoffice() {
-  const backoffice = createBackofficeCore({
-    baseUrl,
-    host: {
-      fetch: browserFetch(async (input, init) =>
-        app.request(
-          input instanceof Request ? input : new URL(input, baseUrl),
-          init,
-        ),
-      ),
-    },
-    history: createMemoryHistory(),
-  });
-  await backoffice.auth.signIn(backofficeAdminCredentials);
-  if (backoffice.getState().auth.status !== "authenticated")
-    throw new Error("Backoffice sign-in failed");
+  const { backoffice } = await world.signedInConsole();
   return backoffice;
 }
 
 describe("backoffice data console", () => {
-  it("loads the table catalog into state", async () => {
+  it.concurrent("loads the table catalog into state", async ({ expect }) => {
     const backoffice = await signedInBackoffice();
     await backoffice.data.loadTables();
     const { tables } = backoffice.getState();
@@ -72,41 +34,49 @@ describe("backoffice data console", () => {
     expect(tables.length).toBeGreaterThanOrEqual(14);
   });
 
-  it("loads rows with the query that produced them", async () => {
-    const backoffice = await signedInBackoffice();
-    const query = {
-      ...defaultTableQuery,
-      sort: "name",
-      dir: "asc" as const,
-      filters: [
-        { column: "name", op: "contains" as const, value: "Console Data" },
-      ],
-    };
-    await backoffice.data.loadRows("organizations", query);
-    const { tableData } = backoffice.getState();
-    expect(tableData?.table).toBe("organizations");
-    expect(tableData?.query).toEqual(query);
-    expect(tableData?.page.rows.map((row) => row.id)).toEqual([organizationId]);
-  });
+  it.concurrent(
+    "loads rows with the query that produced them",
+    async ({ expect }) => {
+      const backoffice = await signedInBackoffice();
+      const query = {
+        ...defaultTableQuery,
+        sort: "name",
+        dir: "asc" as const,
+        filters: [
+          { column: "name", op: "contains" as const, value: "Console Data" },
+        ],
+      };
+      await backoffice.data.loadRows("organizations", query);
+      const { tableData } = backoffice.getState();
+      expect(tableData?.table).toBe("organizations");
+      expect(tableData?.query).toEqual(query);
+      expect(tableData?.page.rows.map((row) => row.id)).toEqual([
+        organizationId,
+      ]);
+    },
+  );
 
-  it("round-trips a modifier operator through the server", async () => {
-    const backoffice = await signedInBackoffice();
-    await backoffice.data.loadRows("organizations", {
-      ...defaultTableQuery,
-      filters: [{ column: "name", op: "starts-with", value: "console data" }],
-    });
-    expect(
-      backoffice.getState().tableData?.page.rows.map((row) => row.id),
-    ).toEqual([organizationId]);
+  it.concurrent(
+    "round-trips a modifier operator through the server",
+    async ({ expect }) => {
+      const backoffice = await signedInBackoffice();
+      await backoffice.data.loadRows("organizations", {
+        ...defaultTableQuery,
+        filters: [{ column: "name", op: "starts-with", value: "console data" }],
+      });
+      expect(
+        backoffice.getState().tableData?.page.rows.map((row) => row.id),
+      ).toEqual([organizationId]);
 
-    await backoffice.data.loadRows("organizations", {
-      ...defaultTableQuery,
-      filters: [{ column: "name", op: "not-contains", value: "console" }],
-    });
-    expect(backoffice.getState().tableData?.page.total).toBe(0);
-  });
+      await backoffice.data.loadRows("organizations", {
+        ...defaultTableQuery,
+        filters: [{ column: "name", op: "not-contains", value: "console" }],
+      });
+      expect(backoffice.getState().tableData?.page.total).toBe(0);
+    },
+  );
 
-  it("mutations refresh the loaded page", async () => {
+  it.concurrent("mutations refresh the loaded page", async ({ expect }) => {
     const backoffice = await signedInBackoffice();
     // The organization's own workspace shares the table, so this page is
     // filtered down to the rows this story creates.
@@ -140,25 +110,33 @@ describe("backoffice data console", () => {
     expect(backoffice.getState().tableData?.page.total).toBe(0);
   });
 
-  it("leaves the loaded page alone when mutating another table", async () => {
-    const backoffice = await signedInBackoffice();
-    await backoffice.data.loadRows("organizations", defaultTableQuery);
-    const before = backoffice.getState().tableData;
+  it.concurrent(
+    "leaves the loaded page alone when mutating another table",
+    async ({ expect }) => {
+      const backoffice = await signedInBackoffice();
+      await backoffice.data.loadRows("organizations", defaultTableQuery);
+      const before = backoffice.getState().tableData;
 
-    await backoffice.data.insertRow("workspaces", {
-      organizationId,
-      name: "untracked-workspace",
-    });
-    expect(backoffice.getState().tableData).toBe(before);
-  });
+      // Named to stay out of the "-workspace"-suffix page the mutation story
+      // filters on — these stories run concurrently over one database.
+      await backoffice.data.insertRow("workspaces", {
+        organizationId,
+        name: "untracked-space",
+      });
+      expect(backoffice.getState().tableData).toBe(before);
+    },
+  );
 
-  it("surfaces API failures as thrown ApiErrors", async () => {
-    const backoffice = await signedInBackoffice();
-    await expect(
-      backoffice.data.loadRows("no_such_table", defaultTableQuery),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
-    await expect(
-      backoffice.data.insertRow("organizations", { name: 5 }),
-    ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
-  });
+  it.concurrent(
+    "surfaces API failures as thrown ApiErrors",
+    async ({ expect }) => {
+      const backoffice = await signedInBackoffice();
+      await expect(
+        backoffice.data.loadRows("no_such_table", defaultTableQuery),
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      await expect(
+        backoffice.data.insertRow("organizations", { name: 5 }),
+      ).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
+    },
+  );
 });

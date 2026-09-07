@@ -1,5 +1,13 @@
+import { browserFetch } from "../../domain-client/tests/kit/browser-fetch.js";
 import type { Database } from "../../domain-server/db/client.js";
-import { createTestApp } from "../../domain-server/tests/helpers/harness.js";
+import {
+  asUser,
+  createTestApp,
+  createTestDatabase,
+  createTestUser,
+  jsonBody,
+} from "../../domain-server/tests/helpers/harness.js";
+import { createBackofficeCore, createMemoryHistory } from "../client/index.js";
 import {
   createBackofficeRoutes,
   loadBackofficeEnvironment,
@@ -75,6 +83,67 @@ export async function backofficeSessionCookie(app: TestApp): Promise<string> {
   if (!cookie) throw new Error("Backoffice sign-in returned no cookie");
   return cookie;
 }
+
+const consoleBaseUrl = "http://backoffice.test";
+
+/**
+ * A fresh backoffice world for console (client-core) tests: its own database,
+ * the backoffice test app mounted on it, and one tenant founded by `founder`.
+ * `close()` tears the database down in `afterAll`.
+ */
+export async function createBackofficeConsoleWorld(options: {
+  founder: string;
+  tenantName: string;
+}) {
+  const { db, close } = await createTestDatabase();
+  const { app } = createBackofficeTestApp(db);
+  await createTestUser(db, options.founder);
+  const created = await app.request(
+    "/api/organizations",
+    asUser(options.founder, jsonBody({ name: options.tenantName })),
+  );
+  if (created.status !== 201)
+    throw new Error(
+      `Founding the tenant failed with ${String(created.status)}`,
+    );
+  const { id: organizationId } = (await created.json()) as { id: string };
+
+  /** Each console is an independent "browser": its own core and cookie jar. */
+  function newConsole(initialPath = "/") {
+    const history = createMemoryHistory(initialPath);
+    const backoffice = createBackofficeCore({
+      baseUrl: consoleBaseUrl,
+      host: {
+        fetch: browserFetch(async (input, init) =>
+          app.request(
+            input instanceof Request ? input : new URL(input, consoleBaseUrl),
+            init,
+          ),
+        ),
+      },
+      history,
+    });
+    return { backoffice, history };
+  }
+
+  /** A console whose operator has already signed in as the backoffice admin. */
+  async function signedInConsole(initialPath = "/") {
+    const opened = newConsole(initialPath);
+    await opened.backoffice.auth.signIn(backofficeAdminCredentials);
+    if (opened.backoffice.getState().auth.status !== "authenticated")
+      throw new Error("Backoffice sign-in failed");
+    return opened;
+  }
+
+  return { organizationId, close, newConsole, signedInConsole };
+}
+
+export type BackofficeConsoleWorld = Awaited<
+  ReturnType<typeof createBackofficeConsoleWorld>
+>;
+export type BackofficeConsole = ReturnType<
+  BackofficeConsoleWorld["newConsole"]
+>["backoffice"];
 
 export function withCookie(
   cookie: string,

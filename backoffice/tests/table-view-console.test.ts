@@ -1,69 +1,31 @@
 import { afterAll, beforeAll, describe, it } from "vitest";
 
-import { browserFetch } from "../../domain-client/tests/kit/browser-fetch.js";
-import type { Database } from "../../domain-server/db/client.js";
-import {
-  asUser,
-  createTestDatabase,
-  createTestUser,
-  jsonBody,
-} from "../../domain-server/tests/helpers/harness.js";
-import {
-  createBackofficeCore,
-  createMemoryHistory,
-  defaultTableQuery,
-} from "../client/index.js";
+import { defaultTableQuery } from "../client/index.js";
 import type { RowFilter } from "../client/index.js";
 
-import {
-  backofficeAdminCredentials,
-  createBackofficeTestApp,
-} from "./harness.js";
+import { createBackofficeConsoleWorld } from "./harness.js";
+import type { BackofficeConsoleWorld } from "./harness.js";
 
-const baseUrl = "http://backoffice.test";
-
-let db: Database;
-let close: () => Promise<void>;
-let app: ReturnType<typeof createBackofficeTestApp>["app"];
-
-const founder = "table-view-founder";
+let world: BackofficeConsoleWorld;
 let organizationId = "";
 
 beforeAll(async () => {
-  ({ db, close } = await createTestDatabase());
-  ({ app } = createBackofficeTestApp(db));
-  await createTestUser(db, founder);
-  const created = await app.request(
-    "/api/organizations",
-    asUser(founder, jsonBody({ name: "Table View Tenant" })),
-  );
-  organizationId = ((await created.json()) as { id: string }).id;
+  world = await createBackofficeConsoleWorld({
+    founder: "table-view-founder",
+    tenantName: "Table View Tenant",
+  });
+  ({ organizationId } = world);
 });
 
 afterAll(async () => {
-  await close();
+  await world.close();
 });
 
 /** One signed-in admin browser with its own history and table catalog. */
 async function openedConsole(initialPath = "/") {
-  const history = createMemoryHistory(initialPath);
-  const backoffice = createBackofficeCore({
-    baseUrl,
-    host: {
-      fetch: browserFetch(async (input, init) =>
-        app.request(
-          input instanceof Request ? input : new URL(input, baseUrl),
-          init,
-        ),
-      ),
-    },
-    history,
-  });
-  await backoffice.auth.signIn(backofficeAdminCredentials);
-  if (backoffice.getState().auth.status !== "authenticated")
-    throw new Error("Backoffice sign-in failed");
-  await backoffice.data.loadTables();
-  return { backoffice, history };
+  const opened = await world.signedInConsole(initialPath);
+  await opened.backoffice.data.loadTables();
+  return opened;
 }
 
 const nameFilter: RowFilter[] = [{ column: "name", op: "eq", value: "linked" }];
