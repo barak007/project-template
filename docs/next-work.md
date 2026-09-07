@@ -69,7 +69,7 @@ The pattern to follow already exists in `app/client/`: state slices + events + a
 
 ## Decisions needed (not tasks yet)
 
-1. **Trim the domain?** Workspaces, work sessions, git materialization, secrets encryption, and the local git builder (~1,100 lines) are a _product_, not boilerplate. A cloner inherits all of it and must delete it. Consider a `template-minimal` branch or an init-script option that strips these aggregates.
+1. **Trim the domain?** Workspaces, work sessions, git materialization, secrets encryption, and the local git builder (~1,100 lines) are a _product_, not boilerplate. A cloner inherits all of it and must delete it. Consider a `template-minimal` branch or an init-script option that strips these aggregates. Fold in here (from the cleanup plan's E4): `domain-client/secret-actions.ts`, `data-actions.ts`, and most of `source-actions.ts` (~175 action lines, 4 state slices, 10 events) are reachable only from tests and docs — trim or keep them with the same decision.
 
 ## Resolved
 

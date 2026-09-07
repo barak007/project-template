@@ -7,7 +7,8 @@ import { App } from "./app.js";
 import "./styles.css";
 
 // Routes carry state in the query string (table filters), so the path
-// surface is pathname + search.
+// surface is pathname + search. Deliberately duplicated with app/ui/main.tsx:
+// a shared ui-kit zone is not worth two adapters this small.
 const browserHistory: History = {
   path: () => window.location.pathname + window.location.search,
   push: (path) => {

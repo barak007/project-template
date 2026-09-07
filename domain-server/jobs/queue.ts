@@ -1,6 +1,7 @@
 import { PgBoss } from "pg-boss";
 
 import type { Database } from "../db/client.js";
+import { AppError } from "../errors.js";
 import type { WorkspaceProjectBuilder } from "../git/project-builder.js";
 import type { Logger } from "../logging.js";
 
@@ -61,7 +62,13 @@ export class QueueRuntime implements JobProducer {
       id: data.workSessionId,
       ...materializeRetryOptions,
     });
-    if (!id) throw new Error("Queue rejected materialization job");
+    // Thrown out of createWorkSession during a request, so it must be AppError.
+    if (!id)
+      throw new AppError(
+        "INTERNAL_ERROR",
+        "Queue rejected materialization job",
+        500,
+      );
     return id;
   }
 

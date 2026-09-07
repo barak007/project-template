@@ -13,6 +13,10 @@ import { AppError } from "../errors.js";
 
 import { requireOrganizationPermission } from "./policy.js";
 
+// Four aggregates in one file — a deliberate exception to service-per-aggregate:
+// organization/user secrets and data share the upsert-by-(scope, key) shape, and
+// splitting them would copy that shape four times to satisfy a file convention.
+
 export async function listOrganizationSecrets(
   db: Database,
   userId: string,

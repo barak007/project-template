@@ -6,6 +6,8 @@ import type { History } from "../client/index.js";
 import { App } from "./app.js";
 import "./styles.css";
 
+// Deliberately duplicated with backoffice/ui/main.tsx (which also tracks the
+// query string): a shared ui-kit zone is not worth two adapters this small.
 const browserHistory: History = {
   path: () => window.location.pathname,
   push: (path) => {
