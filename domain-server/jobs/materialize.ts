@@ -45,7 +45,7 @@ export async function materializeWorkSession(
   const job = materializeWorkSessionJobSchema.parse(input);
   const [claimed] = await db
     .update(workSessions)
-    .set({ status: "materializing", updatedAt: new Date() })
+    .set({ status: "materializing" })
     .where(
       and(
         eq(workSessions.id, job.workSessionId),
@@ -101,7 +101,7 @@ export async function materializeWorkSession(
     // pointing at the project that now exists.
     await db
       .update(workspaces)
-      .set({ projectLocation: project, updatedAt: new Date() })
+      .set({ projectLocation: project })
       .where(eq(workspaces.id, workspace.id));
 
     location = await projectBuilder.cloneForSession({
@@ -119,7 +119,6 @@ export async function materializeWorkSession(
       .set({
         status: "failed",
         failureCode: "PROJECT_BUILD_FAILED",
-        updatedAt: new Date(),
       })
       .where(eq(workSessions.id, claimed.id));
     throw error;
@@ -132,7 +131,6 @@ export async function materializeWorkSession(
       projectBranch: branch,
       projectLocation: location,
       failureCode: null,
-      updatedAt: new Date(),
     })
     .where(eq(workSessions.id, claimed.id))
     .returning();
@@ -165,7 +163,6 @@ function reporter(
         .update(workSessions)
         .set({
           progress: sql`${workSessions.progress} || ${JSON.stringify([entry])}::jsonb`,
-          updatedAt: new Date(),
         })
         .where(eq(workSessions.id, workSessionId));
     } catch (error) {

@@ -159,7 +159,7 @@ export async function updateWorkspace(
   return db.transaction(async (transaction) => {
     const [workspace] = await transaction
       .update(workspaces)
-      .set({ name: input.name, updatedAt: new Date() })
+      .set({ name: input.name })
       .where(
         and(
           eq(workspaces.id, workspaceId),

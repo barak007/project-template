@@ -245,7 +245,7 @@ async function upsertPendingInvitation(
   const [invitation] = waiting
     ? await db
         .update(organizationInvitations)
-        .set({ role: input.role, invitedByUserId, updatedAt: new Date() })
+        .set({ role: input.role, invitedByUserId })
         .where(eq(organizationInvitations.id, waiting.id))
         .returning()
     : await db

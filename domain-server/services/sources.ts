@@ -61,7 +61,7 @@ export async function updateSource(
   );
   const [source] = await db
     .update(sources)
-    .set({ ...input, updatedAt: new Date() })
+    .set({ ...input })
     .where(
       and(eq(sources.id, sourceId), eq(sources.organizationId, organizationId)),
     )

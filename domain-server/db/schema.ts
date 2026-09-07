@@ -19,9 +19,13 @@ const timestamps = {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  // $onUpdate bumps the column on every db.update().set() so services never
+  // hand-write it — but it does NOT fire inside an upsert's onConflictDoUpdate
+  // set clause, so those (services/values.ts) still set it explicitly.
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull(),
+    .notNull()
+    .$onUpdate(() => new Date()),
 };
 
 // Better Auth core schema. Property names intentionally match its adapter contract.

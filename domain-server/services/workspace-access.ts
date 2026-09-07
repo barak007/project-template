@@ -70,7 +70,7 @@ export async function setWorkspaceVisibility(
   );
   const [workspace] = await db
     .update(workspaces)
-    .set({ visibility, updatedAt: new Date() })
+    .set({ visibility })
     .where(
       and(
         eq(workspaces.id, workspaceId),

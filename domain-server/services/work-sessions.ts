@@ -137,7 +137,7 @@ export async function branchWorkSessionProject(
   await projectBuilder.branchAll(row.projectLocation, branch);
   const [updated] = await db
     .update(workSessions)
-    .set({ projectBranch: branch, updatedAt: new Date() })
+    .set({ projectBranch: branch })
     .where(eq(workSessions.id, workSessionId))
     .returning();
   if (!updated) throw new AppError("NOT_FOUND", "Work session not found", 404);
@@ -252,7 +252,6 @@ export async function createWorkSession(
       .set({
         status: "failed",
         failureCode: "QUEUE_UNAVAILABLE",
-        updatedAt: new Date(),
       })
       .where(eq(workSessions.id, created.id));
     throw error;
