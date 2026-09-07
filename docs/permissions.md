@@ -4,6 +4,7 @@ title: Permission Model
 description: How organizations, teams, and workspaces grant access — the roles, the permissions they carry, and the rules for resolving them.
 tags: [domain, authorization, teams, workspaces]
 timestamp: 2026-08-10T00:00:00Z
+status: partially built — organization roles and per-workspace grants are implemented; teams (team roles, Team/TeamMember entities) are design only, with no code behind them
 ---
 
 # Permission Model
