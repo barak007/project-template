@@ -14,6 +14,7 @@ import type {
 import { AppError } from "../errors.js";
 
 import { requireOrganizationPermission } from "./policy.js";
+import { withUserName } from "./users.js";
 
 export async function createOrganization(
   db: Database,
@@ -145,14 +146,5 @@ export async function changeMemberRole(
       "That person is not a member of this organization",
       404,
     );
-  const [person] = await db
-    .select({ name: user.name, email: user.email })
-    .from(user)
-    .where(eq(user.id, membership.userId))
-    .limit(1);
-  return {
-    ...membership,
-    name: person?.name ?? "",
-    email: person?.email ?? "",
-  };
+  return withUserName(db, membership);
 }

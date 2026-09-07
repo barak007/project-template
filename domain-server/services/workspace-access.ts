@@ -7,11 +7,11 @@ import {
   workspaces,
   workspaceUserGrants,
 } from "../db/schema.js";
-import type { WorkspaceRole } from "../db/schema.js";
 import type { WorkspaceGrantInput } from "../entities/workspace.js";
 import { AppError } from "../errors.js";
 
 import { requireWorkspacePermission } from "./policy.js";
+import { withUserName } from "./users.js";
 import { withSourceIds } from "./workspaces.js";
 
 /**
@@ -131,7 +131,7 @@ export async function putGrant(
     .returning();
   if (!grant)
     throw new AppError("INTERNAL_ERROR", "Could not save the grant", 500);
-  return named(db, grant);
+  return withUserName(db, grant);
 }
 
 export async function removeGrant(
@@ -158,25 +158,4 @@ export async function removeGrant(
     )
     .returning({ userId: workspaceUserGrants.userId });
   if (!removed) throw new AppError("NOT_FOUND", "Grant not found", 404);
-}
-
-async function named(
-  db: Database,
-  grant: {
-    workspaceId: string;
-    userId: string;
-    role: WorkspaceRole;
-    createdAt: Date;
-  },
-) {
-  const [person] = await db
-    .select({ name: user.name, email: user.email })
-    .from(user)
-    .where(eq(user.id, grant.userId))
-    .limit(1);
-  return {
-    ...grant,
-    name: person?.name ?? "",
-    email: person?.email ?? "",
-  };
 }
