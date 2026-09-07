@@ -1,10 +1,12 @@
 # Backoffice
 
 The backoffice is the platform operator console shipped with the boilerplate: a
-read-only React SPA in [backoffice/](../backoffice/) where the developers of an
-app built from this boilerplate can inspect every tenant — all users, all
-organizations, and each organization's members, sources, workspaces, and work
-sessions.
+React SPA in [backoffice/](../backoffice/) where the developers of an app built
+from this boilerplate can inspect every tenant — all users, all organizations,
+and each organization's members, sources, workspaces, and work sessions — and
+mutate the underlying rows: edit or delete table rows, create users, and delete
+organizations. It is a development and operations tool, never deployed with the
+app.
 
 It is cross-tenant by design and therefore authenticated by a **standalone
 backoffice admin credential** — deliberately not an application user. The
@@ -117,12 +119,3 @@ count as "doesn't contain" and the row is kept.
 Table URLs carry the active state: route-driven filters ride the `filters`
 query param, and non-default pagination rides `limit`/`offset`, so a reload or
 a shared link lands on the same filtered page.
-
-## Deploying (follow-up)
-
-The build (`pnpm build`) emits a static SPA to `backoffice/dist`, which v1 does
-not serve from the API process. Deploy it wherever suits your app — the
-simplest follow-up is serving `backoffice/dist` under the app's own domain so
-cookies keep working without CORS. Note the setup screen writes to `.env` in
-the server's working directory; on hosts without a persistent filesystem, set
-the two variables in the host's environment configuration instead.

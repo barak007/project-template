@@ -40,7 +40,7 @@ The product itself ships in [`app/`](./app/): a public home page, sign-up, sign-
 
 ## Backoffice
 
-A read-only operator console for inspecting all tenants ships in [`backoffice/`](./backoffice/): it has its own admin credential, separate from app accounts — on first open it shows a setup screen that stores the (hashed) credential in `.env`. `pnpm dev` already serves it on :5173 alongside the API. See [`docs/backoffice.md`](./docs/backoffice.md).
+An operator console for inspecting all tenants — and, with care, mutating their rows, creating users, and deleting organizations — ships in [`backoffice/`](./backoffice/): it has its own admin credential, separate from app accounts — on first open it shows a setup screen that stores the (hashed) credential in `.env`. `pnpm dev` already serves it on :5173 alongside the API. See [`docs/backoffice.md`](./docs/backoffice.md).
 
 ## Commands
 
