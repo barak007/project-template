@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { sourceKind, workSessionStatus } from "../db/schema.js";
+
 import { jsonValueSchema, timestampsSchema } from "./common.js";
 import { projectLocationSchema } from "./project.js";
 
@@ -29,7 +31,7 @@ export const projectBranchSchema = z.object({
 export const sourceSnapshotSchema = z.object({
   id: z.uuid(),
   name: z.string(),
-  kind: z.enum(["git", "database", "other"]),
+  kind: z.enum(sourceKind.enumValues),
   config: jsonValueSchema,
 });
 export const workSessionResponseSchema = z
@@ -38,7 +40,7 @@ export const workSessionResponseSchema = z
     organizationId: z.uuid(),
     workspaceId: z.uuid(),
     createdByUserId: z.string(),
-    status: z.enum(["pending", "materializing", "ready", "failed"]),
+    status: z.enum(workSessionStatus.enumValues),
     sourcesSnapshot: z.array(sourceSnapshotSchema),
     dataSnapshot: z.record(z.string(), jsonValueSchema),
     secretKeys: z.array(z.string()),

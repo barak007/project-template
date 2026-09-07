@@ -1,14 +1,11 @@
 import { z } from "zod";
 
+import { invitationStatus } from "../db/schema.js";
+
 import { timestampsSchema } from "./common.js";
 import { memberRoleSchema } from "./organization.js";
 
-export const invitationStatusSchema = z.enum([
-  "pending",
-  "accepted",
-  "declined",
-  "revoked",
-]);
+export const invitationStatusSchema = z.enum(invitationStatus.enumValues);
 
 /**
  * An invitation is addressed to an email, so the address is normalised here

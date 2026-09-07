@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { sourceKind } from "../db/schema.js";
+
 import { jsonValueSchema, timestampsSchema } from "./common.js";
 import { gitRemoteSchema } from "./repository.js";
 
@@ -16,7 +18,7 @@ export const gitSourceConfigSchema = z.object({
 export const sourceInputSchema = z
   .object({
     name: z.string().trim().min(1).max(200),
-    kind: z.enum(["git", "database", "other"]),
+    kind: z.enum(sourceKind.enumValues),
     config: jsonValueSchema,
   })
   .superRefine((input, context) => {
@@ -30,7 +32,7 @@ export const sourceInputSchema = z
 export const sourceResponseSchema = z
   .object({
     name: z.string(),
-    kind: z.enum(["git", "database", "other"]),
+    kind: z.enum(sourceKind.enumValues),
     config: jsonValueSchema,
     id: z.uuid(),
     organizationId: z.uuid(),

@@ -387,7 +387,7 @@ export const userData = pgTable(
 export type SourceSnapshot = {
   id: string;
   name: string;
-  kind: "git" | "database" | "other";
+  kind: (typeof sourceKind.enumValues)[number];
   config: JsonValue;
 };
 

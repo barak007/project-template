@@ -1,15 +1,12 @@
 import { z } from "zod";
 
+import { workspaceRole, workspaceVisibility } from "../db/schema.js";
+
 import { timestampsSchema } from "./common.js";
 import { projectLocationSchema } from "./project.js";
 
-export const workspaceRoleSchema = z.enum([
-  "viewer",
-  "operator",
-  "editor",
-  "manager",
-]);
-export const workspaceVisibilitySchema = z.enum(["organization", "restricted"]);
+export const workspaceRoleSchema = z.enum(workspaceRole.enumValues);
+export const workspaceVisibilitySchema = z.enum(workspaceVisibility.enumValues);
 
 export const workspaceInputSchema = z.object({
   name: z.string().trim().min(1).max(200),

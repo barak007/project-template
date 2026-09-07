@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { memberRole } from "../db/schema.js";
+
 import { timestampsSchema } from "./common.js";
 
 export const organizationCreateSchema = z.object({
@@ -8,7 +10,7 @@ export const organizationCreateSchema = z.object({
 export const organizationResponseSchema = z
   .object({ id: z.uuid(), name: z.string() })
   .extend(timestampsSchema.shape);
-export const memberRoleSchema = z.enum(["owner", "admin", "member"]);
+export const memberRoleSchema = z.enum(memberRole.enumValues);
 /**
  * A membership names a person, not just an id: everyone in an organization can
  * read this list, and a colleague has to be recognisable to be granted a

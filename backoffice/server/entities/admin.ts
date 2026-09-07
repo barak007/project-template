@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import {
+  sourceKind,
+  workSessionStatus,
+} from "../../../domain-server/db/schema.js";
 import { timestampsSchema } from "../../../domain-server/entities/common.js";
 import {
   memberRoleSchema,
@@ -40,7 +44,7 @@ export const adminSourceResponseSchema = z
   .object({
     id: z.uuid(),
     name: z.string(),
-    kind: z.enum(["git", "database", "other"]),
+    kind: z.enum(sourceKind.enumValues),
   })
   .extend(timestampsSchema.shape);
 
@@ -53,7 +57,7 @@ export const adminWorkSessionResponseSchema = z
     id: z.uuid(),
     workspaceId: z.uuid(),
     createdByUserId: z.string(),
-    status: z.enum(["pending", "materializing", "ready", "failed"]),
+    status: z.enum(workSessionStatus.enumValues),
     failureCode: z.string().nullable(),
   })
   .extend(timestampsSchema.shape);
