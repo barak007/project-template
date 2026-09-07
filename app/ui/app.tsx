@@ -32,28 +32,23 @@ export function App({ core }: { core: AppCore }) {
   // guess — an authenticated visitor would see the marketing site flash by.
   if (!sessionResolved) return null;
 
-  switch (page) {
-    case "home":
-      return <HomePage core={core} />;
-    case "sign-in":
-      return <SignInPage core={core} />;
-    case "sign-up":
-      return <SignUpPage core={core} />;
-    case "dashboard":
-      return (
-        <AppShell core={core}>
-          <DashboardPage core={core} />
-        </AppShell>
-      );
+  // The guard pages substitute the route (visibleRoute); everything after them
+  // is the route itself, so route.kind narrows each page's parameters.
+  if (page === "home") return <HomePage core={core} />;
+  if (page === "sign-in") return <SignInPage core={core} />;
+  if (page === "sign-up") return <SignUpPage core={core} />;
+  if (page === "dashboard")
+    return (
+      <AppShell core={core}>
+        <DashboardPage core={core} />
+      </AppShell>
+    );
+
+  switch (route.kind) {
     case "organization":
       return (
         <AppShell core={core}>
-          <OrganizationPage
-            core={core}
-            organizationId={
-              route.kind === "organization" ? route.organizationId : ""
-            }
-          />
+          <OrganizationPage core={core} organizationId={route.organizationId} />
         </AppShell>
       );
     case "workspace":
@@ -61,10 +56,8 @@ export function App({ core }: { core: AppCore }) {
         <AppShell core={core}>
           <WorkspacePage
             core={core}
-            organizationId={
-              route.kind === "workspace" ? route.organizationId : ""
-            }
-            workspaceId={route.kind === "workspace" ? route.workspaceId : ""}
+            organizationId={route.organizationId}
+            workspaceId={route.workspaceId}
           />
         </AppShell>
       );
@@ -73,12 +66,8 @@ export function App({ core }: { core: AppCore }) {
         <AppShell core={core}>
           <WorkspaceProjectPage
             core={core}
-            organizationId={
-              route.kind === "workspace-project" ? route.organizationId : ""
-            }
-            workspaceId={
-              route.kind === "workspace-project" ? route.workspaceId : ""
-            }
+            organizationId={route.organizationId}
+            workspaceId={route.workspaceId}
           />
         </AppShell>
       );
@@ -87,12 +76,12 @@ export function App({ core }: { core: AppCore }) {
         <AppShell core={core}>
           <SessionPage
             core={core}
-            organizationId={
-              route.kind === "session" ? route.organizationId : ""
-            }
-            workSessionId={route.kind === "session" ? route.workSessionId : ""}
+            organizationId={route.organizationId}
+            workSessionId={route.workSessionId}
           />
         </AppShell>
       );
+    default:
+      return null;
   }
 }
