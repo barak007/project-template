@@ -8,7 +8,7 @@ There is no legacy to maintain.
 
 ## Where the project stands
 
-**Healthy.** `pnpm typecheck` is clean and all 343 tests across 53 files pass in Node with no external services (PGlite + real migrations). There is exactly one squashed migration (`drizzle/0000_init.sql`). Layering (routes → services → db, backoffice → src only, no globals in client code) is real and lint-enforced by 15 import zones — no violations found. `app/` is the model implementation of the headless client: zero `useState` in `app/ui/`, drafts/pending/errors all in the store, polished UI with design tokens, dark mode, and genuine accessibility work.
+**Healthy.** `pnpm typecheck` is clean and all 390 tests across 61 files pass in Node with no external services (PGlite + real migrations). There is exactly one squashed migration (`drizzle/0000_init.sql`). Layering (routes → services → db, backoffice → src only, no globals in client code) is real and lint-enforced by 15 import zones — no violations found. `app/` is the model implementation of the headless client: zero `useState` in `app/ui/`, drafts/pending/errors all in the store, polished UI with design tokens, dark mode, and genuine accessibility work.
 
 **The debt is concentrated in three places:**
 
