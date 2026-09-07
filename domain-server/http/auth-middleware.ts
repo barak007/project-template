@@ -15,7 +15,6 @@ export function requireAuthentication(dependencies: RuntimeDependencies) {
         "Authentication is required",
         401,
       );
-    context.set("session", session.session);
     context.set("user", session.user);
     await next();
   });

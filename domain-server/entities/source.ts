@@ -13,8 +13,6 @@ export const gitSourceConfigSchema = z.object({
   remote: gitRemoteSchema,
   ref: z.string().trim().min(1).max(200).optional(),
 });
-export type GitSourceConfig = z.infer<typeof gitSourceConfigSchema>;
-
 export const sourceInputSchema = z
   .object({
     name: z.string().trim().min(1).max(200),

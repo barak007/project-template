@@ -23,7 +23,6 @@ export type RuntimeDependencies = {
 
 export type AppBindings = {
   Variables: {
-    session: NonNullable<AuthSession>["session"];
     user: NonNullable<AuthSession>["user"];
   };
 };

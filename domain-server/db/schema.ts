@@ -470,12 +470,4 @@ export const schema = {
   workSessions,
 };
 
-export type Organization = typeof organizations.$inferSelect;
-export type OrganizationInvitation =
-  typeof organizationInvitations.$inferSelect;
-export type NewOrganization = typeof organizations.$inferInsert;
-export type Source = typeof sources.$inferSelect;
-export type Workspace = typeof workspaces.$inferSelect;
 export type WorkspaceRole = (typeof workspaceRole.enumValues)[number];
-export type WorkspaceUserGrant = typeof workspaceUserGrants.$inferSelect;
-export type WorkSession = typeof workSessions.$inferSelect;
