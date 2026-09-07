@@ -1,5 +1,10 @@
-import type { Api, InvitationDecision } from "./api.js";
-import { toApiError } from "./errors.js";
+import type {
+  Api,
+  Invitation,
+  InvitationDecision,
+  UserMessage,
+} from "./api.js";
+import { commit } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 
 /**
@@ -11,19 +16,27 @@ import type { ClientStore } from "./projection.js";
 export function createInboxActions(api: Api, store: ClientStore) {
   return {
     load: async () => {
-      const response = await api.api.me.messages.$get();
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({ type: "inbox-loaded", messages: await response.json() });
+      await commit(
+        store,
+        api.api.me.messages.$get(),
+        (messages: UserMessage[]) => ({
+          type: "inbox-loaded",
+          messages,
+        }),
+      );
     },
     respond: async (invitationId: string, decision: InvitationDecision) => {
-      const response = await api.api.me.invitations[
-        ":invitationId"
-      ].response.$post({ param: { invitationId }, json: { decision } });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "invitation-answered",
-        invitation: await response.json(),
-      });
+      await commit(
+        store,
+        api.api.me.invitations[":invitationId"].response.$post({
+          param: { invitationId },
+          json: { decision },
+        }),
+        (invitation: Invitation) => ({
+          type: "invitation-answered",
+          invitation,
+        }),
+      );
     },
   };
 }

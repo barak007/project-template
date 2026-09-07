@@ -1,6 +1,5 @@
-import { readJson } from "./api.js";
 import type { Api, RepositoryInput, Source } from "./api.js";
-import { toApiError } from "./errors.js";
+import { commit } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 
 /**
@@ -12,16 +11,16 @@ import type { ClientStore } from "./projection.js";
 export function createRepositoryActions(api: Api, store: ClientStore) {
   const routes = api.api.organizations[":organizationId"].repositories;
   return {
-    add: async (organizationId: string, input: RepositoryInput) => {
-      const response = await routes.$post({
-        param: { organizationId },
-        json: input,
-      });
-      if (!response.ok) throw await toApiError(response);
-      const source = await readJson<Source>(response);
-      // Upserts rather than appends: the same URL twice is the same source.
-      store.dispatch({ type: "repository-added", organizationId, source });
-      return source;
-    },
+    add: (organizationId: string, input: RepositoryInput) =>
+      commit(
+        store,
+        routes.$post({ param: { organizationId }, json: input }),
+        // Upserts rather than appends: the same URL twice is the same source.
+        (source: Source) => ({
+          type: "repository-added",
+          organizationId,
+          source,
+        }),
+      ),
   };
 }

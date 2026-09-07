@@ -1,5 +1,11 @@
-import type { Api, WorkspaceGrantInput, WorkspaceVisibility } from "./api.js";
-import { toApiError } from "./errors.js";
+import type {
+  Api,
+  Workspace,
+  WorkspaceGrant,
+  WorkspaceGrantInput,
+  WorkspaceVisibility,
+} from "./api.js";
+import { commit, commitEmpty } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 
 /**
@@ -16,49 +22,53 @@ export function createWorkspaceAccessActions(api: Api, store: ClientStore) {
     api.api.organizations[":organizationId"].workspaces[":workspaceId"];
   return {
     load: async (organizationId: string, workspaceId: string) => {
-      const response = await routes.grants.$get({
-        param: { organizationId, workspaceId },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "workspace-grants-loaded",
-        organizationId,
-        workspaceId,
-        grants: await response.json(),
-      });
+      await commit(
+        store,
+        routes.grants.$get({ param: { organizationId, workspaceId } }),
+        (grants: WorkspaceGrant[]) => ({
+          type: "workspace-grants-loaded",
+          organizationId,
+          workspaceId,
+          grants,
+        }),
+      );
     },
     putGrant: async (
       organizationId: string,
       workspaceId: string,
       input: WorkspaceGrantInput,
     ) => {
-      const response = await routes.grants.$put({
-        param: { organizationId, workspaceId },
-        json: input,
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "workspace-grant-put",
-        organizationId,
-        workspaceId,
-        grant: await response.json(),
-      });
+      await commit(
+        store,
+        routes.grants.$put({
+          param: { organizationId, workspaceId },
+          json: input,
+        }),
+        (grant: WorkspaceGrant) => ({
+          type: "workspace-grant-put",
+          organizationId,
+          workspaceId,
+          grant,
+        }),
+      );
     },
     removeGrant: async (
       organizationId: string,
       workspaceId: string,
       userId: string,
     ) => {
-      const response = await routes.grants[":userId"].$delete({
-        param: { organizationId, workspaceId, userId },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "workspace-grant-removed",
-        organizationId,
-        workspaceId,
-        userId,
-      });
+      await commitEmpty(
+        store,
+        routes.grants[":userId"].$delete({
+          param: { organizationId, workspaceId, userId },
+        }),
+        {
+          type: "workspace-grant-removed",
+          organizationId,
+          workspaceId,
+          userId,
+        },
+      );
     },
     /** The whole workspace comes back, so the list the caller holds stays true. */
     setVisibility: async (
@@ -66,16 +76,18 @@ export function createWorkspaceAccessActions(api: Api, store: ClientStore) {
       workspaceId: string,
       visibility: WorkspaceVisibility,
     ) => {
-      const response = await routes.visibility.$put({
-        param: { organizationId, workspaceId },
-        json: { visibility },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "workspace-updated",
-        organizationId,
-        workspace: await response.json(),
-      });
+      await commit(
+        store,
+        routes.visibility.$put({
+          param: { organizationId, workspaceId },
+          json: { visibility },
+        }),
+        (workspace: Workspace) => ({
+          type: "workspace-updated",
+          organizationId,
+          workspace,
+        }),
+      );
     },
   };
 }

@@ -1,42 +1,44 @@
-import { readJson } from "./api.js";
 import type { Api, WorkSession } from "./api.js";
-import { toApiError } from "./errors.js";
+import { commit } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 
 export function createWorkSessionActions(api: Api, store: ClientStore) {
   const routes = api.api.organizations[":organizationId"]["work-sessions"];
   return {
     load: async (organizationId: string) => {
-      const response = await routes.$get({ param: { organizationId } });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "work-sessions-loaded",
-        organizationId,
-        workSessions: await readJson<WorkSession[]>(response),
-      });
+      await commit(
+        store,
+        routes.$get({ param: { organizationId } }),
+        (workSessions: WorkSession[]) => ({
+          type: "work-sessions-loaded",
+          organizationId,
+          workSessions,
+        }),
+      );
     },
     start: async (organizationId: string, workspaceId: string) => {
-      const response = await routes.$post({
-        param: { organizationId },
-        json: { workspaceId },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "work-session-started",
-        organizationId,
-        workSession: await readJson<WorkSession>(response),
-      });
+      await commit(
+        store,
+        routes.$post({ param: { organizationId }, json: { workspaceId } }),
+        (workSession: WorkSession) => ({
+          type: "work-session-started",
+          organizationId,
+          workSession,
+        }),
+      );
     },
     refresh: async (organizationId: string, workSessionId: string) => {
-      const response = await routes[":workSessionId"].$get({
-        param: { organizationId, workSessionId },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "work-session-refreshed",
-        organizationId,
-        workSession: await readJson<WorkSession>(response),
-      });
+      await commit(
+        store,
+        routes[":workSessionId"].$get({
+          param: { organizationId, workSessionId },
+        }),
+        (workSession: WorkSession) => ({
+          type: "work-session-refreshed",
+          organizationId,
+          workSession,
+        }),
+      );
     },
     /**
      * Puts every repository in the session's project on one branch — the
@@ -47,16 +49,18 @@ export function createWorkSessionActions(api: Api, store: ClientStore) {
       workSessionId: string,
       branch: string,
     ) => {
-      const response = await routes[":workSessionId"].project.branch.$post({
-        param: { organizationId, workSessionId },
-        json: { branch },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "work-session-refreshed",
-        organizationId,
-        workSession: await readJson<WorkSession>(response),
-      });
+      await commit(
+        store,
+        routes[":workSessionId"].project.branch.$post({
+          param: { organizationId, workSessionId },
+          json: { branch },
+        }),
+        (workSession: WorkSession) => ({
+          type: "work-session-refreshed",
+          organizationId,
+          workSession,
+        }),
+      );
     },
   };
 }

@@ -1,5 +1,5 @@
-import type { Api, InvitationInput } from "./api.js";
-import { toApiError } from "./errors.js";
+import type { Api, Invitation, InvitationInput } from "./api.js";
+import { commit } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 
 /**
@@ -12,36 +12,39 @@ export function createInvitationActions(api: Api, store: ClientStore) {
   const routes = api.api.organizations[":organizationId"].invitations;
   return {
     load: async (organizationId: string) => {
-      const response = await routes.$get({ param: { organizationId } });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "invitations-loaded",
-        organizationId,
-        invitations: await response.json(),
-      });
+      await commit(
+        store,
+        routes.$get({ param: { organizationId } }),
+        (invitations: Invitation[]) => ({
+          type: "invitations-loaded",
+          organizationId,
+          invitations,
+        }),
+      );
     },
     invite: async (organizationId: string, input: InvitationInput) => {
-      const response = await routes.$post({
-        param: { organizationId },
-        json: input,
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "invitation-sent",
-        organizationId,
-        invitation: await response.json(),
-      });
+      await commit(
+        store,
+        routes.$post({ param: { organizationId }, json: input }),
+        (invitation: Invitation) => ({
+          type: "invitation-sent",
+          organizationId,
+          invitation,
+        }),
+      );
     },
     revoke: async (organizationId: string, invitationId: string) => {
-      const response = await routes[":invitationId"].$delete({
-        param: { organizationId, invitationId },
-      });
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "invitation-revoked",
-        organizationId,
-        invitation: await response.json(),
-      });
+      await commit(
+        store,
+        routes[":invitationId"].$delete({
+          param: { organizationId, invitationId },
+        }),
+        (invitation: Invitation) => ({
+          type: "invitation-revoked",
+          organizationId,
+          invitation,
+        }),
+      );
     },
   };
 }

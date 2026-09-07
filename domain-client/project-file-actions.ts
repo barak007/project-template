@@ -1,6 +1,5 @@
-import { readJson } from "./api.js";
 import type { Api, ProjectEntry, ProjectFile } from "./api.js";
-import { toApiError } from "./errors.js";
+import { commit } from "./commit.js";
 import type { ClientStore } from "./projection.js";
 import type { ProjectTarget } from "./state.js";
 
@@ -54,15 +53,17 @@ export function createProjectFileActions(api: Api, store: ClientStore) {
       target: ProjectTarget,
       path = "",
     ) => {
-      const response = await listRequest(organizationId, target, path);
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "project-directory-loaded",
-        organizationId,
-        target,
-        path,
-        entries: await readJson<ProjectEntry[]>(response),
-      });
+      await commit(
+        store,
+        listRequest(organizationId, target, path),
+        (entries: ProjectEntry[]) => ({
+          type: "project-directory-loaded",
+          organizationId,
+          target,
+          path,
+          entries,
+        }),
+      );
     },
     collapseDirectory: (path: string) => {
       store.dispatch({ type: "project-directory-collapsed", path });
@@ -72,14 +73,16 @@ export function createProjectFileActions(api: Api, store: ClientStore) {
       target: ProjectTarget,
       path: string,
     ) => {
-      const response = await fileRequest(organizationId, target, path);
-      if (!response.ok) throw await toApiError(response);
-      store.dispatch({
-        type: "project-file-loaded",
-        organizationId,
-        target,
-        file: await readJson<ProjectFile>(response),
-      });
+      await commit(
+        store,
+        fileRequest(organizationId, target, path),
+        (file: ProjectFile) => ({
+          type: "project-file-loaded",
+          organizationId,
+          target,
+          file,
+        }),
+      );
     },
   };
 }
